@@ -47,8 +47,9 @@
         </div>
     </div>
 
-    <div id="postsContainer">
-        </div>
+    <div id="postsContainer" style="padding-bottom: 100px;">
+        <div style="text-align:center; padding:20px; color:#777;" id="loadingMsg">جاري تحميل المنشورات...</div>
+    </div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item active"><i class="fas fa-home"></i></a>
@@ -106,10 +107,13 @@
     </div>
 
     <script type="module" src="main.js"></script>
+    
     <script>
         if (!localStorage.getItem('hobbyLoggedIn')) window.location.href = 'index.html';
-        window.onload = function() {
-            if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+        
+        // التحقق من الوضع المظلم فور تحميل الصفحة
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
         }
     </script>
 </body>
