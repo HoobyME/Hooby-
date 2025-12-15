@@ -61,9 +61,7 @@
     </div>
 
     <div class="posts-grid" id="profileGrid">
-        <div class="grid-item"><img src="https://picsum.photos/300?random=1"></div>
-        <div class="grid-item"><img src="https://picsum.photos/300?random=2"></div>
-        <div class="grid-item"><img src="https://picsum.photos/300?random=3"></div>
+        <p style="width:100%; text-align:center; color:#777; grid-column: 1/-1; padding: 20px;">جاري تحميل منشوراتك...</p>
     </div>
 
     <div class="bottom-nav">
@@ -72,34 +70,31 @@
         <div class="nav-item active" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
 
-    <div id="followingListModal" class="modal-popup-overlay"><div class="modal-box"><h3 style="margin-top:0; color:var(--primary-color)">قائمة المتابعة</h3><div id="followingListContainer" style="margin-bottom: 20px;"></div><button onclick="document.getElementById('followingListModal').style.display='none'" class="btn-text">إغلاق</button></div></div>
-    <div id="followersListModal" class="modal-popup-overlay"><div class="modal-box"><h3 style="margin-top:0; color:var(--primary-color)">المتابعون</h3><div id="followersListContainer" style="margin-bottom: 20px;"></div><button onclick="document.getElementById('followersListModal').style.display='none'" class="btn-text">إغلاق</button></div></div>
-    
-    <div id="chatModal" class="chat-overlay">
-        <div class="chat-header">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <img src="" id="chatHeaderImg" class="chat-user-img">
-                <div class="chat-user-info"><h4 id="chatHeaderName">الاسم</h4><span id="chatStatus">متصل الآن</span></div>
-            </div>
-            <div class="chat-header-actions"><div class="chat-close-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></div></div>
+    <div id="addPostOverlay" class="add-post-overlay">
+        <div class="add-post-header">
+            <button onclick="closeAddPost()" class="btn-text">إلغاء</button>
+            <h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3>
+            <button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button>
         </div>
-        <div id="chatBody" class="chat-body"></div>
-        <div class="chat-footer">
-            <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالة...">
-            <button class="chat-send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        <div class="add-post-body">
+            <p class="label-green">العنوان</p>
+            <div class="input-rect"><input type="text" id="postTitle" placeholder="عنوان المنشور..."></div>
+            <p class="label-green">الموضوع</p>
+            <div class="input-rect"><textarea id="postContent" placeholder="بماذا تفكر؟"></textarea></div>
         </div>
     </div>
 
-    <div id="addPostOverlay" class="add-post-overlay"><div class="add-post-header"><button onclick="closeAddPost()" class="btn-text">إلغاء</button><h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3><button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button></div><div class="add-post-body"><p class="label-green">الوسائط</p><div class="upload-square" onclick="triggerFileUpload()"><img id="imagePreview" src="" class="preview-img-box"><input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()"></div><p class="label-green">العنوان</p><div class="input-rect"><input type="text" id="postTitle"></div></div></div>
-
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
+    
     <script>
+        // كود إدارة واجهة البروفايل (الصور والأسماء)
         let isOwner = false;
         let currentViewingUser = null;
 
         window.onload = function() {
             if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 
+            // قراءة البيانات لمعرفة هل هذا بروفايلك أم بروفايل شخص آخر
             const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
             
             if (!viewingData || viewingData.isMe) {
@@ -111,7 +106,6 @@
                 currentViewingUser = viewingData; 
                 loadGuestProfile(viewingData);
             }
-            updateCounts();
         }
 
         function loadMyProfile() {
@@ -121,75 +115,32 @@
             document.getElementById("editBadge").style.display = "flex";
             document.querySelectorAll(".edit-icon").forEach(el => el.style.display = "inline-block");
             document.getElementById("picContainer").onclick = function() { document.getElementById('fileInput').click(); };
-            document.getElementById("followersBox").onclick = openFollowersList; 
             document.getElementById("followUserBtn").style.display = "none";
             document.getElementById("messageBtn").style.display = "none";
         }
 
         function loadGuestProfile(data) {
-            document.getElementById("displayPic").src = data.img;
+            document.getElementById("displayPic").src = data.img || "side.png";
             document.getElementById("displayName").innerText = data.name;
             document.getElementById("displayBio").innerText = "نبذة عن " + data.name;
             document.getElementById("editBadge").style.display = "none";
             document.querySelectorAll(".edit-icon").forEach(el => el.style.display = "none");
             document.getElementById("picContainer").onclick = null;
-            document.getElementById("followersBox").classList.add("disabled");
-            document.getElementById("followersBox").onclick = null;
             document.getElementById("followUserBtn").style.display = "block";
             document.getElementById("messageBtn").style.display = "block";
         }
 
-        function updateCounts() {
-            const myFollowing = JSON.parse(localStorage.getItem('hobbyFollowedUsers')) || [];
-            if(isOwner) {
-                document.getElementById('followingCount').innerText = myFollowing.length;
-                document.getElementById('followersCount').innerText = "0";
-            } else {
-                document.getElementById('followingCount').innerText = "5";
-                let followers = 100;
-                if(myFollowing.some(u => u.name === currentViewingUser.name)) {
-                    followers++;
-                    const btn = document.getElementById("followUserBtn");
-                    btn.innerText = "إلغاء المتابعة";
-                    btn.classList.add("following");
-                }
-                document.getElementById('followersCount').innerText = followers;
-            }
-        }
-
-        function toggleFollowUser(btn) {
-            let list = JSON.parse(localStorage.getItem('hobbyFollowedUsers')) || [];
-            const idx = list.findIndex(u => u.name === currentViewingUser.name);
-            if(idx !== -1) list.splice(idx, 1);
-            else list.push({name: currentViewingUser.name, img: currentViewingUser.img, job: "مستخدم"});
-            localStorage.setItem('hobbyFollowedUsers', JSON.stringify(list));
-            updateCounts();
-        }
-
-        function openFollowingList() {
-            const container = document.getElementById('followingListContainer'); container.innerHTML = "";
-            let list = isOwner ? (JSON.parse(localStorage.getItem('hobbyFollowedUsers')) || []) : [];
-            if(list.length === 0) container.innerHTML = "<p>القائمة فارغة</p>";
-            list.forEach(u => {
-                container.innerHTML += `<div class="follower-item"><img src="${u.img}" class="follower-img"><h5>${u.name}</h5></div>`;
-            });
-            document.getElementById('followingListModal').style.display='flex';
-        }
-
-        function openFollowersList() {
-            if(!isOwner) return;
-            const container = document.getElementById('followersListContainer'); container.innerHTML = "";
-            container.innerHTML = "<p>لا يوجد متابعين بعد</p>";
-            document.getElementById('followersListModal').style.display='flex';
-        }
-
-        function editName() { let n = prompt("الاسم:"); if(n) { localStorage.setItem("hobbyName", n); loadMyProfile(); } }
-        function editBio() { let b = prompt("النبذة:"); if(b) { localStorage.setItem("hobbyBio", b); loadMyProfile(); } }
+        // دوال التعديل البسيطة
+        window.editName = function() { let n = prompt("الاسم:"); if(n) { localStorage.setItem("hobbyName", n); loadMyProfile(); location.reload(); } }
+        window.editBio = function() { let b = prompt("النبذة:"); if(b) { localStorage.setItem("hobbyBio", b); loadMyProfile(); } }
+        
         const fileInput = document.getElementById('fileInput');
-        fileInput.addEventListener('change', function() {
-            const f = this.files[0];
-            if(f){ const r = new FileReader(); r.onload = function(e){ localStorage.setItem("hobbyImage", e.target.result); loadMyProfile(); }; r.readAsDataURL(f); }
-        });
+        if(fileInput) {
+            fileInput.addEventListener('change', function() {
+                const f = this.files[0];
+                if(f){ const r = new FileReader(); r.onload = function(e){ localStorage.setItem("hobbyImage", e.target.result); loadMyProfile(); }; r.readAsDataURL(f); }
+            });
+        }
     </script>
 </body>
 </html>
