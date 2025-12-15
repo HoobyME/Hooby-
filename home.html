@@ -1,117 +1,0 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>هوبي - الرئيسية</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <div class="overlay" onclick="toggleMenu()"></div>
-    
-    <div class="sidebar" id="sidebar">
-        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
-        
-        <a href="#" onclick="visitMyProfile()" class="menu-item">
-            <i class="fas fa-user-circle"></i> الملف الشخصي
-        </a>
-        
-        <a href="#" onclick="openInterestsModal()" class="menu-item">
-            <i class="fas fa-shapes"></i> الاهتمامات
-        </a>
-        
-        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;">
-            <i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span>
-        </div>
-        
-        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;">
-            <i class="fas fa-cog"></i> الإعدادات العامة
-        </a>
-        
-        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;">
-            <i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج
-        </a>
-    </div>
-
-    <div class="header">
-        <div class="brand-area">
-            <div class="app-logo"><img src="logo.png" alt=""> هوبي</div>
-            <a href="notifications.html" class="header-icon"><i class="far fa-bell"></i></a>
-            <a href="messages.html" class="header-icon"><i class="far fa-comment-alt"></i></a>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <a href="search.html" class="icon-btn"><i class="fas fa-search"></i></a>
-            <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
-        </div>
-    </div>
-
-    <div id="postsContainer">
-        <!-- Posts will be loaded here -->
-    </div>
-
-    <div class="bottom-nav">
-        <a href="home.html" class="nav-item active"><i class="fas fa-home"></i></a>
-        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
-        <div class="nav-item" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
-    </div>
-
-    <div id="addPostOverlay" class="add-post-overlay">
-        <div class="add-post-header">
-            <button onclick="closeAddPost()" class="btn-text">إلغاء</button>
-            <h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3>
-            <button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button>
-        </div>
-        <div class="add-post-body">
-            <p class="label-green">الوسائط</p>
-            <div class="upload-square" onclick="triggerFileUpload()">
-                <div style="text-align: center; color: var(--primary-color);">
-                    <i class="fas fa-image" style="font-size: 40px; margin-bottom: 10px; display: block;"></i>
-                    <div style="font-weight: 600; font-size: 14px;">اضغط لإضافة صورة</div>
-                </div>
-                <img id="imagePreview" src="" class="preview-img-box">
-                <input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()">
-            </div>
-            <div class="media-row">
-                <div class="media-square" id="audioBox" onclick="triggerAudioUpload()"><i class="fas fa-microphone"></i><input type="file" id="postAudioInput" accept="audio/*" style="display: none;" onchange="handleAudioSelect()"></div>
-                <div class="media-square" id="linkBox" onclick="addLink()"><i class="fas fa-link"></i></div>
-            </div>
-            <p class="label-green">العنوان</p>
-            <div class="input-rect" style="position: relative;">
-                <input type="text" id="postTitle" placeholder="اكتب عنواناً جذاباً..." style="padding-right: 40px;">
-                <div class="hashtag-icon" onclick="addHashtagInput()" title="أضف هاشتاجات">
-                    <i class="fas fa-hashtag"></i>
-                </div>
-                <input type="text" id="postHashtags" placeholder="#هوبي #شغفك" class="hashtag-input" style="display: none;">
-            </div>
-            <p class="label-green">الموضوع</p>
-            <div class="input-rect"><textarea id="postContent" placeholder="شاركنا أفكارك..."></textarea></div>
-        </div>
-    </div>
-    
-    <div id="interestsModal" class="modal-popup-overlay">
-        <div class="modal-box">
-            <h3 style="margin-top:0; color:var(--primary-color)">اختر اهتماماتك</h3>
-            <div class="interests-grid">
-                <div class="interest-item"><label><input type="checkbox" name="interest" value="games"> 🎮 ألعاب</label></div>
-                <div class="interest-item"><label><input type="checkbox" name="interest" value="art"> 🎨 فن</label></div>
-                <div class="interest-item"><label><input type="checkbox" name="interest" value="music"> 🎵 موسيقى</label></div>
-                <div class="interest-item"><label><input type="checkbox" name="interest" value="code"> 💻 برمجة</label></div>
-            </div>
-            <div style="margin-top:20px; display:flex; gap:10px;">
-                <button onclick="closeModal()" style="flex:1; padding:10px; border:none; border-radius:10px; cursor:pointer;">إلغاء</button>
-                <button onclick="applyChanges()" style="flex:1; padding:10px; border:none; border-radius:10px; background:var(--primary-color); color:white; cursor:pointer;">حفظ</button>
-            </div>
-        </div>
-    </div>
-<script type="module" src="main.js"></script>
-    <script>
-        if (!localStorage.getItem('hobbyLoggedIn')) window.location.href = 'login-social.html';
-        window.onload = function() {
-            if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
-        }
-    </script>
-</body>
-
-</html>
