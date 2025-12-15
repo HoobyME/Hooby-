@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول بالبريد</title>
+    <title>تسجيل الدخول - هوبي</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        body.login-body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .login-card { background-color: #fff; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
+        .logo-area h1 { color: #4CAF50; margin: 0; font-size: 26px; font-weight: bold; }
+        .subtitle { color: #777; font-size: 14px; margin-bottom: 30px; margin-top: 10px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 12px; outline: none; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 14px; background-color: #4CAF50; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .footer-links { margin-top: 20px; font-size: 13px; } .footer-links a { text-decoration: none; color: #4CAF50; font-weight: bold; }
+    </style>
 </head>
 <body class="login-body">
 
@@ -15,17 +25,61 @@
         <p class="subtitle">أدخل بيانات حسابك</p>
 
         <div class="input-group">
-            <input type="email" placeholder="البريد الإلكتروني">
+            <input type="email" id="emailInput" placeholder="البريد الإلكتروني">
         </div>
         <div class="input-group">
-            <input type="password" placeholder="كلمة المرور">
+            <input type="password" id="passwordInput" placeholder="كلمة المرور">
         </div>
-        <button class="login-btn">دخول</button>
+        
+        <button class="login-btn" onclick="handleLogin()">دخول</button>
 
         <div class="footer-links">
-            <a href="login-social.html">العودة لخيارات الدخول الأخرى</a>
+            <a href="signup.html">ليس لديك حساب؟ إنشاء حساب جديد</a>
+            <br><br>
+            <a href="index.html">العودة</a>
         </div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
+          authDomain: "hooby-7d945.firebaseapp.com",
+          databaseURL: "https://hooby-7d945-default-rtdb.firebaseio.com",
+          projectId: "hooby-7d945",
+          storageBucket: "hooby-7d945.firebasestorage.app",
+          messagingSenderId: "522131121638",
+          appId: "1:522131121638:web:748f7761f18167fb65e227",
+          measurementId: "G-H1F82C1THC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.handleLogin = function() {
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('passwordInput').value;
+
+            if(!email || !pass) return alert("الرجاء إدخال البيانات");
+
+            signInWithEmailAndPassword(auth, email, pass)
+                .then((userCredential) => {
+                    // الدخول ناجح
+                    // نستخرج الاسم من البريد (حل مؤقت لأننا لا نجلب بيانات البروفايل المعقدة الآن)
+                    const tempName = email.split('@')[0];
+                    
+                    localStorage.setItem('hobbyLoggedIn', 'true');
+                    localStorage.setItem('hobbyName', tempName); // يمكنك تحسين هذا لاحقاً لجلب الاسم الحقيقي
+                    
+                    window.location.href = 'home.html';
+                })
+                .catch((error) => {
+                    alert("فشل الدخول: تأكد من البريد وكلمة المرور");
+                    console.error(error);
+                });
+        }
+    </script>
 </body>
 </html>
