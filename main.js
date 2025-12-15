@@ -1,10 +1,9 @@
-/* --- main.js: النسخة المصححة والشاملة --- */
+/* --- main.js: النسخة المتطورة (دعم البروفايل) --- */
 
-// 1. استيراد مكتبات Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 2. إعدادات مشروعك (مفاتيح الربط)
+// إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -16,16 +15,12 @@ const firebaseConfig = {
   measurementId: "G-H1F82C1THC"
 };
 
-// 3. تشغيل Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const postsRef = ref(db, 'posts');
 
-// ---------------------------------------------------------
-//  ⚠️ المنطقة المهمة: ربط الدوال بالنافذة (Window) لتراها HTML
-// ---------------------------------------------------------
+// --- الدوال العامة ---
 
-// القائمة الجانبية (الهمبرجر)
 window.toggleMenu = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.querySelector('.overlay');
@@ -33,16 +28,6 @@ window.toggleMenu = function() {
     if(overlay) overlay.classList.toggle('active');
 }
 
-// الوضع المظلم
-window.toggleDarkMode = function() {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    const darkText = document.getElementById('darkText');
-    if(darkText) darkText.innerText = isDark ? "الوضع النهاري" : "الوضع المظلم";
-}
-
-// تسجيل الخروج
 window.logout = function() {
     if(confirm("هل تريد تسجيل الخروج؟")) {
         localStorage.removeItem('hobbyLoggedIn');
@@ -50,23 +35,27 @@ window.logout = function() {
     }
 }
 
-// الذهاب للملف الشخصي
 window.visitMyProfile = function() {
+    // نخبر النظام أننا نريد رؤية بروفايلنا
+    const myData = {
+        name: localStorage.getItem('hobbyName') || "أنت",
+        img: localStorage.getItem('hobbyImage') || "side.png",
+        isMe: true
+    };
+    localStorage.setItem('viewingProfile', JSON.stringify(myData));
     window.location.href = 'profile-view.html';
 }
 
-// --- نوافذ النشر (زر الزائد) ---
+// --- النشر ---
 window.openAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'flex';
 }
-
 window.closeAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'none';
 }
 
-// حفظ المنشور وإرساله لـ Firebase
 window.saveNewPost = function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -74,7 +63,7 @@ window.saveNewPost = function() {
     const authorImg = localStorage.getItem('hobbyImage') || "side.png";
 
     if(!title || !content) {
-        alert("يرجى كتابة عنوان وموضوع!");
+        alert("اكتب شيئاً للنشر!");
         return;
     }
 
@@ -86,86 +75,53 @@ window.saveNewPost = function() {
         timestamp: serverTimestamp(),
         likes: 0
     }).then(() => {
-        alert("✅ تم النشر للعالم!");
+        alert("تم النشر!");
         window.closeAddPost();
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
     }).catch((error) => {
-        alert("حدث خطأ: " + error.message);
-        console.error(error);
+        alert("خطأ: " + error.message);
     });
 }
 
-// --- الاهتمامات (إضافي لإصلاح الزر الجانبي) ---
-window.openInterestsModal = function() {
-    const modal = document.getElementById('interestsModal');
-    if(modal) modal.style.display = 'flex';
-}
-window.closeModal = function() {
-    const modal = document.getElementById('interestsModal');
-    if(modal) modal.style.display = 'none';
-}
-window.applyChanges = function() {
-    alert("تم حفظ اهتماماتك!");
-    window.closeModal();
-}
+// --- نظام عرض المنشورات الذكي ---
 
-// --- دوال الصور والصوت ---
-window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
-window.previewFile = function() {
-    const file = document.getElementById('postImageInput').files[0];
-    if(file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('imagePreview').src = e.target.result;
-            document.getElementById('imagePreview').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-}
-window.triggerAudioUpload = function() { document.getElementById('postAudioInput').click(); }
-window.handleAudioSelect = function() { alert("تم تحديد الملف الصوتي"); }
-window.addLink = function() { 
-    const url = prompt("أدخل الرابط:");
-    if(url) alert("تم إضافة الرابط: " + url);
-}
-window.addHashtagInput = function() {
-    const input = document.getElementById('postHashtags');
-    if(input) input.style.display = input.style.display === 'none' ? 'block' : 'none';
-}
-
-
-// ---------------------------------------------------------
-//  بداية التشغيل التلقائي عند فتح الصفحة
-// ---------------------------------------------------------
-
-// التحقق من الدخول
-if (!localStorage.getItem('hobbyLoggedIn') && !window.location.href.includes('index.html') && !window.location.href.includes('signup')) {
-    if (!window.location.href.includes('login')) window.location.href = 'index.html';
-}
-
-// تحميل الثيم
-window.addEventListener('load', function() {
-    if(localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-        const darkText = document.getElementById('darkText');
-        if(darkText) darkText.innerText = "الوضع النهاري";
-    }
-});
-
-// الاستماع للمنشورات القادمة من Firebase وعرضها
+// 1. إذا كنا في الصفحة الرئيسية (Home)
 if (document.getElementById('postsContainer')) {
     const container = document.getElementById('postsContainer');
-    container.innerHTML = ""; // تنظيف
+    container.innerHTML = ""; 
 
     onChildAdded(postsRef, (snapshot) => {
         const post = snapshot.val();
-        renderPostHTML(post);
+        renderHomePost(post, container);
     });
 }
 
-function renderPostHTML(post) {
-    const container = document.getElementById('postsContainer');
+// 2. إذا كنا في صفحة البروفايل (Profile)
+if (document.getElementById('profileGrid')) {
+    const grid = document.getElementById('profileGrid');
+    
+    // معرفة اسم صاحب البروفايل المعروض حالياً
+    let viewingName = localStorage.getItem('hobbyName'); // افتراضياً أنا
+    const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
+    if (viewingData && viewingData.name) {
+        viewingName = viewingData.name;
+    }
+
+    // تنظيف الشبكة
+    grid.innerHTML = "";
+
+    onChildAdded(postsRef, (snapshot) => {
+        const post = snapshot.val();
+        // الشرط السحري: هل كاتب المنشور هو نفسه صاحب هذا البروفايل؟
+        if (post.author === viewingName) {
+            renderProfilePost(post, grid);
+        }
+    });
+}
+
+// دالة رسم المنشور في الرئيسية
+function renderHomePost(post, container) {
     const card = document.createElement('div');
     card.className = 'post-card';
     card.innerHTML = `
@@ -181,13 +137,31 @@ function renderPostHTML(post) {
             <p>${post.content}</p>
         </div>
         <div class="post-actions">
-            <div class="action-btn" onclick="alert('قريباً!')">
-                <i class="far fa-heart"></i> أعجبني
-            </div>
-            <div class="action-btn">
-                <i class="far fa-comment"></i> تعليق
-            </div>
+            <div class="action-btn"><i class="far fa-heart"></i> أعجبني</div>
         </div>
     `;
     container.prepend(card);
+}
+
+// دالة رسم المنشور في البروفايل (على شكل مربع)
+function renderProfilePost(post, container) {
+    const item = document.createElement('div');
+    item.className = 'grid-item';
+    // بما أننا لم نضف صوراً للمنشورات بعد، سنعرض العنوان كخلفية ملونة
+    item.style.backgroundColor = "#f0f2f5";
+    item.style.display = "flex";
+    item.style.alignItems = "center";
+    item.style.justifyContent = "center";
+    item.style.padding = "10px";
+    item.style.border = "1px solid #ddd";
+    item.style.textAlign = "center";
+    
+    item.innerHTML = `
+        <div>
+            <h4 style="margin:0; color:var(--primary-color); font-size:14px;">${post.title}</h4>
+            <p style="font-size:11px; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">${post.content}</p>
+        </div>
+    `;
+    // نضيفه في البداية
+    container.prepend(item);
 }
