@@ -6,32 +6,29 @@
     <title>الإعدادات - هوبي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* إخفاء زر النشر في هذه الصفحة تحديداً */
+        .add-post-btn { display: none !important; }
+        
+        /* تعديل الشريط السفلي ليكون متناسقاً بدون الزر */
+        .bottom-nav { justify-content: space-around; }
+    </style>
 </head>
 <body>
 
-    <div class="overlay" onclick="toggleMenu()"></div>
-    <div class="sidebar" id="sidebar">
-        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
-        <a href="profile-view.html" class="menu-item"><i class="fas fa-user-circle"></i> الملف الشخصي</a>
-        <a href="#" onclick="openInterestsModal()" class="menu-item"><i class="fas fa-shapes"></i> الاهتمامات</a>
-        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;"><i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span></div>
-        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;"><i class="fas fa-cog"></i> الإعدادات العامة</a>
-        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;"><i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج</a>
-    </div>
-
     <div class="header">
         <div class="brand-area">
+            <a href="home.html" class="icon-btn" style="text-decoration:none; margin-left:10px;">
+                <i class="fas fa-arrow-right"></i>
+            </a>
             <h1 style="font-size: 20px; font-weight: bold; color: var(--primary-color); margin: 0;">الإعدادات</h1>
         </div>
-        <div style="display: flex; gap: 10px;">
-            <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
         </div>
-    </div>
 
     <div class="settings-container">
         
         <div class="mini-profile-card" onclick="window.location.href='profile-view.html'">
-            <img src="" id="settingsUserImg" class="mini-profile-img">
+            <img src="side.png" id="settingsUserImg" class="mini-profile-img">
             <div class="mini-profile-info">
                 <h4 id="settingsUserName">المستخدم</h4>
                 <p>تعديل الملف الشخصي</p>
@@ -108,7 +105,6 @@
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
-        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
         <a href="profile-view.html" class="nav-item"><i class="fas fa-user"></i></a>
     </div>
 
@@ -122,18 +118,17 @@
             <button onclick="document.getElementById('passwordModal').style.display='none'" class="btn-text">إلغاء</button>
         </div>
     </div>
-    
-    <div id="addPostOverlay" class="add-post-overlay"><div class="add-post-header"><button onclick="closeAddPost()" class="btn-text">إلغاء</button><h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3><button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button></div><div class="add-post-body"><p class="label-green">الوسائط</p><div class="upload-square" onclick="triggerFileUpload()"><img id="imagePreview" src="" class="preview-img-box"><input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()"></div><p class="label-green">العنوان</p><div class="input-rect"><input type="text" id="postTitle"></div></div></div>
 
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
+    
     <script>
         // كود خاص بالإعدادات لتحميل البيانات عند الفتح
         window.onload = function() {
             // تفعيل السويتش إذا كان الوضع المظلم مفعلاً
             if(localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark-mode');
-                document.getElementById('darkModeSwitch').checked = true;
-                if(document.getElementById('darkText')) document.getElementById('darkText').innerText = "الوضع النهاري";
+                const switchBtn = document.getElementById('darkModeSwitch');
+                if(switchBtn) switchBtn.checked = true;
             }
             
             // تحميل صورة واسم المستخدم
@@ -141,14 +136,14 @@
             document.getElementById("settingsUserName").innerText = localStorage.getItem("hobbyName") || "المستخدم";
         }
 
-        function openChangePassword() { document.getElementById('passwordModal').style.display = 'flex'; }
-        function savePassword() { alert("تم تغيير كلمة المرور بنجاح!"); document.getElementById('passwordModal').style.display = 'none'; }
+        window.openChangePassword = function() { document.getElementById('passwordModal').style.display = 'flex'; }
+        window.savePassword = function() { alert("تم تغيير كلمة المرور بنجاح!"); document.getElementById('passwordModal').style.display = 'none'; }
         
-        function deleteAccount() {
+        window.deleteAccount = function() {
             if(confirm("هل أنت متأكد تماماً؟ سيتم حذف حسابك ولن يمكنك استعادته.")) {
                 if(confirm("تحذير أخير: هذا الإجراء لا رجعة فيه!")) {
                     localStorage.clear();
-                    window.location.href = 'login-social.html';
+                    window.location.href = 'index.html';
                 }
             }
         }
