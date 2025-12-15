@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>الإعدادات - هوبي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="overlay" onclick="toggleMenu()"></div>
+    <div class="sidebar" id="sidebar">
+        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
+        <a href="profile-view.html" class="menu-item"><i class="fas fa-user-circle"></i> الملف الشخصي</a>
+        <a href="#" onclick="openInterestsModal()" class="menu-item"><i class="fas fa-shapes"></i> الاهتمامات</a>
+        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;"><i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span></div>
+        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;"><i class="fas fa-cog"></i> الإعدادات العامة</a>
+        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;"><i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج</a>
+    </div>
+
+    <div class="header">
+        <div class="brand-area">
+            <h1 style="font-size: 20px; font-weight: bold; color: var(--primary-color); margin: 0;">الإعدادات</h1>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
+        </div>
+    </div>
+
+    <div class="settings-container">
+        
+        <div class="mini-profile-card" onclick="window.location.href='profile-view.html'">
+            <img src="" id="settingsUserImg" class="mini-profile-img">
+            <div class="mini-profile-info">
+                <h4 id="settingsUserName">المستخدم</h4>
+                <p>تعديل الملف الشخصي</p>
+            </div>
+            <i class="fas fa-chevron-left setting-arrow" style="margin-right: auto;"></i>
+        </div>
+
+        <div class="settings-section-title">الحساب والأمان</div>
+        <div class="settings-card">
+            <div class="setting-item" onclick="openChangePassword()">
+                <div class="setting-left">
+                    <div class="setting-icon"><i class="fas fa-lock"></i></div>
+                    <span class="setting-text">تغيير كلمة المرور</span>
+                </div>
+                <i class="fas fa-chevron-left setting-arrow"></i>
+            </div>
+            <div class="setting-item">
+                <div class="setting-left">
+                    <div class="setting-icon"><i class="fas fa-shield-alt"></i></div>
+                    <span class="setting-text">الخصوصية</span>
+                </div>
+                <i class="fas fa-chevron-left setting-arrow"></i>
+            </div>
+        </div>
+
+        <div class="settings-section-title">التطبيق</div>
+        <div class="settings-card">
+            <div class="setting-item">
+                <div class="setting-left">
+                    <div class="setting-icon"><i class="fas fa-moon"></i></div>
+                    <span class="setting-text">الوضع المظلم</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="darkModeSwitch" onchange="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <div class="setting-left">
+                    <div class="setting-icon"><i class="fas fa-bell"></i></div>
+                    <span class="setting-text">الإشعارات</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-item">
+                <div class="setting-left">
+                    <div class="setting-icon"><i class="fas fa-globe"></i></div>
+                    <span class="setting-text">اللغة</span>
+                </div>
+                <span style="font-size:12px; color:var(--text-sub);">العربية</span>
+            </div>
+        </div>
+
+        <div class="settings-section-title" style="color:var(--danger-color);">إجراءات الحساب</div>
+        <div class="settings-card" style="border-color: var(--danger-color);">
+            <div class="setting-item" onclick="logout()">
+                <div class="setting-left">
+                    <div class="setting-icon"><i class="fas fa-sign-out-alt"></i></div>
+                    <span class="setting-text">تسجيل الخروج</span>
+                </div>
+            </div>
+            <div class="setting-item" onclick="deleteAccount()">
+                <div class="setting-left">
+                    <div class="setting-icon danger-icon"><i class="fas fa-trash-alt"></i></div>
+                    <span class="setting-text danger-text">حذف الحساب نهائياً</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="bottom-nav">
+        <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
+        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
+        <a href="profile-view.html" class="nav-item"><i class="fas fa-user"></i></a>
+    </div>
+
+    <div id="passwordModal" class="modal-popup-overlay">
+        <div class="modal-box">
+            <h3 style="margin-top:0; color:var(--primary-color)">تغيير كلمة المرور</h3>
+            <div class="input-rect"><input type="password" placeholder="كلمة المرور الحالية"></div>
+            <div class="input-rect"><input type="password" placeholder="كلمة المرور الجديدة"></div>
+            <div class="input-rect"><input type="password" placeholder="تأكيد كلمة المرور"></div>
+            <button onclick="savePassword()" class="btn-publish">حفظ</button>
+            <button onclick="document.getElementById('passwordModal').style.display='none'" class="btn-text">إلغاء</button>
+        </div>
+    </div>
+    
+    <div id="addPostOverlay" class="add-post-overlay"><div class="add-post-header"><button onclick="closeAddPost()" class="btn-text">إلغاء</button><h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3><button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button></div><div class="add-post-body"><p class="label-green">الوسائط</p><div class="upload-square" onclick="triggerFileUpload()"><img id="imagePreview" src="" class="preview-img-box"><input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()"></div><p class="label-green">العنوان</p><div class="input-rect"><input type="text" id="postTitle"></div></div></div>
+
+    <script src="main.js"></script>
+    <script>
+        // كود خاص بالإعدادات لتحميل البيانات عند الفتح
+        window.onload = function() {
+            // تفعيل السويتش إذا كان الوضع المظلم مفعلاً
+            if(localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeSwitch').checked = true;
+                if(document.getElementById('darkText')) document.getElementById('darkText').innerText = "الوضع النهاري";
+            }
+            
+            // تحميل صورة واسم المستخدم
+            document.getElementById("settingsUserImg").src = localStorage.getItem("hobbyImage") || "side.png";
+            document.getElementById("settingsUserName").innerText = localStorage.getItem("hobbyName") || "المستخدم";
+        }
+
+        function openChangePassword() { document.getElementById('passwordModal').style.display = 'flex'; }
+        function savePassword() { alert("تم تغيير كلمة المرور بنجاح!"); document.getElementById('passwordModal').style.display = 'none'; }
+        
+        function deleteAccount() {
+            if(confirm("هل أنت متأكد تماماً؟ سيتم حذف حسابك ولن يمكنك استعادته.")) {
+                if(confirm("تحذير أخير: هذا الإجراء لا رجعة فيه!")) {
+                    localStorage.clear();
+                    window.location.href = 'login-social.html';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

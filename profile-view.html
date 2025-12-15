@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>الملف الشخصي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="overlay" onclick="toggleMenu()"></div>
+    
+    <div class="sidebar" id="sidebar">
+        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
+        <a href="#" onclick="visitMyProfile()" class="menu-item"><i class="fas fa-user-circle"></i> الملف الشخصي</a>
+        <a href="#" onclick="openInterestsModal()" class="menu-item"><i class="fas fa-shapes"></i> الاهتمامات</a>
+        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;"><i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span></div>
+        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;"><i class="fas fa-cog"></i> الإعدادات العامة</a>
+        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;"><i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج</a>
+    </div>
+
+    <div class="header">
+        <div class="brand-area">
+            <div class="app-logo"><img src="logo.png" alt=""> هوبي</div>
+            <a href="notifications.html" class="header-icon"><i class="far fa-bell"></i></a>
+            <a href="messages.html" class="header-icon"><i class="far fa-comment-alt"></i></a>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="search.html" class="icon-btn"><i class="fas fa-search"></i></a>
+            <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
+        </div>
+    </div>
+
+    <div class="profile-header">
+        <div class="profile-pic-container" id="picContainer">
+            <img src="side.png" id="displayPic" class="profile-pic">
+            <div class="edit-badge" id="editBadge"><i class="fas fa-camera"></i></div>
+        </div>
+        <input type="file" id="fileInput" hidden accept="image/*">
+
+        <div class="profile-info">
+            <div><h2 id="displayName">مستخدم <i class="fas fa-pen edit-icon" id="editNameIcon" onclick="editName()"></i></h2></div>
+            <div><p id="displayBio">... <i class="fas fa-pen edit-icon" id="editBioIcon" onclick="editBio()"></i></p></div>
+            
+            <div class="profile-actions">
+                <button id="followUserBtn" class="action-btn-profile" onclick="toggleFollowUser(this)">متابعة</button>
+                <button id="messageBtn" class="action-btn-profile" onclick="openChat()">مراسلة</button>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box"><h3>0</h3><span>منشور</span></div>
+            <div class="stat-box" id="followersBox" onclick="openFollowersList()">
+                <h3 id="followersCount">0</h3><span>متابع</span>
+            </div>
+            <div class="stat-box" onclick="openFollowingList()">
+                <h3 id="followingCount">0</h3><span>تتابع</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="posts-grid" id="profileGrid">
+        <div class="grid-item"><img src="https://picsum.photos/300?random=1"></div>
+        <div class="grid-item"><img src="https://picsum.photos/300?random=2"></div>
+        <div class="grid-item"><img src="https://picsum.photos/300?random=3"></div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
+        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
+        <div class="nav-item active" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
+    </div>
+
+    <div id="followingListModal" class="modal-popup-overlay"><div class="modal-box"><h3 style="margin-top:0; color:var(--primary-color)">قائمة المتابعة</h3><div id="followingListContainer" style="margin-bottom: 20px;"></div><button onclick="document.getElementById('followingListModal').style.display='none'" class="btn-text">إغلاق</button></div></div>
+    <div id="followersListModal" class="modal-popup-overlay"><div class="modal-box"><h3 style="margin-top:0; color:var(--primary-color)">المتابعون</h3><div id="followersListContainer" style="margin-bottom: 20px;"></div><button onclick="document.getElementById('followersListModal').style.display='none'" class="btn-text">إغلاق</button></div></div>
+    
+    <div id="chatModal" class="chat-overlay">
+        <div class="chat-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="" id="chatHeaderImg" class="chat-user-img">
+                <div class="chat-user-info"><h4 id="chatHeaderName">الاسم</h4><span id="chatStatus">متصل الآن</span></div>
+            </div>
+            <div class="chat-header-actions"><div class="chat-close-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></div></div>
+        </div>
+        <div id="chatBody" class="chat-body"></div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالة...">
+            <button class="chat-send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div id="addPostOverlay" class="add-post-overlay"><div class="add-post-header"><button onclick="closeAddPost()" class="btn-text">إلغاء</button><h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3><button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button></div><div class="add-post-body"><p class="label-green">الوسائط</p><div class="upload-square" onclick="triggerFileUpload()"><img id="imagePreview" src="" class="preview-img-box"><input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()"></div><p class="label-green">العنوان</p><div class="input-rect"><input type="text" id="postTitle"></div></div></div>
+
+    <script src="main.js"></script>
+    <script>
+        let isOwner = false;
+        let currentViewingUser = null;
+
+        window.onload = function() {
+            if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+
+            const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
+            
+            if (!viewingData || viewingData.isMe) {
+                isOwner = true; 
+                currentViewingUser = { name: localStorage.getItem('hobbyName') }; 
+                loadMyProfile();
+            } else {
+                isOwner = false; 
+                currentViewingUser = viewingData; 
+                loadGuestProfile(viewingData);
+            }
+            updateCounts();
+        }
+
+        function loadMyProfile() {
+            document.getElementById("displayPic").src = localStorage.getItem("hobbyImage") || "side.png";
+            document.getElementById("displayName").innerHTML = (localStorage.getItem("hobbyName") || "أنت") + ' <i class="fas fa-pen edit-icon" onclick="editName()"></i>';
+            document.getElementById("displayBio").innerHTML = (localStorage.getItem("hobbyBio") || "مرحباً") + ' <i class="fas fa-pen edit-icon" onclick="editBio()"></i>';
+            document.getElementById("editBadge").style.display = "flex";
+            document.querySelectorAll(".edit-icon").forEach(el => el.style.display = "inline-block");
+            document.getElementById("picContainer").onclick = function() { document.getElementById('fileInput').click(); };
+            document.getElementById("followersBox").onclick = openFollowersList; 
+            document.getElementById("followUserBtn").style.display = "none";
+            document.getElementById("messageBtn").style.display = "none";
+        }
+
+        function loadGuestProfile(data) {
+            document.getElementById("displayPic").src = data.img;
+            document.getElementById("displayName").innerText = data.name;
+            document.getElementById("displayBio").innerText = "نبذة عن " + data.name;
+            document.getElementById("editBadge").style.display = "none";
+            document.querySelectorAll(".edit-icon").forEach(el => el.style.display = "none");
+            document.getElementById("picContainer").onclick = null;
+            document.getElementById("followersBox").classList.add("disabled");
+            document.getElementById("followersBox").onclick = null;
+            document.getElementById("followUserBtn").style.display = "block";
+            document.getElementById("messageBtn").style.display = "block";
+        }
+
+        function updateCounts() {
+            const myFollowing = JSON.parse(localStorage.getItem('hobbyFollowedUsers')) || [];
+            if(isOwner) {
+                document.getElementById('followingCount').innerText = myFollowing.length;
+                document.getElementById('followersCount').innerText = "0";
+            } else {
+                document.getElementById('followingCount').innerText = "5";
+                let followers = 100;
+                if(myFollowing.some(u => u.name === currentViewingUser.name)) {
+                    followers++;
+                    const btn = document.getElementById("followUserBtn");
+                    btn.innerText = "إلغاء المتابعة";
+                    btn.classList.add("following");
+                }
+                document.getElementById('followersCount').innerText = followers;
+            }
+        }
+
+        function toggleFollowUser(btn) {
+            let list = JSON.parse(localStorage.getItem('hobbyFollowedUsers')) || [];
+            const idx = list.findIndex(u => u.name === currentViewingUser.name);
+            if(idx !== -1) list.splice(idx, 1);
+            else list.push({name: currentViewingUser.name, img: currentViewingUser.img, job: "مستخدم"});
+            localStorage.setItem('hobbyFollowedUsers', JSON.stringify(list));
+            updateCounts();
+        }
+
+        function openFollowingList() {
+            const container = document.getElementById('followingListContainer'); container.innerHTML = "";
+            let list = isOwner ? (JSON.parse(localStorage.getItem('hobbyFollowedUsers')) || []) : [];
+            if(list.length === 0) container.innerHTML = "<p>القائمة فارغة</p>";
+            list.forEach(u => {
+                container.innerHTML += `<div class="follower-item"><img src="${u.img}" class="follower-img"><h5>${u.name}</h5></div>`;
+            });
+            document.getElementById('followingListModal').style.display='flex';
+        }
+
+        function openFollowersList() {
+            if(!isOwner) return;
+            const container = document.getElementById('followersListContainer'); container.innerHTML = "";
+            container.innerHTML = "<p>لا يوجد متابعين بعد</p>";
+            document.getElementById('followersListModal').style.display='flex';
+        }
+
+        function editName() { let n = prompt("الاسم:"); if(n) { localStorage.setItem("hobbyName", n); loadMyProfile(); } }
+        function editBio() { let b = prompt("النبذة:"); if(b) { localStorage.setItem("hobbyBio", b); loadMyProfile(); } }
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', function() {
+            const f = this.files[0];
+            if(f){ const r = new FileReader(); r.onload = function(e){ localStorage.setItem("hobbyImage", e.target.result); loadMyProfile(); }; r.readAsDataURL(f); }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البحث - هوبي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ستايلات خاصة بالبحث */
+        .search-header { background-color: var(--card-bg); padding: 15px 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border-color); display: flex; gap: 15px; align-items: center;}
+        .back-btn { color: var(--text-color); font-size: 22px; cursor: pointer; text-decoration: none; transition: 0.2s; }
+        .back-btn:hover { color: var(--primary-color); }
+        .search-box-container { flex: 1; position: relative; }
+        .search-box-container input { width: 100%; padding: 12px 40px 12px 15px; border-radius: 12px; border: 2px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); outline: none; box-sizing: border-box; font-family: inherit; font-size: 15px; transition: 0.3s; }
+        .search-box-container input:focus { border-color: var(--primary-color); }
+        .search-icon-inside { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-sub); }
+        .section-title { padding: 25px 20px 15px; font-size: 18px; color: var(--primary-color); font-weight: bold; }
+        .tags-cloud { padding: 0 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag-pill { background-color: var(--bg-color); color: var(--text-color); padding: 10px 20px; border-radius: 25px; text-decoration: none; font-size: 14px; border: 1px solid var(--border-color); transition: 0.2s; font-weight: bold; }
+        .tag-pill:hover { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .users-list { padding: 10px 20px; }
+        .user-row { display: flex; align-items: center; gap: 15px; padding: 15px; background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; margin-bottom: 10px; }
+        .user-img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); }
+        .user-details h4 { margin: 0; font-size: 16px; color: var(--text-color); }
+        .user-details span { font-size: 12px; color: var(--text-sub); display: block; margin-top: 4px; }
+        .follow-btn { margin-right: auto; background-color: var(--bg-color); color: var(--primary-color); border: 2px solid var(--primary-color); padding: 8px 20px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; }
+        .follow-btn.following { background-color: var(--primary-color); color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="search-header">
+        <a href="home.html" class="back-btn"><i class="fas fa-arrow-right"></i></a>
+        <div class="search-box-container">
+            <i class="fas fa-search search-icon-inside"></i>
+            <input type="text" placeholder="ابحث عن أشخاص، هاشتاجات...">
+        </div>
+    </div>
+
+    <div class="section-title"><i class="fas fa-fire"></i> رائج الآن</div>
+    <div class="tags-cloud">
+        <a href="#" class="tag-pill">#هوبي_الجديد</a>
+        <a href="#" class="tag-pill">#تصوير</a>
+        <a href="#" class="tag-pill">#رسم</a>
+    </div>
+
+    <div class="section-title"><i class="fas fa-user-plus"></i> اقتراحات المتابعة</div>
+    <div class="users-list">
+        <div class="user-row">
+            <img src="https://i.pravatar.cc/150?img=3" class="user-img">
+            <div class="user-details"><h4>عمر خالد</h4><span>مصور فوتوغرافي</span></div>
+            <button class="follow-btn" onclick="toggleFollow(this)">متابعة</button>
+        </div>
+        <div class="user-row">
+            <img src="https://i.pravatar.cc/150?img=5" class="user-img">
+            <div class="user-details"><h4>منى أحمد</h4><span>رسامة رقمية</span></div>
+            <button class="follow-btn" onclick="toggleFollow(this)">متابعة</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
+        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
+        <a href="profile-view.html" class="nav-item"><i class="fas fa-user"></i></a>
+    </div>
+
+    <div id="addPostOverlay" class="add-post-overlay"><div class="add-post-header"><button onclick="closeAddPost()" class="btn-text">إلغاء</button><h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3><button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button></div><div class="add-post-body"><p class="label-green">الوسائط</p><div class="upload-square" onclick="triggerFileUpload()"><div id="uploadPlusIcon" class="upload-icon">+</div><img id="imagePreview" src="" class="preview-img-box"><input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()"></div><div class="media-row"><div class="media-square" id="audioBox" onclick="triggerAudioUpload()"><i class="fas fa-microphone"></i><input type="file" id="postAudioInput" accept="audio/*" style="display: none;" onchange="handleAudioSelect()"></div><div class="media-square" id="linkBox" onclick="addLink()"><i class="fas fa-link"></i></div></div><p class="label-green">العنوان</p><div class="input-rect"><input type="text" id="postTitle" placeholder="اكتب عنواناً..."></div><p class="label-green">الموضوع</p><div class="input-rect"><textarea id="postContent" placeholder="شاركنا أفكارك..."></textarea></div><p class="label-green">الهاشتاجات</p><div class="input-rect"><input type="text" id="postHashtags" placeholder="#هوبي"></div></div></div>
+
+    <script src="main.js"></script>
+    <script>
+        // دالة بسيطة خاصة بهذه الصفحة للمتابعة الشكلية
+        function toggleFollow(btn) {
+            if (btn.classList.contains('following')) {
+                btn.classList.remove('following');
+                btn.innerText = "متابعة";
+            } else {
+                btn.classList.add('following');
+                btn.innerText = "تتابع";
+            }
+        }
+    </script>
+</body>
+</html>
