@@ -3,80 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إنشاء حساب</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>إنشاء حساب - هوبي</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5; margin: 0;
-            display: flex; justify-content: center; align-items: center; height: 100vh;
-            color: #333;
-        }
-        .login-card {
-            background-color: #fff; padding: 40px 30px; border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center;
-        }
-        .logo-area img { width: 70px; margin-bottom: 10px; }
-        .logo-area h1 { color: #4CAF50; margin: 0; font-size: 26px; }
-        .subtitle { color: #777; font-size: 14px; margin-bottom: 30px; }
-        .input-group { margin-bottom: 15px; text-align: right; }
-        .input-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: bold; }
-        .input-group input {
-            width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px;
-            font-size: 15px; outline: none; box-sizing: border-box;
-        }
-        .input-group input:focus { border-color: #4CAF50; }
-        .login-btn {
-            width: 100%; padding: 14px; background-color: #4CAF50; color: white;
-            border: none; border-radius: 12px; font-size: 16px; font-weight: bold;
-            cursor: pointer; margin-top: 10px; transition: 0.3s;
-        }
-        .login-btn:hover { background-color: #388E3C; }
-        .footer-links { margin-top: 20px; font-size: 13px; color: #777; }
-        .footer-links a { color: #4CAF50; text-decoration: none; font-weight: bold; }
+        body.login-body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .login-card { background-color: #fff; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
+        .logo-area h1 { color: #4CAF50; margin: 0; font-size: 26px; font-weight: bold; }
+        .subtitle { color: #777; font-size: 14px; margin-bottom: 30px; margin-top: 10px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; text-align: right; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 12px; outline: none; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 14px; background-color: #4CAF50; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .footer-links { margin-top: 20px; font-size: 13px; } .footer-links a { text-decoration: none; color: #4CAF50; font-weight: bold; }
     </style>
 </head>
-<body>
+<body class="login-body">
+
     <div class="login-card">
         <div class="logo-area">
-            <img src="logo.png" alt="logo">
-            <h1>إنشاء حساب</h1>
+            <h1>إنشاء حساب جديد</h1>
         </div>
         <p class="subtitle">انضم لمجتمع هوبي</p>
-        <form onsubmit="handleSignup(event)">
-            <div class="input-group">
-                <label>الاسم الكامل</label>
-                <input type="text" id="fullname" placeholder="مثال: علي محمد" maxlength="25" required>
-            </div>
-            <div class="input-group">
-                <label>البريد الإلكتروني</label>
-                <input type="email" id="email" required>
-            </div>
-            <div class="input-group">
-                <label>كلمة المرور</label>
-                <input type="password" id="password" placeholder="أحرف وأرقام" required>
-            </div>
-            <button class="login-btn">تسجيل</button>
-        </form>
+        
+        <div class="input-group">
+            <label>الاسم الكامل</label>
+            <input type="text" id="fullname" placeholder="الاسم الذي سيظهر للناس">
+        </div>
+        <div class="input-group">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="email" placeholder="example@gmail.com">
+        </div>
+        <div class="input-group">
+            <label>كلمة المرور</label>
+            <input type="password" id="password" placeholder="6 خانات على الأقل">
+        </div>
+        <button class="login-btn" onclick="handleSignup()">تسجيل</button>
+        
         <div class="footer-links">
-            لديك حساب بالفعل؟ <a href="login-social.html">تسجيل الدخول</a>
+            لديك حساب بالفعل؟ <a href="index.html">تسجيل الدخول</a>
         </div>
     </div>
 
-    <script>
-        function handleSignup(e) {
-            e.preventDefault();
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
+          authDomain: "hooby-7d945.firebaseapp.com",
+          databaseURL: "https://hooby-7d945-default-rtdb.firebaseio.com",
+          projectId: "hooby-7d945",
+          storageBucket: "hooby-7d945.firebasestorage.app",
+          messagingSenderId: "522131121638",
+          appId: "1:522131121638:web:748f7761f18167fb65e227",
+          measurementId: "G-H1F82C1THC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.handleSignup = function() {
             const name = document.getElementById('fullname').value;
-            const pass = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-            if (name.length > 25) return alert("الاسم طويل جداً");
-            
-            const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).+$/;
-            if (!passwordRegex.test(pass)) return alert("كلمة المرور يجب أن تحتوي أحرف وأرقام");
+            if(!name || !email || !password) return alert("الرجاء ملء جميع الحقول");
+            if(password.length < 6) return alert("كلمة المرور يجب أن تكون 6 أحرف أو أكثر");
 
-            localStorage.setItem('hobbyLoggedIn', 'true');
-            localStorage.setItem('hobbyName', name);
-            window.location.href = 'home.html';
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // تم إنشاء الحساب بنجاح في السحابة
+                    // الآن نحفظ الاسم في المتصفح ليعمل الموقع
+                    localStorage.setItem('hobbyLoggedIn', 'true');
+                    localStorage.setItem('hobbyName', name);
+                    
+                    alert("✅ تم إنشاء الحساب بنجاح!");
+                    window.location.href = 'home.html';
+                })
+                .catch((error) => {
+                    alert("حدث خطأ: " + error.message);
+                });
         }
     </script>
 </body>
