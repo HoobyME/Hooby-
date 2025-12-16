@@ -1,10 +1,9 @@
-/* --- main.js: النسخة المانعة للتكرار (Anti-Spam) --- */
+/* --- main.js: نسخة خالية من الاهتمامات --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -21,19 +20,11 @@ const db = getDatabase(app);
 const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 
-// ---------------------------------------------------------
-//  دوال مساعدة لضبط اسم المستخدم كمفتاح (تمنع المشاكل مع الرموز)
-// ---------------------------------------------------------
 function getSafeUserId() {
     let name = localStorage.getItem('hobbyName');
     if(!name) return null;
-    // استبدال النقاط والرموز الممنوعة في مفاتيح فايربيس
     return name.replace(/[.#$\[\]]/g, "_");
 }
-
-// ---------------------------------------------------------
-//  الوظائف العامة
-// ---------------------------------------------------------
 
 window.toggleMenu = function() {
     const sidebar = document.getElementById('sidebar');
@@ -67,10 +58,6 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html';
 }
 
-// ---------------------------------------------------------
-//  النشر
-// ---------------------------------------------------------
-
 window.openAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'flex';
@@ -99,7 +86,7 @@ window.saveNewPost = function() {
         authorImg: authorImg,
         timestamp: serverTimestamp(),
         likes: 0,
-        likedBy: {} // هنا سيتم تخزين أسماء من ضغطوا إفادة
+        likedBy: {}
     }).then(() => {
         alert("✅ تم النشر بنجاح!");
         window.closeAddPost();
@@ -110,66 +97,48 @@ window.saveNewPost = function() {
     });
 }
 
-// ---------------------------------------------------------
-//  نظام الإفادة الذكي (يمنع التكرار)
-// ---------------------------------------------------------
-
 window.toggleLike = function(postId) {
     const userId = getSafeUserId();
     if (!userId) return alert("يجب تسجيل الدخول أولاً للإفادة!");
 
     const postRef = ref(db, `posts/${postId}`);
 
-    // Transaction: عملية ذرية آمنة في قاعدة البيانات
     runTransaction(postRef, (post) => {
         if (post) {
-            if (!post.likedBy) post.likedBy = {}; // إنشاء القائمة إذا لم تكن موجودة
+            if (!post.likedBy) post.likedBy = {};
 
             if (post.likedBy[userId]) {
-                // المستخدم موجود بالفعل -> إزالة الإفادة (Unlike)
                 post.likes--;
-                post.likedBy[userId] = null; // حذف الاسم
+                post.likedBy[userId] = null;
             } else {
-                // المستخدم غير موجود -> إضافة إفادة (Like)
                 post.likes++;
-                post.likedBy[userId] = true; // تسجيل الاسم
+                post.likedBy[userId] = true;
             }
         }
         return post;
     });
-    // لا نحتاج لتغيير اللون يدوياً هنا، لأن onChildAdded/onValue ستقوم بتحديث الواجهة (أو التحديث التلقائي للصفحة)
-    // لكن لتحسين السرعة البصرية سنقوم بتبديل الكلاس مؤقتاً
+    
     const btn = document.getElementById(`like-btn-${postId}`);
     if(btn) {
         btn.classList.toggle('active');
         const countSpan = btn.querySelector('.like-count');
         let current = parseInt(countSpan.innerText);
-        // تحديث الرقم تقريبياً حتى يأتي الرد من السيرفر
         countSpan.innerText = btn.classList.contains('active') ? current + 1 : current - 1;
     }
 }
 
-// ---------------------------------------------------------
-//  عرض المنشورات (بناء البطاقة)
-// ---------------------------------------------------------
-
 function createPostCard(post, postId) {
     const userId = getSafeUserId();
-    
-    // التحقق هل المستخدم الحالي قام بالإفادة سابقاً؟
     let isLikedByMe = false;
     if (post.likedBy && userId && post.likedBy[userId]) {
         isLikedByMe = true;
     }
 
-    // إضافة كلاس active إذا كان المستخدم قد أفاد المنشور
     const activeClass = isLikedByMe ? 'active' : '';
 
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    // زر الإفادة
-    // أضفنا id للزر لسهولة الوصول إليه
     const efadaBtnHTML = `
         <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
             <img src="logo.png" class="efada-icon" alt="إفادة">
@@ -200,7 +169,6 @@ function createPostCard(post, postId) {
     return card;
 }
 
-// الاستماع للمنشورات في الصفحة الرئيسية
 if (document.getElementById('postsContainer')) {
     const container = document.getElementById('postsContainer');
     container.innerHTML = ""; 
@@ -209,13 +177,10 @@ if (document.getElementById('postsContainer')) {
         const post = snapshot.val();
         const postId = snapshot.key;
         const card = createPostCard(post, postId);
-        // ملاحظة: prepend يضيف في الأعلى، لكن قد يسبب قفزاً عند التحديث.
-        // في المشاريع الكبيرة نستخدم مصفوفة وترتيب، لكن هنا prepend ممتاز.
         container.prepend(card);
     });
 }
 
-// الاستماع للمنشورات في صفحة البروفايل
 if (document.getElementById('profilePostsContainer')) {
     const container = document.getElementById('profilePostsContainer');
     let viewingName = localStorage.getItem('hobbyName');
@@ -236,10 +201,6 @@ if (document.getElementById('profilePostsContainer')) {
         }
     });
 }
-
-// ---------------------------------------------------------
-//  أدوات مساعدة
-// ---------------------------------------------------------
 
 window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
 
@@ -262,13 +223,7 @@ window.addHashtagInput = function() {
 window.triggerAudioUpload = function() { document.getElementById('postAudioInput').click(); }
 window.handleAudioSelect = function() { alert("تم تحديد الملف الصوتي"); }
 window.addLink = function() { prompt("أدخل الرابط:"); }
-window.openInterestsModal = function() { document.getElementById('interestsModal').style.display = 'flex'; }
-window.closeModal = function() { document.getElementById('interestsModal').style.display = 'none'; }
-window.applyChanges = function() { alert("تم الحفظ"); window.closeModal(); }
 
-// ---------------------------------------------------------
-//  التهيئة عند التحميل
-// ---------------------------------------------------------
 window.addEventListener('load', function() {
     if(localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
