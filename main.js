@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الكاملة مع ميزة الإفادة --- */
+/* --- main.js: النسخة المانعة للتكرار (Anti-Spam) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -16,14 +16,23 @@ const firebaseConfig = {
   measurementId: "G-H1F82C1THC"
 };
 
-// تشغيل الخدمات
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 
 // ---------------------------------------------------------
-//  الوظائف العامة (القوائم، الوضع المظلم، الخروج)
+//  دوال مساعدة لضبط اسم المستخدم كمفتاح (تمنع المشاكل مع الرموز)
+// ---------------------------------------------------------
+function getSafeUserId() {
+    let name = localStorage.getItem('hobbyName');
+    if(!name) return null;
+    // استبدال النقاط والرموز الممنوعة في مفاتيح فايربيس
+    return name.replace(/[.#$\[\]]/g, "_");
+}
+
+// ---------------------------------------------------------
+//  الوظائف العامة
 // ---------------------------------------------------------
 
 window.toggleMenu = function() {
@@ -59,7 +68,7 @@ window.visitMyProfile = function() {
 }
 
 // ---------------------------------------------------------
-//  منظومة النشر (إضافة منشور جديد)
+//  النشر
 // ---------------------------------------------------------
 
 window.openAddPost = function() {
@@ -89,7 +98,8 @@ window.saveNewPost = function() {
         author: authorName,
         authorImg: authorImg,
         timestamp: serverTimestamp(),
-        likes: 0
+        likes: 0,
+        likedBy: {} // هنا سيتم تخزين أسماء من ضغطوا إفادة
     }).then(() => {
         alert("✅ تم النشر بنجاح!");
         window.closeAddPost();
@@ -101,31 +111,42 @@ window.saveNewPost = function() {
 }
 
 // ---------------------------------------------------------
-//  منظومة التفاعل (الإفادة / اللايك) الجديدة
+//  نظام الإفادة الذكي (يمنع التكرار)
 // ---------------------------------------------------------
 
-window.toggleLike = function(postId, btnElement) {
-    // مرجع لعداد الإعجابات في هذا المنشور
-    const postLikeRef = ref(db, `posts/${postId}/likes`);
-    
-    // التحقق هل الزر مفعل حالياً؟
-    const isActive = btnElement.classList.contains('active');
+window.toggleLike = function(postId) {
+    const userId = getSafeUserId();
+    if (!userId) return alert("يجب تسجيل الدخول أولاً للإفادة!");
 
-    // عملية Transaction لضمان دقة العداد في قاعدة البيانات
-    runTransaction(postLikeRef, (currentLikes) => {
-        // إذا كان مفعلاً سننقص 1، وإذا لم يكن مفعلاً سنزيد 1
-        return (currentLikes || 0) + (isActive ? -1 : 1);
-    }).then(() => {
-        // 1. تغيير شكل الزر (ملون <-> رمادي)
-        btnElement.classList.toggle('active');
-        
-        // 2. تحديث الرقم الظاهر للمستخدم فوراً
-        const countSpan = btnElement.querySelector('.like-count');
-        let currentCount = parseInt(countSpan.innerText);
-        countSpan.innerText = isActive ? currentCount - 1 : currentCount + 1;
-    }).catch((err) => {
-        console.error("فشل التحديث", err);
+    const postRef = ref(db, `posts/${postId}`);
+
+    // Transaction: عملية ذرية آمنة في قاعدة البيانات
+    runTransaction(postRef, (post) => {
+        if (post) {
+            if (!post.likedBy) post.likedBy = {}; // إنشاء القائمة إذا لم تكن موجودة
+
+            if (post.likedBy[userId]) {
+                // المستخدم موجود بالفعل -> إزالة الإفادة (Unlike)
+                post.likes--;
+                post.likedBy[userId] = null; // حذف الاسم
+            } else {
+                // المستخدم غير موجود -> إضافة إفادة (Like)
+                post.likes++;
+                post.likedBy[userId] = true; // تسجيل الاسم
+            }
+        }
+        return post;
     });
+    // لا نحتاج لتغيير اللون يدوياً هنا، لأن onChildAdded/onValue ستقوم بتحديث الواجهة (أو التحديث التلقائي للصفحة)
+    // لكن لتحسين السرعة البصرية سنقوم بتبديل الكلاس مؤقتاً
+    const btn = document.getElementById(`like-btn-${postId}`);
+    if(btn) {
+        btn.classList.toggle('active');
+        const countSpan = btn.querySelector('.like-count');
+        let current = parseInt(countSpan.innerText);
+        // تحديث الرقم تقريبياً حتى يأتي الرد من السيرفر
+        countSpan.innerText = btn.classList.contains('active') ? current + 1 : current - 1;
+    }
 }
 
 // ---------------------------------------------------------
@@ -133,12 +154,24 @@ window.toggleLike = function(postId, btnElement) {
 // ---------------------------------------------------------
 
 function createPostCard(post, postId) {
+    const userId = getSafeUserId();
+    
+    // التحقق هل المستخدم الحالي قام بالإفادة سابقاً؟
+    let isLikedByMe = false;
+    if (post.likedBy && userId && post.likedBy[userId]) {
+        isLikedByMe = true;
+    }
+
+    // إضافة كلاس active إذا كان المستخدم قد أفاد المنشور
+    const activeClass = isLikedByMe ? 'active' : '';
+
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    // زر الإفادة الجديد (يستخدم logo.png)
+    // زر الإفادة
+    // أضفنا id للزر لسهولة الوصول إليه
     const efadaBtnHTML = `
-        <div class="action-btn" onclick="toggleLike('${postId}', this)">
+        <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
             <img src="logo.png" class="efada-icon" alt="إفادة">
             <span>إفادة</span>
             <span class="like-count" style="margin-right:5px;">${post.likes || 0}</span>
@@ -176,7 +209,9 @@ if (document.getElementById('postsContainer')) {
         const post = snapshot.val();
         const postId = snapshot.key;
         const card = createPostCard(post, postId);
-        container.prepend(card); // الأحدث في الأعلى
+        // ملاحظة: prepend يضيف في الأعلى، لكن قد يسبب قفزاً عند التحديث.
+        // في المشاريع الكبيرة نستخدم مصفوفة وترتيب، لكن هنا prepend ممتاز.
+        container.prepend(card);
     });
 }
 
@@ -186,7 +221,6 @@ if (document.getElementById('profilePostsContainer')) {
     let viewingName = localStorage.getItem('hobbyName');
     const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
     
-    // إذا كنا نزور بروفايل شخص آخر
     if (viewingData && viewingData.name) {
         viewingName = viewingData.name;
     }
@@ -196,7 +230,6 @@ if (document.getElementById('profilePostsContainer')) {
     onChildAdded(postsRef, (snapshot) => {
         const post = snapshot.val();
         const postId = snapshot.key;
-        // عرض المنشور فقط إذا كان للمستخدم الحالي
         if (post.author === viewingName) {
             const card = createPostCard(post, postId);
             container.prepend(card);
@@ -205,7 +238,7 @@ if (document.getElementById('profilePostsContainer')) {
 }
 
 // ---------------------------------------------------------
-//  أدوات مساعدة (صور، صوت، روابط)
+//  أدوات مساعدة
 // ---------------------------------------------------------
 
 window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
@@ -222,7 +255,6 @@ window.previewFile = function() {
     }
 }
 
-// دوال فارغة حالياً (Placeholder)
 window.addHashtagInput = function() { 
     const input = document.getElementById('postHashtags');
     if(input) input.style.display = input.style.display === 'none' ? 'block' : 'none';
@@ -230,28 +262,20 @@ window.addHashtagInput = function() {
 window.triggerAudioUpload = function() { document.getElementById('postAudioInput').click(); }
 window.handleAudioSelect = function() { alert("تم تحديد الملف الصوتي"); }
 window.addLink = function() { prompt("أدخل الرابط:"); }
-window.openInterestsModal = function() { 
-    const modal = document.getElementById('interestsModal');
-    if(modal) modal.style.display = 'flex'; 
-}
-window.closeModal = function() { 
-    const modal = document.getElementById('interestsModal');
-    if(modal) modal.style.display = 'none'; 
-}
+window.openInterestsModal = function() { document.getElementById('interestsModal').style.display = 'flex'; }
+window.closeModal = function() { document.getElementById('interestsModal').style.display = 'none'; }
 window.applyChanges = function() { alert("تم الحفظ"); window.closeModal(); }
 
 // ---------------------------------------------------------
 //  التهيئة عند التحميل
 // ---------------------------------------------------------
 window.addEventListener('load', function() {
-    // تطبيق الثيم (مظلم/فاتح)
     if(localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
         const darkText = document.getElementById('darkText');
         if(darkText) darkText.innerText = "الوضع النهاري";
     }
     
-    // حماية الصفحات (ما عدا الدخول)
     const path = window.location.href;
     if (!localStorage.getItem('hobbyLoggedIn') && 
         !path.includes('index.html') && 
