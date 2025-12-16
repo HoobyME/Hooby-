@@ -1,4 +1,4 @@
-/* --- main.js: نسخة التعليقات الفعالة --- */
+/* --- main.js: إصلاح اختفاء التعليقات --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -119,7 +119,6 @@ window.toggleLike = function(postId) {
         return post;
     });
     
-    // تحديث بصري سريع
     const btn = document.getElementById(`like-btn-${postId}`);
     if(btn) {
         btn.classList.toggle('active');
@@ -129,17 +128,15 @@ window.toggleLike = function(postId) {
     }
 }
 
-// --- نظام التعليقات الجديد ---
-
-// 1. إظهار/إخفاء قسم التعليقات
+// --- نظام التعليقات ---
 window.toggleComments = function(postId) {
+    // نبحث عن القسم باستخدام ID الفريد
     const section = document.getElementById(`comments-section-${postId}`);
     if(section) {
         section.classList.toggle('active');
     }
 }
 
-// 2. إرسال تعليق جديد
 window.sendComment = function(postId) {
     const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value;
@@ -148,20 +145,18 @@ window.sendComment = function(postId) {
 
     if(!text) return;
 
-    // مرجع لجدول التعليقات داخل المنشور المحدد
     const commentsRef = ref(db, `posts/${postId}/comments`);
-
     push(commentsRef, {
         text: text,
         author: authorName,
         authorImg: authorImg,
         timestamp: serverTimestamp()
     }).then(() => {
-        input.value = ""; // تنظيف الحقل
-    }).catch(err => alert(err.message));
+        input.value = "";
+    });
 }
 
-// --- بناء بطاقة المنشور (مع التعليقات) ---
+// --- دالة بناء البطاقة (تم إصلاح الخطأ هنا) ---
 
 function createPostCard(post, postId) {
     const userId = getSafeUserId();
@@ -174,7 +169,6 @@ function createPostCard(post, postId) {
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    // زر الإفادة
     const efadaBtnHTML = `
         <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
             <img src="logo.png" class="efada-icon" alt="إفادة">
@@ -183,7 +177,7 @@ function createPostCard(post, postId) {
         </div>
     `;
 
-    // زر التعليق (أصبح الآن يستدعي toggleComments)
+    // لاحظ: نمرر postId لدالة الفتح
     const commentBtnHTML = `
         <div class="action-btn" onclick="toggleComments('${postId}')">
             <i class="far fa-comment"></i> تعليق
@@ -208,7 +202,7 @@ function createPostCard(post, postId) {
         </div>
         
         <div id="comments-section-${postId}" class="comments-section">
-            <div id="comments-list-${postId}" class="comments-list">
+            <div class="comments-list">
                 </div>
             <div class="comment-input-area">
                 <input type="text" id="comment-input-${postId}" class="comment-input" placeholder="اكتب تعليقاً...">
@@ -217,12 +211,15 @@ function createPostCard(post, postId) {
         </div>
     `;
 
-    // --- الاستماع للتعليقات الخاصة بهذا المنشور ---
-    // هذا الكود يعمل بشكل منفصل لكل منشور ليجلب تعليقاته
+    // --- التصحيح الجوهري هنا ---
+    // نستمع للتعليقات ونضيفها لـ card مباشرة وليس عبر document.getElementById
     const commentsRef = ref(db, `posts/${postId}/comments`);
     onChildAdded(commentsRef, (snapshot) => {
         const comment = snapshot.val();
-        const list = document.getElementById(`comments-list-${postId}`);
+        
+        // نبحث عن القائمة *داخل* البطاقة التي ننشئها الآن
+        const list = card.querySelector('.comments-list');
+        
         if(list) {
             const commentItem = document.createElement('div');
             commentItem.className = 'comment-item';
@@ -234,7 +231,6 @@ function createPostCard(post, postId) {
                 </div>
             `;
             list.appendChild(commentItem);
-            // النزول لآخر تعليق تلقائياً
             list.scrollTop = list.scrollHeight;
         }
     });
@@ -242,7 +238,7 @@ function createPostCard(post, postId) {
     return card;
 }
 
-// عرض المنشورات في الرئيسية
+// عرض في الرئيسية
 if (document.getElementById('postsContainer')) {
     const container = document.getElementById('postsContainer');
     container.innerHTML = ""; 
@@ -252,7 +248,7 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
-// عرض المنشورات في البروفايل
+// عرض في البروفايل
 if (document.getElementById('profilePostsContainer')) {
     const container = document.getElementById('profilePostsContainer');
     let viewingName = localStorage.getItem('hobbyName');
@@ -269,7 +265,7 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- أدوات مساعدة ---
+// --- أدوات ---
 window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
 window.previewFile = function() {
     const f = document.getElementById('postImageInput').files[0];
