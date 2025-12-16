@@ -1,7 +1,8 @@
-/* --- main.js: النسخة المتطورة (دعم البروفايل) --- */
+/* --- main.js: النسخة الكاملة مع ميزة الإفادة --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // إعدادات Firebase
 const firebaseConfig = {
@@ -15,17 +16,29 @@ const firebaseConfig = {
   measurementId: "G-H1F82C1THC"
 };
 
+// تشغيل الخدمات
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 
-// --- الدوال العامة ---
+// ---------------------------------------------------------
+//  الوظائف العامة (القوائم، الوضع المظلم، الخروج)
+// ---------------------------------------------------------
 
 window.toggleMenu = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.querySelector('.overlay');
     if(sidebar) sidebar.classList.toggle('active');
     if(overlay) overlay.classList.toggle('active');
+}
+
+window.toggleDarkMode = function() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    const darkText = document.getElementById('darkText');
+    if(darkText) darkText.innerText = isDark ? "الوضع النهاري" : "الوضع المظلم";
 }
 
 window.logout = function() {
@@ -36,7 +49,6 @@ window.logout = function() {
 }
 
 window.visitMyProfile = function() {
-    // نخبر النظام أننا نريد رؤية بروفايلنا
     const myData = {
         name: localStorage.getItem('hobbyName') || "أنت",
         img: localStorage.getItem('hobbyImage') || "side.png",
@@ -46,11 +58,15 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html';
 }
 
-// --- النشر ---
+// ---------------------------------------------------------
+//  منظومة النشر (إضافة منشور جديد)
+// ---------------------------------------------------------
+
 window.openAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'flex';
 }
+
 window.closeAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'none';
@@ -63,7 +79,7 @@ window.saveNewPost = function() {
     const authorImg = localStorage.getItem('hobbyImage') || "side.png";
 
     if(!title || !content) {
-        alert("اكتب شيئاً للنشر!");
+        alert("يرجى كتابة عنوان وموضوع للمنشور!");
         return;
     }
 
@@ -75,55 +91,60 @@ window.saveNewPost = function() {
         timestamp: serverTimestamp(),
         likes: 0
     }).then(() => {
-        alert("تم النشر!");
+        alert("✅ تم النشر بنجاح!");
         window.closeAddPost();
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
     }).catch((error) => {
-        alert("خطأ: " + error.message);
+        alert("حدث خطأ: " + error.message);
     });
 }
 
-// --- نظام عرض المنشورات الذكي ---
+// ---------------------------------------------------------
+//  منظومة التفاعل (الإفادة / اللايك) الجديدة
+// ---------------------------------------------------------
 
-// 1. إذا كنا في الصفحة الرئيسية (Home)
-if (document.getElementById('postsContainer')) {
-    const container = document.getElementById('postsContainer');
-    container.innerHTML = ""; 
-
-    onChildAdded(postsRef, (snapshot) => {
-        const post = snapshot.val();
-        renderHomePost(post, container);
-    });
-}
-
-// 2. إذا كنا في صفحة البروفايل (Profile)
-if (document.getElementById('profileGrid')) {
-    const grid = document.getElementById('profileGrid');
+window.toggleLike = function(postId, btnElement) {
+    // مرجع لعداد الإعجابات في هذا المنشور
+    const postLikeRef = ref(db, `posts/${postId}/likes`);
     
-    // معرفة اسم صاحب البروفايل المعروض حالياً
-    let viewingName = localStorage.getItem('hobbyName'); // افتراضياً أنا
-    const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
-    if (viewingData && viewingData.name) {
-        viewingName = viewingData.name;
-    }
+    // التحقق هل الزر مفعل حالياً؟
+    const isActive = btnElement.classList.contains('active');
 
-    // تنظيف الشبكة
-    grid.innerHTML = "";
-
-    onChildAdded(postsRef, (snapshot) => {
-        const post = snapshot.val();
-        // الشرط السحري: هل كاتب المنشور هو نفسه صاحب هذا البروفايل؟
-        if (post.author === viewingName) {
-            renderProfilePost(post, grid);
-        }
+    // عملية Transaction لضمان دقة العداد في قاعدة البيانات
+    runTransaction(postLikeRef, (currentLikes) => {
+        // إذا كان مفعلاً سننقص 1، وإذا لم يكن مفعلاً سنزيد 1
+        return (currentLikes || 0) + (isActive ? -1 : 1);
+    }).then(() => {
+        // 1. تغيير شكل الزر (ملون <-> رمادي)
+        btnElement.classList.toggle('active');
+        
+        // 2. تحديث الرقم الظاهر للمستخدم فوراً
+        const countSpan = btnElement.querySelector('.like-count');
+        let currentCount = parseInt(countSpan.innerText);
+        countSpan.innerText = isActive ? currentCount - 1 : currentCount + 1;
+    }).catch((err) => {
+        console.error("فشل التحديث", err);
     });
 }
 
-// دالة رسم المنشور في الرئيسية
-function renderHomePost(post, container) {
+// ---------------------------------------------------------
+//  عرض المنشورات (بناء البطاقة)
+// ---------------------------------------------------------
+
+function createPostCard(post, postId) {
     const card = document.createElement('div');
     card.className = 'post-card';
+
+    // زر الإفادة الجديد (يستخدم logo.png)
+    const efadaBtnHTML = `
+        <div class="action-btn" onclick="toggleLike('${postId}', this)">
+            <img src="logo.png" class="efada-icon" alt="إفادة">
+            <span>إفادة</span>
+            <span class="like-count" style="margin-right:5px;">${post.likes || 0}</span>
+        </div>
+    `;
+
     card.innerHTML = `
         <div class="post-header">
             <img src="${post.authorImg}" class="user-avatar-small">
@@ -137,31 +158,105 @@ function renderHomePost(post, container) {
             <p>${post.content}</p>
         </div>
         <div class="post-actions">
-            <div class="action-btn"><i class="far fa-heart"></i> أعجبني</div>
+            ${efadaBtnHTML}
+            <div class="action-btn">
+                <i class="far fa-comment"></i> تعليق
+            </div>
         </div>
     `;
-    container.prepend(card);
+    return card;
 }
 
-// دالة رسم المنشور في البروفايل (على شكل مربع)
-function renderProfilePost(post, container) {
-    const item = document.createElement('div');
-    item.className = 'grid-item';
-    // بما أننا لم نضف صوراً للمنشورات بعد، سنعرض العنوان كخلفية ملونة
-    item.style.backgroundColor = "#f0f2f5";
-    item.style.display = "flex";
-    item.style.alignItems = "center";
-    item.style.justifyContent = "center";
-    item.style.padding = "10px";
-    item.style.border = "1px solid #ddd";
-    item.style.textAlign = "center";
-    
-    item.innerHTML = `
-        <div>
-            <h4 style="margin:0; color:var(--primary-color); font-size:14px;">${post.title}</h4>
-            <p style="font-size:11px; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">${post.content}</p>
-        </div>
-    `;
-    // نضيفه في البداية
-    container.prepend(item);
+// الاستماع للمنشورات في الصفحة الرئيسية
+if (document.getElementById('postsContainer')) {
+    const container = document.getElementById('postsContainer');
+    container.innerHTML = ""; 
+
+    onChildAdded(postsRef, (snapshot) => {
+        const post = snapshot.val();
+        const postId = snapshot.key;
+        const card = createPostCard(post, postId);
+        container.prepend(card); // الأحدث في الأعلى
+    });
 }
+
+// الاستماع للمنشورات في صفحة البروفايل
+if (document.getElementById('profilePostsContainer')) {
+    const container = document.getElementById('profilePostsContainer');
+    let viewingName = localStorage.getItem('hobbyName');
+    const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
+    
+    // إذا كنا نزور بروفايل شخص آخر
+    if (viewingData && viewingData.name) {
+        viewingName = viewingData.name;
+    }
+
+    container.innerHTML = "";
+
+    onChildAdded(postsRef, (snapshot) => {
+        const post = snapshot.val();
+        const postId = snapshot.key;
+        // عرض المنشور فقط إذا كان للمستخدم الحالي
+        if (post.author === viewingName) {
+            const card = createPostCard(post, postId);
+            container.prepend(card);
+        }
+    });
+}
+
+// ---------------------------------------------------------
+//  أدوات مساعدة (صور، صوت، روابط)
+// ---------------------------------------------------------
+
+window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
+
+window.previewFile = function() {
+    const file = document.getElementById('postImageInput').files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// دوال فارغة حالياً (Placeholder)
+window.addHashtagInput = function() { 
+    const input = document.getElementById('postHashtags');
+    if(input) input.style.display = input.style.display === 'none' ? 'block' : 'none';
+}
+window.triggerAudioUpload = function() { document.getElementById('postAudioInput').click(); }
+window.handleAudioSelect = function() { alert("تم تحديد الملف الصوتي"); }
+window.addLink = function() { prompt("أدخل الرابط:"); }
+window.openInterestsModal = function() { 
+    const modal = document.getElementById('interestsModal');
+    if(modal) modal.style.display = 'flex'; 
+}
+window.closeModal = function() { 
+    const modal = document.getElementById('interestsModal');
+    if(modal) modal.style.display = 'none'; 
+}
+window.applyChanges = function() { alert("تم الحفظ"); window.closeModal(); }
+
+// ---------------------------------------------------------
+//  التهيئة عند التحميل
+// ---------------------------------------------------------
+window.addEventListener('load', function() {
+    // تطبيق الثيم (مظلم/فاتح)
+    if(localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        const darkText = document.getElementById('darkText');
+        if(darkText) darkText.innerText = "الوضع النهاري";
+    }
+    
+    // حماية الصفحات (ما عدا الدخول)
+    const path = window.location.href;
+    if (!localStorage.getItem('hobbyLoggedIn') && 
+        !path.includes('index.html') && 
+        !path.includes('signup.html') && 
+        !path.includes('login-email.html')) {
+        window.location.href = 'index.html';
+    }
+});
