@@ -1,4 +1,4 @@
-/* --- main.js: إصلاح اختفاء التعليقات --- */
+/* --- main.js: نسخة تدعم الصور + التعليقات + الإفادة --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -59,7 +59,7 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html';
 }
 
-// --- النشر ---
+// --- النشر (تم التعديل لحفظ الصور) ---
 window.openAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'flex';
@@ -73,6 +73,9 @@ window.closeAddPost = function() {
 window.saveNewPost = function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
+    const fileInput = document.getElementById('postImageInput');
+    const file = fileInput.files[0]; // الملف المختار
+
     const authorName = localStorage.getItem('hobbyName') || "مستخدم مجهول";
     const authorImg = localStorage.getItem('hobbyImage') || "side.png";
 
@@ -81,25 +84,44 @@ window.saveNewPost = function() {
         return;
     }
 
-    push(postsRef, {
-        title: title,
-        content: content,
-        author: authorName,
-        authorImg: authorImg,
-        timestamp: serverTimestamp(),
-        likes: 0,
-        likedBy: {}
-    }).then(() => {
-        alert("✅ تم النشر بنجاح!");
-        window.closeAddPost();
-        document.getElementById('postTitle').value = '';
-        document.getElementById('postContent').value = '';
-    }).catch((error) => {
-        alert("حدث خطأ: " + error.message);
-    });
+    // دالة داخلية لإرسال البيانات (نستدعيها سواء كان هناك صورة أم لا)
+    const sendData = (imageUrl) => {
+        push(postsRef, {
+            title: title,
+            content: content,
+            postImg: imageUrl || "", // حفظ رابط الصورة هنا
+            author: authorName,
+            authorImg: authorImg,
+            timestamp: serverTimestamp(),
+            likes: 0,
+            likedBy: {}
+        }).then(() => {
+            alert("✅ تم النشر بنجاح!");
+            window.closeAddPost();
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
+            document.getElementById('postImageInput').value = ''; // تصفير الصورة
+            document.getElementById('imagePreview').style.display = 'none';
+        }).catch((error) => {
+            alert("حدث خطأ: " + error.message);
+        });
+    };
+
+    // التحقق: هل يوجد صورة؟
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // تحويل الصورة لنص (Base64) وإرسالها
+            sendData(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // لا توجد صورة، أرسل النص فقط
+        sendData(null);
+    }
 }
 
-// --- نظام الإفادة (اللايك) ---
+// --- نظام الإفادة ---
 window.toggleLike = function(postId) {
     const userId = getSafeUserId();
     if (!userId) return alert("يجب تسجيل الدخول أولاً!");
@@ -130,7 +152,6 @@ window.toggleLike = function(postId) {
 
 // --- نظام التعليقات ---
 window.toggleComments = function(postId) {
-    // نبحث عن القسم باستخدام ID الفريد
     const section = document.getElementById(`comments-section-${postId}`);
     if(section) {
         section.classList.toggle('active');
@@ -156,8 +177,7 @@ window.sendComment = function(postId) {
     });
 }
 
-// --- دالة بناء البطاقة (تم إصلاح الخطأ هنا) ---
-
+// --- بناء البطاقة (تم التعديل لعرض الصورة) ---
 function createPostCard(post, postId) {
     const userId = getSafeUserId();
     let isLikedByMe = false;
@@ -169,6 +189,12 @@ function createPostCard(post, postId) {
     const card = document.createElement('div');
     card.className = 'post-card';
 
+    // كود عرض الصورة (يظهر فقط إذا كان للمنشور صورة)
+    // نستخدم شرط (ternary operator) للتحقق
+    const imageHTML = post.postImg 
+        ? `<img src="${post.postImg}" style="width:100%; border-radius:10px; margin-top:10px; max-height:300px; object-fit:cover;">` 
+        : '';
+
     const efadaBtnHTML = `
         <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
             <img src="logo.png" class="efada-icon" alt="إفادة">
@@ -177,7 +203,6 @@ function createPostCard(post, postId) {
         </div>
     `;
 
-    // لاحظ: نمرر postId لدالة الفتح
     const commentBtnHTML = `
         <div class="action-btn" onclick="toggleComments('${postId}')">
             <i class="far fa-comment"></i> تعليق
@@ -195,15 +220,14 @@ function createPostCard(post, postId) {
         <div class="post-body">
             <h3>${post.title}</h3>
             <p>${post.content}</p>
-        </div>
+            ${imageHTML} </div>
         <div class="post-actions">
             ${efadaBtnHTML}
             ${commentBtnHTML}
         </div>
         
         <div id="comments-section-${postId}" class="comments-section">
-            <div class="comments-list">
-                </div>
+            <div class="comments-list"></div>
             <div class="comment-input-area">
                 <input type="text" id="comment-input-${postId}" class="comment-input" placeholder="اكتب تعليقاً...">
                 <button onclick="sendComment('${postId}')" class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
@@ -211,15 +235,10 @@ function createPostCard(post, postId) {
         </div>
     `;
 
-    // --- التصحيح الجوهري هنا ---
-    // نستمع للتعليقات ونضيفها لـ card مباشرة وليس عبر document.getElementById
     const commentsRef = ref(db, `posts/${postId}/comments`);
     onChildAdded(commentsRef, (snapshot) => {
         const comment = snapshot.val();
-        
-        // نبحث عن القائمة *داخل* البطاقة التي ننشئها الآن
         const list = card.querySelector('.comments-list');
-        
         if(list) {
             const commentItem = document.createElement('div');
             commentItem.className = 'comment-item';
