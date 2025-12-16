@@ -1,8 +1,8 @@
-/* --- main.js: نسخة خالية من الاهتمامات --- */
+/* --- main.js: نسخة التعليقات الفعالة --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
@@ -26,6 +26,7 @@ function getSafeUserId() {
     return name.replace(/[.#$\[\]]/g, "_");
 }
 
+// --- الوظائف العامة ---
 window.toggleMenu = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.querySelector('.overlay');
@@ -58,6 +59,7 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html';
 }
 
+// --- النشر ---
 window.openAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'flex';
@@ -97,16 +99,15 @@ window.saveNewPost = function() {
     });
 }
 
+// --- نظام الإفادة (اللايك) ---
 window.toggleLike = function(postId) {
     const userId = getSafeUserId();
-    if (!userId) return alert("يجب تسجيل الدخول أولاً للإفادة!");
+    if (!userId) return alert("يجب تسجيل الدخول أولاً!");
 
     const postRef = ref(db, `posts/${postId}`);
-
     runTransaction(postRef, (post) => {
         if (post) {
             if (!post.likedBy) post.likedBy = {};
-
             if (post.likedBy[userId]) {
                 post.likes--;
                 post.likedBy[userId] = null;
@@ -118,6 +119,7 @@ window.toggleLike = function(postId) {
         return post;
     });
     
+    // تحديث بصري سريع
     const btn = document.getElementById(`like-btn-${postId}`);
     if(btn) {
         btn.classList.toggle('active');
@@ -127,23 +129,64 @@ window.toggleLike = function(postId) {
     }
 }
 
+// --- نظام التعليقات الجديد ---
+
+// 1. إظهار/إخفاء قسم التعليقات
+window.toggleComments = function(postId) {
+    const section = document.getElementById(`comments-section-${postId}`);
+    if(section) {
+        section.classList.toggle('active');
+    }
+}
+
+// 2. إرسال تعليق جديد
+window.sendComment = function(postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    const text = input.value;
+    const authorName = localStorage.getItem('hobbyName') || "مجهول";
+    const authorImg = localStorage.getItem('hobbyImage') || "side.png";
+
+    if(!text) return;
+
+    // مرجع لجدول التعليقات داخل المنشور المحدد
+    const commentsRef = ref(db, `posts/${postId}/comments`);
+
+    push(commentsRef, {
+        text: text,
+        author: authorName,
+        authorImg: authorImg,
+        timestamp: serverTimestamp()
+    }).then(() => {
+        input.value = ""; // تنظيف الحقل
+    }).catch(err => alert(err.message));
+}
+
+// --- بناء بطاقة المنشور (مع التعليقات) ---
+
 function createPostCard(post, postId) {
     const userId = getSafeUserId();
     let isLikedByMe = false;
     if (post.likedBy && userId && post.likedBy[userId]) {
         isLikedByMe = true;
     }
-
     const activeClass = isLikedByMe ? 'active' : '';
 
     const card = document.createElement('div');
     card.className = 'post-card';
 
+    // زر الإفادة
     const efadaBtnHTML = `
         <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
             <img src="logo.png" class="efada-icon" alt="إفادة">
             <span>إفادة</span>
             <span class="like-count" style="margin-right:5px;">${post.likes || 0}</span>
+        </div>
+    `;
+
+    // زر التعليق (أصبح الآن يستدعي toggleComments)
+    const commentBtnHTML = `
+        <div class="action-btn" onclick="toggleComments('${postId}')">
+            <i class="far fa-comment"></i> تعليق
         </div>
     `;
 
@@ -161,64 +204,84 @@ function createPostCard(post, postId) {
         </div>
         <div class="post-actions">
             ${efadaBtnHTML}
-            <div class="action-btn">
-                <i class="far fa-comment"></i> تعليق
+            ${commentBtnHTML}
+        </div>
+        
+        <div id="comments-section-${postId}" class="comments-section">
+            <div id="comments-list-${postId}" class="comments-list">
+                </div>
+            <div class="comment-input-area">
+                <input type="text" id="comment-input-${postId}" class="comment-input" placeholder="اكتب تعليقاً...">
+                <button onclick="sendComment('${postId}')" class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     `;
+
+    // --- الاستماع للتعليقات الخاصة بهذا المنشور ---
+    // هذا الكود يعمل بشكل منفصل لكل منشور ليجلب تعليقاته
+    const commentsRef = ref(db, `posts/${postId}/comments`);
+    onChildAdded(commentsRef, (snapshot) => {
+        const comment = snapshot.val();
+        const list = document.getElementById(`comments-list-${postId}`);
+        if(list) {
+            const commentItem = document.createElement('div');
+            commentItem.className = 'comment-item';
+            commentItem.innerHTML = `
+                <img src="${comment.authorImg}" class="comment-avatar">
+                <div class="comment-content">
+                    <span class="comment-author">${comment.author}</span>
+                    <span>${comment.text}</span>
+                </div>
+            `;
+            list.appendChild(commentItem);
+            // النزول لآخر تعليق تلقائياً
+            list.scrollTop = list.scrollHeight;
+        }
+    });
+
     return card;
 }
 
+// عرض المنشورات في الرئيسية
 if (document.getElementById('postsContainer')) {
     const container = document.getElementById('postsContainer');
     container.innerHTML = ""; 
-
     onChildAdded(postsRef, (snapshot) => {
-        const post = snapshot.val();
-        const postId = snapshot.key;
-        const card = createPostCard(post, postId);
+        const card = createPostCard(snapshot.val(), snapshot.key);
         container.prepend(card);
     });
 }
 
+// عرض المنشورات في البروفايل
 if (document.getElementById('profilePostsContainer')) {
     const container = document.getElementById('profilePostsContainer');
     let viewingName = localStorage.getItem('hobbyName');
     const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
-    
-    if (viewingData && viewingData.name) {
-        viewingName = viewingData.name;
-    }
+    if (viewingData && viewingData.name) viewingName = viewingData.name;
 
     container.innerHTML = "";
-
     onChildAdded(postsRef, (snapshot) => {
         const post = snapshot.val();
-        const postId = snapshot.key;
         if (post.author === viewingName) {
-            const card = createPostCard(post, postId);
+            const card = createPostCard(post, snapshot.key);
             container.prepend(card);
         }
     });
 }
 
+// --- أدوات مساعدة ---
 window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
-
 window.previewFile = function() {
-    const file = document.getElementById('postImageInput').files[0];
-    if(file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('imagePreview').src = e.target.result;
-            document.getElementById('imagePreview').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+    const f = document.getElementById('postImageInput').files[0];
+    if(f) {
+        const r = new FileReader();
+        r.onload = e => { document.getElementById('imagePreview').src = e.target.result; document.getElementById('imagePreview').style.display = 'block'; };
+        r.readAsDataURL(f);
     }
 }
-
 window.addHashtagInput = function() { 
-    const input = document.getElementById('postHashtags');
-    if(input) input.style.display = input.style.display === 'none' ? 'block' : 'none';
+    const i = document.getElementById('postHashtags');
+    if(i) i.style.display = i.style.display === 'none' ? 'block' : 'none';
 }
 window.triggerAudioUpload = function() { document.getElementById('postAudioInput').click(); }
 window.handleAudioSelect = function() { alert("تم تحديد الملف الصوتي"); }
@@ -227,15 +290,11 @@ window.addLink = function() { prompt("أدخل الرابط:"); }
 window.addEventListener('load', function() {
     if(localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        const darkText = document.getElementById('darkText');
-        if(darkText) darkText.innerText = "الوضع النهاري";
+        const dt = document.getElementById('darkText');
+        if(dt) dt.innerText = "الوضع النهاري";
     }
-    
     const path = window.location.href;
-    if (!localStorage.getItem('hobbyLoggedIn') && 
-        !path.includes('index.html') && 
-        !path.includes('signup.html') && 
-        !path.includes('login-email.html')) {
+    if (!localStorage.getItem('hobbyLoggedIn') && !path.includes('index') && !path.includes('signup') && !path.includes('login')) {
         window.location.href = 'index.html';
     }
 });
