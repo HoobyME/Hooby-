@@ -1,9 +1,10 @@
-/* --- main.js: نسخة تدعم الصور + التعليقات + الإفادة --- */
+/* --- main.js: النسخة الشاملة (شات + منشورات + صور + تعليقات + حماية) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, set, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -18,7 +19,53 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
+
+// مراجع قاعدة البيانات
 const postsRef = ref(db, 'posts');
+const usersRef = ref(db, 'users'); 
+
+// =========================================================
+// 🛡️ 1. نظام الحماية والأمان (طرد البوتات)
+// =========================================================
+
+function checkAuth() {
+    const path = window.location.href;
+    const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
+    const userName = localStorage.getItem('hobbyName');
+
+    // الصفحات المسموح دخولها للزوار فقط
+    if (path.includes('index.html') || path.includes('signup.html') || path.includes('login-email.html')) {
+        return;
+    }
+
+    // إذا لم يكن مسجلاً أو اسمه غير صالح -> طرد للصفحة الرئيسية
+    if (!isLoggedIn || !userName || userName === "null") {
+        window.location.href = 'index.html';
+    }
+}
+checkAuth(); // تشغيل الحماية فوراً
+
+// تسجيل المستخدم في قائمة "الأعضاء" ليظهر في الشات
+function registerUserPresence() {
+    const myName = localStorage.getItem('hobbyName');
+    const myImg = localStorage.getItem('hobbyImage') || "side.png";
+    
+    if(myName && localStorage.getItem('hobbyLoggedIn')) {
+        // تنظيف الاسم لاستخدامه كمفتاح (Firebase لا يقبل الرموز مثل . # $)
+        const safeName = myName.replace(/[.#$\[\]]/g, "_");
+        set(ref(db, 'users/' + safeName), {
+            name: myName,
+            img: myImg,
+            lastActive: serverTimestamp()
+        });
+    }
+}
+registerUserPresence();
+
+
+// =========================================================
+// ⚙️ 2. الوظائف العامة (القوائم، الثيم، الخروج)
+// =========================================================
 
 function getSafeUserId() {
     let name = localStorage.getItem('hobbyName');
@@ -26,7 +73,6 @@ function getSafeUserId() {
     return name.replace(/[.#$\[\]]/g, "_");
 }
 
-// --- الوظائف العامة ---
 window.toggleMenu = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.querySelector('.overlay');
@@ -44,7 +90,7 @@ window.toggleDarkMode = function() {
 
 window.logout = function() {
     if(confirm("هل تريد تسجيل الخروج؟")) {
-        localStorage.removeItem('hobbyLoggedIn');
+        localStorage.clear();
         window.location.href = 'index.html';
     }
 }
@@ -59,7 +105,108 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html';
 }
 
-// --- النشر (تم التعديل لحفظ الصور) ---
+
+// =========================================================
+// 💬 3. نظام الدردشة (Chat System)
+// =========================================================
+
+let currentChatPartner = null;
+
+// أ) تحميل قائمة المستخدمين (تعمل فقط في صفحة messages.html)
+if (document.getElementById('usersList')) {
+    const userListContainer = document.getElementById('usersList');
+    userListContainer.innerHTML = ""; 
+
+    onChildAdded(usersRef, (snapshot) => {
+        const user = snapshot.val();
+        const myName = localStorage.getItem('hobbyName');
+
+        // لا تظهر نفسي في القائمة
+        if (user.name === myName) return;
+
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.onclick = () => startChat(user);
+        div.innerHTML = `
+            <img src="${user.img || 'side.png'}">
+            <div class="user-item-info">
+                <h4>${user.name}</h4>
+                <span>اضغط للمراسلة</span>
+            </div>
+        `;
+        userListContainer.appendChild(div);
+    });
+}
+
+// ب) بدء المحادثة عند اختيار شخص
+window.startChat = function(user) {
+    currentChatPartner = user.name;
+    
+    // تحديث الواجهة
+    document.getElementById('chatHeaderName').innerText = user.name;
+    document.getElementById('chatHeaderImg').src = user.img || 'side.png';
+    document.getElementById('inputArea').style.display = 'flex';
+    document.getElementById('chatMessages').innerHTML = ""; 
+    
+    // للجوال
+    const chatArea = document.getElementById('chatArea');
+    const userList = document.getElementById('usersList');
+    if(window.innerWidth <= 600 && chatArea) {
+        chatArea.classList.add('active');
+        if(userList) userList.style.display = 'none';
+    }
+
+    loadMessages();
+}
+
+// ج) تحميل الرسائل السابقة
+function loadMessages() {
+    const myName = localStorage.getItem('hobbyName');
+    const partner = currentChatPartner;
+    // مفتاح المحادثة: ترتيب الأسماء أبجدياً لتوحيد المفتاح
+    const chatId = [myName, partner].sort().join("_");
+    const messagesRef = ref(db, 'chats/' + chatId);
+
+    document.getElementById('chatMessages').innerHTML = "";
+
+    onChildAdded(messagesRef, (snapshot) => {
+        const msg = snapshot.val();
+        const div = document.createElement('div');
+        const isMe = msg.sender === myName;
+        div.className = `message ${isMe ? 'sent' : 'received'}`;
+        div.innerText = msg.text;
+        
+        const container = document.getElementById('chatMessages');
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+// د) إرسال رسالة
+window.sendChatMessage = function() {
+    const input = document.getElementById('msgInput');
+    const text = input.value;
+    const myName = localStorage.getItem('hobbyName');
+
+    if (!text || !currentChatPartner) return;
+
+    const chatId = [myName, currentChatPartner].sort().join("_");
+    const messagesRef = ref(db, 'chats/' + chatId);
+
+    push(messagesRef, {
+        sender: myName,
+        text: text,
+        timestamp: serverTimestamp()
+    }).then(() => {
+        input.value = "";
+    });
+}
+
+
+// =========================================================
+// 📝 4. نظام المنشورات (صور + نصوص)
+// =========================================================
+
 window.openAddPost = function() {
     const modal = document.getElementById('addPostOverlay');
     if(modal) modal.style.display = 'flex';
@@ -74,9 +221,9 @@ window.saveNewPost = function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
     const fileInput = document.getElementById('postImageInput');
-    const file = fileInput.files[0]; // الملف المختار
+    const file = fileInput.files[0]; 
 
-    const authorName = localStorage.getItem('hobbyName') || "مستخدم مجهول";
+    const authorName = localStorage.getItem('hobbyName');
     const authorImg = localStorage.getItem('hobbyImage') || "side.png";
 
     if(!title || !content) {
@@ -84,63 +231,70 @@ window.saveNewPost = function() {
         return;
     }
 
-    // دالة داخلية لإرسال البيانات (نستدعيها سواء كان هناك صورة أم لا)
+    // دالة الإرسال للقاعدة
     const sendData = (imageUrl) => {
         push(postsRef, {
             title: title,
             content: content,
-            postImg: imageUrl || "", // حفظ رابط الصورة هنا
+            postImg: imageUrl || "", 
             author: authorName,
             authorImg: authorImg,
             timestamp: serverTimestamp(),
             likes: 0,
             likedBy: {}
         }).then(() => {
-            alert("✅ تم النشر بنجاح!");
+            alert("✅ تم النشر!");
             window.closeAddPost();
             document.getElementById('postTitle').value = '';
             document.getElementById('postContent').value = '';
-            document.getElementById('postImageInput').value = ''; // تصفير الصورة
+            document.getElementById('postImageInput').value = '';
             document.getElementById('imagePreview').style.display = 'none';
         }).catch((error) => {
-            alert("حدث خطأ: " + error.message);
+            alert("خطأ: " + error.message);
         });
     };
 
-    // التحقق: هل يوجد صورة؟
+    // معالجة الصورة (نظام FileReader للمجانية)
     if (file) {
+        // تحذير للحجم الكبير
+        if (file.size > 1024 * 1024) { // أكبر من 1 ميجا
+            alert("⚠️ الصورة كبيرة وقد لا يتم نشرها. يفضل صور أصغر من 1 ميجا.");
+        }
         const reader = new FileReader();
         reader.onload = function(e) {
-            // تحويل الصورة لنص (Base64) وإرسالها
-            sendData(e.target.result);
+            sendData(e.target.result); // إرسال كود الصورة
         };
         reader.readAsDataURL(file);
     } else {
-        // لا توجد صورة، أرسل النص فقط
-        sendData(null);
+        sendData(null); // نشر نصي فقط
     }
 }
 
-// --- نظام الإفادة ---
+
+// =========================================================
+// ❤️ 5. نظام الإفادة (Likes) والتعليقات
+// =========================================================
+
 window.toggleLike = function(postId) {
     const userId = getSafeUserId();
-    if (!userId) return alert("يجب تسجيل الدخول أولاً!");
+    if (!userId) return alert("يجب تسجيل الدخول!");
 
     const postRef = ref(db, `posts/${postId}`);
     runTransaction(postRef, (post) => {
         if (post) {
             if (!post.likedBy) post.likedBy = {};
             if (post.likedBy[userId]) {
-                post.likes--;
+                post.likes--; // إلغاء الإفادة
                 post.likedBy[userId] = null;
             } else {
-                post.likes++;
+                post.likes++; // إضافة إفادة
                 post.likedBy[userId] = true;
             }
         }
         return post;
     });
     
+    // تحديث سريع للزر
     const btn = document.getElementById(`like-btn-${postId}`);
     if(btn) {
         btn.classList.toggle('active');
@@ -150,18 +304,15 @@ window.toggleLike = function(postId) {
     }
 }
 
-// --- نظام التعليقات ---
 window.toggleComments = function(postId) {
     const section = document.getElementById(`comments-section-${postId}`);
-    if(section) {
-        section.classList.toggle('active');
-    }
+    if(section) section.classList.toggle('active');
 }
 
 window.sendComment = function(postId) {
     const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value;
-    const authorName = localStorage.getItem('hobbyName') || "مجهول";
+    const authorName = localStorage.getItem('hobbyName');
     const authorImg = localStorage.getItem('hobbyImage') || "side.png";
 
     if(!text) return;
@@ -177,23 +328,25 @@ window.sendComment = function(postId) {
     });
 }
 
-// --- بناء البطاقة (تم التعديل لعرض الصورة) ---
+
+// =========================================================
+// 🖼️ 6. عرض المنشورات (بناء البطاقة)
+// =========================================================
+
 function createPostCard(post, postId) {
     const userId = getSafeUserId();
     let isLikedByMe = false;
-    if (post.likedBy && userId && post.likedBy[userId]) {
-        isLikedByMe = true;
-    }
+    if (post.likedBy && userId && post.likedBy[userId]) isLikedByMe = true;
     const activeClass = isLikedByMe ? 'active' : '';
 
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    // كود عرض الصورة (يظهر فقط إذا كان للمنشور صورة)
-    // نستخدم شرط (ternary operator) للتحقق
-    const imageHTML = post.postImg 
-        ? `<img src="${post.postImg}" style="width:100%; border-radius:10px; margin-top:10px; max-height:300px; object-fit:cover;">` 
-        : '';
+    // التحقق من وجود صورة
+    let imageHTML = "";
+    if (post.postImg && post.postImg.length > 20) {
+        imageHTML = `<img src="${post.postImg}" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover; display:block;">`;
+    }
 
     const efadaBtnHTML = `
         <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
@@ -220,12 +373,12 @@ function createPostCard(post, postId) {
         <div class="post-body">
             <h3>${post.title}</h3>
             <p>${post.content}</p>
-            ${imageHTML} </div>
+            ${imageHTML}
+        </div>
         <div class="post-actions">
             ${efadaBtnHTML}
             ${commentBtnHTML}
         </div>
-        
         <div id="comments-section-${postId}" class="comments-section">
             <div class="comments-list"></div>
             <div class="comment-input-area">
@@ -235,6 +388,7 @@ function createPostCard(post, postId) {
         </div>
     `;
 
+    // جلب التعليقات الخاصة بالمنشور
     const commentsRef = ref(db, `posts/${postId}/comments`);
     onChildAdded(commentsRef, (snapshot) => {
         const comment = snapshot.val();
@@ -284,7 +438,11 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- أدوات ---
+
+// =========================================================
+// 🔧 7. أدوات مساعدة (إضافية)
+// =========================================================
+
 window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
 window.previewFile = function() {
     const f = document.getElementById('postImageInput').files[0];
@@ -294,22 +452,11 @@ window.previewFile = function() {
         r.readAsDataURL(f);
     }
 }
-window.addHashtagInput = function() { 
-    const i = document.getElementById('postHashtags');
-    if(i) i.style.display = i.style.display === 'none' ? 'block' : 'none';
-}
+window.addHashtagInput = function() { document.getElementById('postHashtags').style.display = 'block'; }
 window.triggerAudioUpload = function() { document.getElementById('postAudioInput').click(); }
 window.handleAudioSelect = function() { alert("تم تحديد الملف الصوتي"); }
 window.addLink = function() { prompt("أدخل الرابط:"); }
 
 window.addEventListener('load', function() {
-    if(localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-        const dt = document.getElementById('darkText');
-        if(dt) dt.innerText = "الوضع النهاري";
-    }
-    const path = window.location.href;
-    if (!localStorage.getItem('hobbyLoggedIn') && !path.includes('index') && !path.includes('signup') && !path.includes('login')) {
-        window.location.href = 'index.html';
-    }
+    if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 });
