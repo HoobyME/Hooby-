@@ -1,10 +1,10 @@
-/* --- main.js: النسخة الشاملة (شات + منشورات + صور + تعليقات + حماية) --- */
+/* --- main.js: النسخة الكاملة والنهائية (شات + منشورات + صور + إشعارات) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, onChildAdded, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Firebase
+// 1. إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -20,12 +20,12 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// مراجع قاعدة البيانات
+// المراجع الأساسية
 const postsRef = ref(db, 'posts');
 const usersRef = ref(db, 'users'); 
 
 // =========================================================
-// 🛡️ 1. نظام الحماية والأمان (طرد البوتات)
+// 🛡️ 2. نظام الحماية والأمان (طرد البوتات)
 // =========================================================
 
 function checkAuth() {
@@ -33,25 +33,24 @@ function checkAuth() {
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
     const userName = localStorage.getItem('hobbyName');
 
-    // الصفحات المسموح دخولها للزوار فقط
+    // الصفحات المسموح بزيارتها بدون تسجيل
     if (path.includes('index.html') || path.includes('signup.html') || path.includes('login-email.html')) {
         return;
     }
 
-    // إذا لم يكن مسجلاً أو اسمه غير صالح -> طرد للصفحة الرئيسية
+    // إذا لم يكن مسجلاً -> طرد
     if (!isLoggedIn || !userName || userName === "null") {
         window.location.href = 'index.html';
     }
 }
-checkAuth(); // تشغيل الحماية فوراً
+checkAuth(); 
 
-// تسجيل المستخدم في قائمة "الأعضاء" ليظهر في الشات
+// تسجيل تواجد المستخدم (ليظهر في الشات)
 function registerUserPresence() {
     const myName = localStorage.getItem('hobbyName');
     const myImg = localStorage.getItem('hobbyImage') || "side.png";
     
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
-        // تنظيف الاسم لاستخدامه كمفتاح (Firebase لا يقبل الرموز مثل . # $)
         const safeName = myName.replace(/[.#$\[\]]/g, "_");
         set(ref(db, 'users/' + safeName), {
             name: myName,
@@ -62,16 +61,88 @@ function registerUserPresence() {
 }
 registerUserPresence();
 
-
-// =========================================================
-// ⚙️ 2. الوظائف العامة (القوائم، الثيم، الخروج)
-// =========================================================
-
+// دالة مساعدة لتنظيف الأسماء (للمفاتيح)
 function getSafeUserId() {
     let name = localStorage.getItem('hobbyName');
     if(!name) return null;
     return name.replace(/[.#$\[\]]/g, "_");
 }
+
+
+// =========================================================
+// 🔔 3. نظام الإشعارات (إرسال واستقبال)
+// =========================================================
+
+// دالة إرسال إشعار
+function sendNotification(toUser, type, postId) {
+    const myName = localStorage.getItem('hobbyName');
+    const myImg = localStorage.getItem('hobbyImage') || "side.png";
+
+    if (!toUser || toUser === myName) return; // لا ترسل لنفسك
+
+    const safeToUser = toUser.replace(/[.#$\[\]]/g, "_");
+    const notifRef = ref(db, `notifications/${safeToUser}`);
+    
+    push(notifRef, {
+        fromName: myName,
+        fromImg: myImg,
+        type: type, 
+        postId: postId,
+        timestamp: serverTimestamp(),
+        read: false
+    });
+}
+
+// عرض الإشعارات (تعمل فقط في صفحة notifications.html)
+if (document.getElementById('notificationsList')) {
+    const container = document.getElementById('notificationsList');
+    const myName = localStorage.getItem('hobbyName');
+    
+    if (myName) {
+        const safeName = myName.replace(/[.#$\[\]]/g, "_");
+        const myNotifRef = ref(db, `notifications/${safeName}`);
+        
+        let isFirst = true;
+
+        onChildAdded(myNotifRef, (snapshot) => {
+            if(isFirst) { container.innerHTML = ""; isFirst = false; }
+
+            const notif = snapshot.val();
+            const div = document.createElement('div');
+            div.className = 'notification-item';
+            
+            let icon = '';
+            let text = '';
+            
+            if (notif.type === 'like') {
+                icon = '<i class="fas fa-heart notif-icon" style="color: #4CAF50;"></i>';
+                text = `قام <strong>${notif.fromName}</strong> بإفادة منشورك.`;
+            } else if (notif.type === 'comment') {
+                icon = '<i class="fas fa-comment notif-icon" style="color: #2196F3;"></i>';
+                text = `علق <strong>${notif.fromName}</strong> على منشورك.`;
+            }
+
+            div.innerHTML = `
+                <img src="${notif.fromImg}" class="notif-img">
+                <div class="notif-content">
+                    <p class="notif-text">${text}</p>
+                    <span class="notif-time">إشعار جديد</span>
+                </div>
+                ${icon}
+            `;
+            container.prepend(div);
+        });
+        
+        setTimeout(() => {
+            if(isFirst) container.innerHTML = '<div class="empty-state">لا توجد إشعارات جديدة</div>';
+        }, 3000);
+    }
+}
+
+
+// =========================================================
+// ⚙️ 4. الوظائف العامة (القائمة، الثيم، الخروج)
+// =========================================================
 
 window.toggleMenu = function() {
     const sidebar = document.getElementById('sidebar');
@@ -82,10 +153,9 @@ window.toggleMenu = function() {
 
 window.toggleDarkMode = function() {
     document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    const darkText = document.getElementById('darkText');
-    if(darkText) darkText.innerText = isDark ? "الوضع النهاري" : "الوضع المظلم";
+    localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    const dt = document.getElementById('darkText');
+    if(dt) dt.innerText = document.body.classList.contains('dark-mode') ? "الوضع النهاري" : "الوضع المظلم";
 }
 
 window.logout = function() {
@@ -107,12 +177,12 @@ window.visitMyProfile = function() {
 
 
 // =========================================================
-// 💬 3. نظام الدردشة (Chat System)
+// 💬 5. نظام الدردشة (Chat)
 // =========================================================
 
 let currentChatPartner = null;
 
-// أ) تحميل قائمة المستخدمين (تعمل فقط في صفحة messages.html)
+// تحميل القائمة
 if (document.getElementById('usersList')) {
     const userListContainer = document.getElementById('usersList');
     userListContainer.innerHTML = ""; 
@@ -120,8 +190,6 @@ if (document.getElementById('usersList')) {
     onChildAdded(usersRef, (snapshot) => {
         const user = snapshot.val();
         const myName = localStorage.getItem('hobbyName');
-
-        // لا تظهر نفسي في القائمة
         if (user.name === myName) return;
 
         const div = document.createElement('div');
@@ -138,33 +206,28 @@ if (document.getElementById('usersList')) {
     });
 }
 
-// ب) بدء المحادثة عند اختيار شخص
+// بدء الشات
 window.startChat = function(user) {
     currentChatPartner = user.name;
-    
-    // تحديث الواجهة
     document.getElementById('chatHeaderName').innerText = user.name;
     document.getElementById('chatHeaderImg').src = user.img || 'side.png';
     document.getElementById('inputArea').style.display = 'flex';
     document.getElementById('chatMessages').innerHTML = ""; 
     
-    // للجوال
+    // موبايل
     const chatArea = document.getElementById('chatArea');
     const userList = document.getElementById('usersList');
     if(window.innerWidth <= 600 && chatArea) {
         chatArea.classList.add('active');
         if(userList) userList.style.display = 'none';
     }
-
     loadMessages();
 }
 
-// ج) تحميل الرسائل السابقة
 function loadMessages() {
     const myName = localStorage.getItem('hobbyName');
     const partner = currentChatPartner;
-    // مفتاح المحادثة: ترتيب الأسماء أبجدياً لتوحيد المفتاح
-    const chatId = [myName, partner].sort().join("_");
+    const chatId = [myName, partner].sort().join("_"); // توحيد المفتاح
     const messagesRef = ref(db, 'chats/' + chatId);
 
     document.getElementById('chatMessages').innerHTML = "";
@@ -182,7 +245,6 @@ function loadMessages() {
     });
 }
 
-// د) إرسال رسالة
 window.sendChatMessage = function() {
     const input = document.getElementById('msgInput');
     const text = input.value;
@@ -204,7 +266,7 @@ window.sendChatMessage = function() {
 
 
 // =========================================================
-// 📝 4. نظام المنشورات (صور + نصوص)
+// 📝 6. نظام المنشورات (Posts)
 // =========================================================
 
 window.openAddPost = function() {
@@ -231,7 +293,6 @@ window.saveNewPost = function() {
         return;
     }
 
-    // دالة الإرسال للقاعدة
     const sendData = (imageUrl) => {
         push(postsRef, {
             title: title,
@@ -254,28 +315,23 @@ window.saveNewPost = function() {
         });
     };
 
-    // معالجة الصورة (نظام FileReader للمجانية)
     if (file) {
-        // تحذير للحجم الكبير
-        if (file.size > 1024 * 1024) { // أكبر من 1 ميجا
-            alert("⚠️ الصورة كبيرة وقد لا يتم نشرها. يفضل صور أصغر من 1 ميجا.");
-        }
+        if (file.size > 1024 * 1024) alert("⚠️ الصورة كبيرة...");
         const reader = new FileReader();
-        reader.onload = function(e) {
-            sendData(e.target.result); // إرسال كود الصورة
-        };
+        reader.onload = function(e) { sendData(e.target.result); };
         reader.readAsDataURL(file);
     } else {
-        sendData(null); // نشر نصي فقط
+        sendData(null);
     }
 }
 
 
 // =========================================================
-// ❤️ 5. نظام الإفادة (Likes) والتعليقات
+// ❤️ 7. التفاعل (Likes & Comments) + ربط الإشعارات
 // =========================================================
 
-window.toggleLike = function(postId) {
+// دالة الإعجاب (تستقبل postAuthor لإرسال الإشعار)
+window.toggleLike = function(postId, postAuthor) {
     const userId = getSafeUserId();
     if (!userId) return alert("يجب تسجيل الدخول!");
 
@@ -284,32 +340,45 @@ window.toggleLike = function(postId) {
         if (post) {
             if (!post.likedBy) post.likedBy = {};
             if (post.likedBy[userId]) {
-                post.likes--; // إلغاء الإفادة
+                post.likes--;
                 post.likedBy[userId] = null;
             } else {
-                post.likes++; // إضافة إفادة
+                post.likes++;
                 post.likedBy[userId] = true;
             }
         }
         return post;
+    }).then(() => {
+        // تحديث الزر بصرياً
+        const btn = document.getElementById(`like-btn-${postId}`);
+        let isLiked = false;
+        if(btn) {
+            btn.classList.toggle('active');
+            const countSpan = btn.querySelector('.like-count');
+            let current = parseInt(countSpan.innerText);
+            if (btn.classList.contains('active')) {
+                countSpan.innerText = current + 1;
+                isLiked = true;
+            } else {
+                countSpan.innerText = current - 1;
+            }
+        }
+        
+        // إرسال الإشعار فقط إذا تم الإعجاب (وليس الإلغاء)
+        if (isLiked && postAuthor) {
+            sendNotification(postAuthor, 'like', postId);
+        }
     });
-    
-    // تحديث سريع للزر
-    const btn = document.getElementById(`like-btn-${postId}`);
-    if(btn) {
-        btn.classList.toggle('active');
-        const countSpan = btn.querySelector('.like-count');
-        let current = parseInt(countSpan.innerText);
-        countSpan.innerText = btn.classList.contains('active') ? current + 1 : current - 1;
-    }
 }
 
+// فتح وإغلاق التعليقات
 window.toggleComments = function(postId) {
     const section = document.getElementById(`comments-section-${postId}`);
     if(section) section.classList.toggle('active');
 }
 
-window.sendComment = function(postId) {
+// دالة التعليق (تستقبل postAuthor لإرسال الإشعار)
+window.sendComment = function(postId, postAuthor) {
     const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value;
     const authorName = localStorage.getItem('hobbyName');
@@ -325,12 +394,16 @@ window.sendComment = function(postId) {
         timestamp: serverTimestamp()
     }).then(() => {
         input.value = "";
+        // إرسال الإشعار
+        if(postAuthor) {
+            sendNotification(postAuthor, 'comment', postId);
+        }
     });
 }
 
 
 // =========================================================
-// 🖼️ 6. عرض المنشورات (بناء البطاقة)
+// 🖼️ 8. عرض المنشورات (بناء البطاقة)
 // =========================================================
 
 function createPostCard(post, postId) {
@@ -342,14 +415,15 @@ function createPostCard(post, postId) {
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    // التحقق من وجود صورة
+    // الصورة
     let imageHTML = "";
     if (post.postImg && post.postImg.length > 20) {
         imageHTML = `<img src="${post.postImg}" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover; display:block;">`;
     }
 
+    // الأزرار (تمرير post.author مهم جداً للإشعارات)
     const efadaBtnHTML = `
-        <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}')">
+        <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}', '${post.author}')">
             <img src="logo.png" class="efada-icon" alt="إفادة">
             <span>إفادة</span>
             <span class="like-count" style="margin-right:5px;">${post.likes || 0}</span>
@@ -383,12 +457,12 @@ function createPostCard(post, postId) {
             <div class="comments-list"></div>
             <div class="comment-input-area">
                 <input type="text" id="comment-input-${postId}" class="comment-input" placeholder="اكتب تعليقاً...">
-                <button onclick="sendComment('${postId}')" class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
+                <button onclick="sendComment('${postId}', '${post.author}')" class="send-comment-btn"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     `;
 
-    // جلب التعليقات الخاصة بالمنشور
+    // جلب التعليقات الحية
     const commentsRef = ref(db, `posts/${postId}/comments`);
     onChildAdded(commentsRef, (snapshot) => {
         const comment = snapshot.val();
@@ -440,7 +514,7 @@ if (document.getElementById('profilePostsContainer')) {
 
 
 // =========================================================
-// 🔧 7. أدوات مساعدة (إضافية)
+// 🔧 9. أدوات إضافية (الصور، الروابط، الصوت)
 // =========================================================
 
 window.triggerFileUpload = function() { document.getElementById('postImageInput').click(); }
