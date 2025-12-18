@@ -7,86 +7,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        .notifications-container {
-            max-width: 600px;
-            margin: 20px auto;
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 10px;
-            min-height: 500px;
-        }
-        .notification-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            border-bottom: 1px solid var(--border-color);
-            transition: 0.2s;
-            cursor: pointer;
-            border-radius: 10px;
-        }
-        .notification-item:hover {
-            background-color: rgba(0,0,0,0.02);
-        }
-        .notification-item.unread {
-            background-color: rgba(76, 175, 80, 0.1); /* لون أخضر خفيف لغير المقروء */
-        }
-        .notif-img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .notif-content {
-            flex: 1;
-        }
-        .notif-text {
-            font-size: 14px;
-            margin: 0;
-            line-height: 1.4;
-        }
-        .notif-text strong {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        .notif-time {
-            font-size: 11px;
-            color: var(--text-sub);
-            margin-top: 5px;
-            display: block;
-        }
-        .notif-icon {
-            font-size: 18px;
-        }
-        .fa-heart { color: #f44336; }
-        .fa-comment { color: #2196F3; }
-        
-        /* حالة فارغة */
-        .empty-state {
-            text-align: center;
-            padding: 50px 20px;
-            color: var(--text-sub);
-        }
+        .notifications-container { max-width: 600px; margin: 20px auto; background: var(--card-bg); border-radius: 15px; padding: 10px; min-height: 500px; }
+        .notification-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; border-radius: 10px; }
+        .notification-item:hover { background-color: rgba(0,0,0,0.02); }
+        .notif-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+        .notif-content { flex: 1; }
+        .notif-text { font-size: 14px; margin: 0; line-height: 1.4; }
+        .notif-time { font-size: 11px; color: var(--text-sub); margin-top: 5px; display: block; }
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-sub); }
     </style>
 </head>
 <body>
-
-    <div class="overlay" onclick="toggleMenu()"></div>
-    
-    <div class="sidebar" id="sidebar">
-        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
-        <a href="#" onclick="visitMyProfile()" class="menu-item"><i class="fas fa-user-circle"></i> الملف الشخصي</a>
-        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;"><i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span></div>
-        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;"><i class="fas fa-cog"></i> الإعدادات العامة</a>
-        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;"><i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج</a>
-    </div>
 
     <div class="header">
         <div class="brand-area">
             <a href="home.html" class="icon-btn"><i class="fas fa-arrow-right"></i></a>
             <span style="margin-right: 10px; font-weight: bold;">الإشعارات</span>
         </div>
-        <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
+        <div style="display: flex; gap: 15px;">
+            <a href="messages.html" class="header-icon"><i class="far fa-comment-alt"></i></a>
+        </div>
     </div>
 
     <div class="notifications-container" id="notificationsList">
@@ -98,11 +38,10 @@
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
-        <div class="nav-item active" onclick="location.reload()"><i class="far fa-bell"></i></div>
+        <a href="notifications.html" class="nav-item active"><i class="far fa-bell"></i></a>
         <a href="profile-view.html" class="nav-item"><i class="fas fa-user"></i></a>
     </div>
 
     <script type="module" src="main.js"></script>
 </body>
 </html>
-
