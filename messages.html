@@ -3,88 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الرسائل - هوبي</title>
+    <title>الإشعارات - هوبي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* ستايل خاص للرسائل */
-        .chat-container { display: flex; height: calc(100vh - 130px); max-width: 800px; margin: 10px auto; background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .users-list { width: 35%; border-left: 1px solid var(--border-color); overflow-y: auto; background: var(--bg-color); }
-        .chat-area { width: 65%; display: flex; flex-direction: column; background: var(--card-bg); }
-        
-        .user-item { padding: 15px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: 0.2s; }
-        .user-item:hover, .user-item.active { background: rgba(76, 175, 80, 0.1); }
-        .user-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .user-item-info h4 { margin: 0; font-size: 14px; }
-        .user-item-info span { font-size: 11px; color: var(--text-sub); }
-
-        .chat-header { padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; font-weight: bold; background: var(--bg-color); }
-        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; font-size: 14px; line-height: 1.4; position: relative; word-wrap: break-word; }
-        .message.sent { align-self: flex-end; background: var(--primary-color); color: white; border-bottom-left-radius: 2px; }
-        .message.received { align-self: flex-start; background: var(--bg-color); border: 1px solid var(--border-color); border-bottom-right-radius: 2px; }
-        
-        .chat-input-area { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; }
-        .chat-input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid var(--border-color); outline: none; background: var(--bg-color); color: var(--text-color); }
-        .send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-        /* للجوال */
-        @media (max-width: 600px) {
-            .chat-container { flex-direction: column; height: calc(100vh - 140px); }
-            .users-list { width: 100%; height: 100%; display: block; }
-            .chat-area { width: 100%; height: 100%; display: none; position: fixed; top: 0; left: 0; z-index: 200; }
-            .chat-area.active { display: flex; }
-            .back-btn { display: block; margin-left: 10px; cursor: pointer; }
+        .notifications-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 10px;
+            min-height: 500px;
         }
-        @media (min-width: 601px) { .back-btn { display: none; } }
+        .notification-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            transition: 0.2s;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+        .notification-item:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        .notification-item.unread {
+            background-color: rgba(76, 175, 80, 0.1); /* لون أخضر خفيف لغير المقروء */
+        }
+        .notif-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .notif-content {
+            flex: 1;
+        }
+        .notif-text {
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .notif-text strong {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .notif-time {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 5px;
+            display: block;
+        }
+        .notif-icon {
+            font-size: 18px;
+        }
+        .fa-heart { color: #f44336; }
+        .fa-comment { color: #2196F3; }
+        
+        /* حالة فارغة */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-sub);
+        }
     </style>
 </head>
 <body>
 
+    <div class="overlay" onclick="toggleMenu()"></div>
+    
+    <div class="sidebar" id="sidebar">
+        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
+        <a href="#" onclick="visitMyProfile()" class="menu-item"><i class="fas fa-user-circle"></i> الملف الشخصي</a>
+        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;"><i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span></div>
+        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;"><i class="fas fa-cog"></i> الإعدادات العامة</a>
+        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;"><i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج</a>
+    </div>
+
     <div class="header">
         <div class="brand-area">
             <a href="home.html" class="icon-btn"><i class="fas fa-arrow-right"></i></a>
-            <span style="margin-right: 10px;">الرسائل</span>
+            <span style="margin-right: 10px; font-weight: bold;">الإشعارات</span>
         </div>
+        <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
     </div>
 
-    <div class="chat-container">
-        <div class="users-list" id="usersList">
-            <p style="text-align: center; padding: 20px; color: #777;">جاري تحميل المستخدمين...</p>
-        </div>
-
-        <div class="chat-area" id="chatArea">
-            <div class="chat-header">
-                <i class="fas fa-arrow-right back-btn" onclick="closeChatMobile()"></i>
-                <img src="side.png" id="chatHeaderImg" style="width:35px; height:35px; border-radius:50%;">
-                <span id="chatHeaderName">اختر مستخدماً</span>
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <div style="text-align:center; color:#ccc; margin-top:50px;">
-                    <i class="far fa-comments" style="font-size:50px;"></i>
-                    <p>ابدأ محادثة فورية!</p>
-                </div>
-            </div>
-            <div class="chat-input-area" id="inputArea" style="display:none;">
-                <input type="text" id="msgInput" class="chat-input" placeholder="اكتب رسالتك...">
-                <button onclick="sendChatMessage()" class="send-btn"><i class="fas fa-paper-plane"></i></button>
-            </div>
+    <div class="notifications-container" id="notificationsList">
+        <div class="empty-state">
+            <i class="far fa-bell" style="font-size: 40px; margin-bottom: 10px; display:block;"></i>
+            جاري تحميل الإشعارات...
         </div>
     </div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
+        <div class="nav-item active" onclick="location.reload()"><i class="far fa-bell"></i></div>
         <a href="profile-view.html" class="nav-item"><i class="fas fa-user"></i></a>
     </div>
 
     <script type="module" src="main.js"></script>
-    <script>
-        // كود بسيط لفتح وغلق الشات في الجوال
-        window.closeChatMobile = function() {
-            document.getElementById('chatArea').classList.remove('active');
-            document.getElementById('usersList').style.display = 'block';
-        }
-    </script>
 </body>
-</html>s
+</html>
