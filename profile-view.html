@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
+        /* --- تنسيقات البروفايل --- */
         .profile-header {
             background: var(--card-bg);
             padding: 30px 20px;
@@ -74,6 +75,27 @@
             border: 1px solid var(--border-color); border-radius: 8px;
             background: var(--bg-color); color: var(--text-color);
         }
+
+        /* --- 🔥 تنسيق زر النشر العائم (المهم جداً) 🔥 --- */
+        .nav-item-add {
+            background: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-top: -25px; /* يرفعه للأعلى ليبرز */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: 0.2s;
+            border: 4px solid var(--bg-color); /* إطار يجعله مفصولاً عن الشريط */
+        }
+        .nav-item-add:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -129,6 +151,7 @@
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
+        
         <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
         
         <div class="nav-item-add" onclick="openAddPost()">
@@ -136,6 +159,7 @@
         </div>
         
         <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
+        
         <div class="nav-item active" style="cursor:pointer;" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
 
