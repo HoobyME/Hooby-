@@ -1,8 +1,10 @@
-/* --- main.js: النسخة الشاملة والنهائية --- */
+/* --- main.js: النسخة العراقية (ImgBB + YouTube + Speed) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"; 
+
+const IMGBB_API_KEY = "340c983156e536035bd7806ebdf2c56c"; 
 
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
@@ -48,7 +50,35 @@ registerUserPresence();
 
 
 // =========================================================
-// 2. منطق البروفايل والأقلام (Profile Logic)
+// 🚀 وظيفة الرفع إلى ImgBB (سريعة ومجانية)
+// =========================================================
+async function uploadToImgBB(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    
+    try {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: "POST",
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            return data.data.url; // رابط الصورة المباشر
+        } else {
+            console.error("ImgBB Error:", data);
+            alert("خطأ في ImgBB: " + (data.error ? data.error.message : "غير معروف"));
+            return null;
+        }
+    } catch (error) {
+        console.error("Upload Error:", error);
+        alert("فشل الاتصال بخادم الصور");
+        return null;
+    }
+}
+
+
+// =========================================================
+// 2. البروفايل والتعديل
 // =========================================================
 if (document.getElementById('profileContent')) {
     const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
@@ -56,7 +86,6 @@ if (document.getElementById('profileContent')) {
     
     if (viewingData) {
         const userRef = ref(db, `users/${getSafeName(viewingData.name)}`);
-        
         onValue(userRef, (snapshot) => {
             const userData = snapshot.val() || {};
             const finalImg = userData.img || viewingData.img;
@@ -69,17 +98,14 @@ if (document.getElementById('profileContent')) {
             const actionsDiv = document.getElementById('profileActionsBtns');
             actionsDiv.innerHTML = "";
 
-            // التحكم في الأيقونات
             if (viewingData.name === myName) {
-                // أنا: أظهر الأقلام
-                document.getElementById('edit-img-icon').style.display = 'flex';
-                document.getElementById('edit-name-icon').style.display = 'inline-block';
-                document.getElementById('edit-bio-icon').style.display = 'inline-block';
+                if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex';
+                if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block';
+                if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block';
             } else {
-                // شخص آخر: أخفِ الأقلام وأظهر أزرار المتابعة
-                document.getElementById('edit-img-icon').style.display = 'none';
-                document.getElementById('edit-name-icon').style.display = 'none';
-                document.getElementById('edit-bio-icon').style.display = 'none';
+                if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none';
+                if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none';
+                if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none';
                 
                 const followBtn = document.createElement('button');
                 followBtn.id = 'followBtn';
@@ -94,7 +120,6 @@ if (document.getElementById('profileContent')) {
                 
                 actionsDiv.appendChild(followBtn);
                 actionsDiv.appendChild(msgBtn);
-                
                 checkFollowStatus(viewingData.name);
             }
         });
@@ -102,24 +127,22 @@ if (document.getElementById('profileContent')) {
     }
 }
 
-// دوال التعديل
 window.triggerImgUpload = function() { document.getElementById('profileImgInput').click(); }
 
-window.uploadNewProfileImg = function() {
+window.uploadNewProfileImg = async function() {
     const file = document.getElementById('profileImgInput').files[0];
     if(file) {
-        if(file.size > 1024*1024) return alert("الصورة كبيرة جداً");
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const newUrl = e.target.result;
+        alert("جاري رفع الصورة... لحظات ⏳");
+        const newUrl = await uploadToImgBB(file);
+        
+        if (newUrl) {
             const myName = localStorage.getItem('hobbyName');
             update(ref(db, `users/${getSafeName(myName)}`), { img: newUrl })
             .then(() => {
-                localStorage.setItem('hobbyImage', newUrl); 
-                alert("تم تحديث الصورة!");
+                localStorage.setItem('hobbyImage', newUrl);
+                alert("✅ تم تحديث الصورة!");
             });
-        };
-        reader.readAsDataURL(file);
+        }
     }
 }
 
@@ -130,13 +153,10 @@ window.openEditModal = function(type) {
     }
 }
 window.closeEditModal = function() { document.getElementById('editProfileModal').style.display = 'none'; }
-
 window.saveProfileChanges = function() {
     const myName = localStorage.getItem('hobbyName');
     const newBio = document.getElementById('editBioInput').value;
-    update(ref(db, `users/${getSafeName(myName)}`), { bio: newBio }).then(() => {
-        window.closeEditModal();
-    });
+    update(ref(db, `users/${getSafeName(myName)}`), { bio: newBio }).then(() => window.closeEditModal());
 }
 
 
@@ -150,7 +170,6 @@ window.visitMyProfile = function() {
     localStorage.setItem('viewingProfile', JSON.stringify(myProfileData));
     window.location.href = 'profile-view.html';
 }
-
 window.visitUserProfile = function(name, img) {
     const myName = localStorage.getItem('hobbyName');
     const isMe = (name === myName);
@@ -158,78 +177,55 @@ window.visitUserProfile = function(name, img) {
     localStorage.setItem('viewingProfile', JSON.stringify(profileData));
     window.location.href = 'profile-view.html';
 }
-
 window.messageFromProfile = function(targetName, targetImg) {
     const chatData = { name: targetName, img: targetImg };
     localStorage.setItem('pendingChat', JSON.stringify(chatData));
     window.location.href = 'messages.html';
 }
 
+
 // =========================================================
-// 4. المتابعة والإحصائيات
+// 4. المنشورات (ImgBB للصور + يوتيوب للفيديو)
 // =========================================================
-window.toggleFollow = function(targetName) {
-    const myName = localStorage.getItem('hobbyName');
-    const mySafe = getSafeName(myName);
-    const targetSafe = getSafeName(targetName);
-    const followingRef = ref(db, `users/${mySafe}/following/${targetSafe}`);
-    const followersRef = ref(db, `users/${targetSafe}/followers/${mySafe}`);
+window.saveNewPost = async function() {
+    const title = document.getElementById('postTitle').value;
+    const content = document.getElementById('postContent').value;
+    const file = document.getElementById('postImageInput').files[0];
+    const btn = document.querySelector('.btn-publish'); 
+
+    if(!title || !content) { alert("اكتب شيئاً للنشر!"); return; }
+
+    // التحقق من الفيديو (توجيه ليوتيوب)
+    if(file && file.type.startsWith('video/')) {
+        alert("📹 للفيديو: يرجى رفعه على يوتيوب ونسخ الرابط هنا.\nهذا يضمن سرعة عالية وجودة ممتازة مجاناً.");
+        return;
+    }
     
-    get(followingRef).then((snapshot) => {
-        if (snapshot.exists()) {
-            remove(followingRef); remove(followersRef);
-        } else {
-            set(followingRef, true); set(followersRef, true);
-            sendNotification(targetName, 'follow', null);
-        }
-    });
-}
-function checkFollowStatus(targetName) {
-    const myName = localStorage.getItem('hobbyName');
-    onValue(ref(db, `users/${getSafeName(myName)}/following/${getSafeName(targetName)}`), (snap) => {
-        const btn = document.getElementById('followBtn');
-        if(btn) {
-            if (snap.exists()) { btn.innerText = "أتابعه"; btn.classList.add('following'); }
-            else { btn.innerText = "متابعة"; btn.classList.remove('following'); }
-        }
-    });
-}
-function loadProfileStats(targetName) {
-    const safeTarget = getSafeName(targetName);
-    onValue(ref(db, `users/${safeTarget}/followers`), (snap) => document.getElementById('p-followers-count').innerText = snap.size);
-    onValue(ref(db, `users/${safeTarget}/following`), (snap) => document.getElementById('p-following-count').innerText = snap.size);
-}
-function sendNotification(toUser, type, postId) {
-    const myName = localStorage.getItem('hobbyName');
-    const myImg = localStorage.getItem('hobbyImage') || "side.png";
-    if (!toUser || toUser === myName) return;
-    push(ref(db, `notifications/${getSafeName(toUser)}`), {
-        fromName: myName, fromImg: myImg, type: type, postId: postId || "", timestamp: serverTimestamp(), read: false
-    });
-}
+    if(btn) { btn.innerText = "جاري النشر..."; btn.disabled = true; }
 
+    let fileUrl = "";
 
-// =========================================================
-// 5. المنشورات (Speed Optimized)
-// =========================================================
-if (document.getElementById('postsContainer')) {
-    const container = document.getElementById('postsContainer');
-    container.innerHTML = ""; 
-    onChildAdded(query(postsRef, limitToLast(20)), (snapshot) => { container.prepend(createPostCard(snapshot.val(), snapshot.key)); });
-}
-if (document.getElementById('profilePostsContainer')) {
-    const container = document.getElementById('profilePostsContainer');
-    let viewingName = localStorage.getItem('hobbyName');
-    const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
-    if (viewingData && viewingData.name) viewingName = viewingData.name;
-    container.innerHTML = "";
-    let postCount = 0;
-    onChildAdded(postsRef, (snapshot) => {
-        if (snapshot.val().author === viewingName) {
-            container.prepend(createPostCard(snapshot.val(), snapshot.key));
-            postCount++;
-            if(document.getElementById('p-posts-count')) document.getElementById('p-posts-count').innerText = postCount;
+    // رفع الصورة لـ ImgBB
+    if (file && file.type.startsWith('image/')) {
+        fileUrl = await uploadToImgBB(file);
+        if (!fileUrl) {
+            if(btn) { btn.innerText = "نشر"; btn.disabled = false; }
+            return;
         }
+    }
+
+    push(postsRef, {
+        title: title,
+        content: content,
+        postImg: fileUrl, // رابط الصورة من ImgBB
+        author: localStorage.getItem('hobbyName'),
+        authorImg: localStorage.getItem('hobbyImage') || "side.png",
+        timestamp: serverTimestamp(),
+        likes: 0
+    }).then(() => {
+        alert("✅ تم النشر!");
+        window.closeAddPost();
+        location.reload();
     });
 }
 
@@ -237,10 +233,27 @@ function createPostCard(post, postId) {
     const myName = localStorage.getItem('hobbyName');
     const safeAuthor = post.author.replace(/'/g, "\\'");
     let isLiked = (post.likedBy && post.likedBy[getSafeName(myName)]);
+    
     const card = document.createElement('div');
     card.className = 'post-card';
     card.id = `post-card-${postId}`;
-    let imgHTML = post.postImg && post.postImg.length > 20 ? `<img src="${post.postImg}" style="width:100%; border-radius:10px; margin-top:10px;">` : '';
+    
+    // 1. عرض الصورة
+    let mediaHTML = "";
+    if (post.postImg && post.postImg.length > 5) {
+        mediaHTML = `<img src="${post.postImg}" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
+    }
+
+    // 2. اكتشاف وعرض فيديو يوتيوب من النص
+    let contentHTML = post.content;
+    if (post.content.includes('youtube.com') || post.content.includes('youtu.be')) {
+        const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
+        const match = post.content.match(youtubeRegex);
+        if (match && match[1]) {
+            mediaHTML += `<iframe style="width:100%; height:250px; border-radius:10px; margin-top:10px;" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
+        }
+    }
+
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
 
     card.innerHTML = `
@@ -250,7 +263,7 @@ function createPostCard(post, postId) {
             <div class="options-btn" onclick="togglePostMenu('${postId}')"><i class="fas fa-ellipsis-h"></i></div>
             <div id="menu-${postId}" class="options-menu"><div class="menu-option" onclick="hidePost('${postId}')">إخفاء</div>${delHTML}</div>
         </div>
-        <div class="post-body"><h3>${post.title}</h3><p>${post.content}</p>${imgHTML}</div>
+        <div class="post-body"><h3>${post.title}</h3><p>${contentHTML}</p>${mediaHTML}</div>
         <div class="post-actions">
             <div id="like-btn-${postId}" class="action-btn ${isLiked?'active':''}" onclick="toggleLike('${postId}', '${safeAuthor}')"><img src="logo.png" class="efada-icon"><span>إفادة</span><span class="like-count">${post.likes||0}</span></div>
             <div class="action-btn" onclick="toggleComments('${postId}')"><i class="far fa-comment"></i> تعليق</div>
@@ -265,9 +278,25 @@ function createPostCard(post, postId) {
     return card;
 }
 
+
 // =========================================================
-// 6. الرسائل وبقية الأدوات
+// 5. باقي الوظائف (العرض والدردشة)
 // =========================================================
+if (document.getElementById('postsContainer')) {
+    const container = document.getElementById('postsContainer');
+    container.innerHTML = ""; 
+    onChildAdded(query(postsRef, limitToLast(20)), (snapshot) => { container.prepend(createPostCard(snapshot.val(), snapshot.key)); });
+}
+if (document.getElementById('profilePostsContainer')) {
+    const container = document.getElementById('profilePostsContainer');
+    let viewingName = localStorage.getItem('hobbyName');
+    const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
+    if (viewingData && viewingData.name) viewingName = viewingData.name;
+    container.innerHTML = "";
+    onChildAdded(postsRef, (snapshot) => {
+        if (snapshot.val().author === viewingName) container.prepend(createPostCard(snapshot.val(), snapshot.key));
+    });
+}
 let currentChatPartner = null;
 if (window.location.href.includes('messages.html')) {
     const pendingChat = localStorage.getItem('pendingChat');
@@ -292,7 +321,6 @@ window.startChat = function(user) {
     document.getElementById('chatHeaderName').onclick = () => window.visitUserProfile(user.name, user.img);
     document.getElementById('inputArea').style.display = 'flex';
     if(window.innerWidth <= 600) { document.getElementById('chatArea').classList.add('active'); document.getElementById('usersList').style.display='none'; }
-    
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
     const msgContainer = document.getElementById('chatMessages');
     msgContainer.innerHTML = "";
@@ -311,17 +339,6 @@ window.sendChatMessage = function() {
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
     push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: txt, timestamp: serverTimestamp() }).then(()=>document.getElementById('msgInput').value="");
 }
-
-window.saveNewPost = function() {
-    const title = document.getElementById('postTitle').value;
-    const content = document.getElementById('postContent').value;
-    const file = document.getElementById('postImageInput').files[0];
-    if(!title || !content) { alert("أدخل البيانات"); return; }
-    const send = (url) => {
-        push(postsRef, {title, content, postImg: url||"", author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage')||"side.png", timestamp: serverTimestamp(), likes:0}).then(()=>{window.closeAddPost(); location.reload();});
-    };
-    if(file) { const r = new FileReader(); r.onload=e=>send(e.target.result); r.readAsDataURL(file); } else send(null);
-}
 window.toggleLike = function(postId, postAuthor) {
     const uid = getSafeName(localStorage.getItem('hobbyName'));
     runTransaction(ref(db, `posts/${postId}`), (p) => {
@@ -332,6 +349,40 @@ window.sendComment = function(postId, postAuthor) {
     const t = document.getElementById(`comment-input-${postId}`).value;
     if(!t) return;
     push(ref(db, `posts/${postId}/comments`), {text:t, author:localStorage.getItem('hobbyName'), authorImg:localStorage.getItem('hobbyImage'), timestamp:serverTimestamp()}).then(()=>{ if(postAuthor) sendNotification(postAuthor, 'comment', postId); });
+}
+window.toggleFollow = function(targetName) {
+    const myName = localStorage.getItem('hobbyName');
+    const mySafe = getSafeName(myName);
+    const targetSafe = getSafeName(targetName);
+    const followingRef = ref(db, `users/${mySafe}/following/${targetSafe}`);
+    const followersRef = ref(db, `users/${targetSafe}/followers/${mySafe}`);
+    get(followingRef).then((snapshot) => {
+        if (snapshot.exists()) { remove(followingRef); remove(followersRef); } 
+        else { set(followingRef, true); set(followersRef, true); sendNotification(targetName, 'follow', null); }
+    });
+}
+function checkFollowStatus(targetName) {
+    const myName = localStorage.getItem('hobbyName');
+    onValue(ref(db, `users/${getSafeName(myName)}/following/${getSafeName(targetName)}`), (snap) => {
+        const btn = document.getElementById('followBtn');
+        if(btn) {
+            if (snap.exists()) { btn.innerText = "أتابعه"; btn.classList.add('following'); }
+            else { btn.innerText = "متابعة"; btn.classList.remove('following'); }
+        }
+    });
+}
+function loadProfileStats(targetName) {
+    const safeTarget = getSafeName(targetName);
+    onValue(ref(db, `users/${safeTarget}/followers`), (snap) => document.getElementById('p-followers-count').innerText = snap.size);
+    onValue(ref(db, `users/${safeTarget}/following`), (snap) => document.getElementById('p-following-count').innerText = snap.size);
+}
+function sendNotification(toUser, type, postId) {
+    const myName = localStorage.getItem('hobbyName');
+    const myImg = localStorage.getItem('hobbyImage') || "side.png";
+    if (!toUser || toUser === myName) return;
+    push(ref(db, `notifications/${getSafeName(toUser)}`), {
+        fromName: myName, fromImg: myImg, type: type, postId: postId || "", timestamp: serverTimestamp(), read: false
+    });
 }
 window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).classList.toggle('active'); }
 window.hidePost = function(id) { document.getElementById(`post-card-${id}`).style.display='none'; }
