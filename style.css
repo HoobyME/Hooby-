@@ -254,4 +254,53 @@ body {
     align-items: center;
     justify-content: center;
 }
+/* --- ستايل قائمة الخيارات (ثلاث نقاط) --- */
+.post-header {
+    position: relative; /* ضروري لتموضع القائمة */
+}
+
+.options-btn {
+    margin-right: auto; /* يدفع الزر لليسار */
+    cursor: pointer;
+    padding: 5px 10px;
+    color: var(--text-sub);
+    font-size: 18px;
+}
+
+.options-menu {
+    display: none; /* مخفية افتراضياً */
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 150px;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.options-menu.active {
+    display: block; /* تظهر عند الضغط */
+}
+
+.menu-option {
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+}
+
+.menu-option:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.menu-option.delete {
+    color: #f44336; /* لون أحمر للحذف */
+}
+
 
