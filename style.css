@@ -216,16 +216,17 @@ body {
 .menu-option:hover { background: rgba(0,0,0,0.05); }
 .menu-option.delete { color: #f44336; }
 
-/* --- 🔥 نافذة النشر المنبثقة (Modal) - التصميم الجديد 🔥 --- */
 .overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.8); /* خلفية داكنة واضحة */
-    display: flex;
+    background-color: rgba(0, 0, 0, 0.7); /* خلفية سوداء شفافة */
+    
+    display: none; /* 👈 التغيير المهم: جعلناها مخفية افتراضياً */
+    
     justify-content: center;
     align-items: center;
-    z-index: 9999;
+    z-index: 9999; /* تظهر فوق كل شيء عند تفعيلها */
 }
 
 .modal {
@@ -288,3 +289,4 @@ body {
     .bottom-nav { display: none; } /* إخفاء الشريط السفلي في الشاشات الكبيرة */
     .sidebar { transform: translateX(0); position: static; height: auto; display: block; }
 }
+
