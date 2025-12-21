@@ -7,146 +7,164 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* إخفاء زر النشر في هذه الصفحة تحديداً */
-        .add-post-btn { display: none !important; }
+        /* ستايل خاص خفيف لعناصر الإعدادات */
+        .settings-section-title {
+            color: var(--primary-color);
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-right: 5px;
+        }
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 5px;
+            border-bottom: 1px solid var(--input-bg);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .setting-item:last-child { border-bottom: none; }
+        .setting-item:active { background-color: var(--input-bg); }
         
-        /* تعديل الشريط السفلي ليكون متناسقاً بدون الزر */
-        .bottom-nav { justify-content: space-around; }
+        .setting-info { display: flex; align-items: center; gap: 15px; }
+        .setting-icon { 
+            width: 35px; height: 35px; 
+            background: var(--input-bg); 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-color);
+        }
+        .setting-text { font-size: 16px; font-weight: 500; }
+        .setting-arrow { color: var(--text-sub); font-size: 14px; }
+        
+        /* زر التبديل (Toggle) */
+        .toggle-switch { font-size: 22px; color: var(--text-sub); transition: 0.3s; }
+        .toggle-switch.on { color: var(--primary-color); transform: scale(1.1); }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="brand-area">
-            <a href="home.html" class="icon-btn" style="text-decoration:none; margin-left:10px;">
-                <i class="fas fa-arrow-right"></i>
-            </a>
-            <h1 style="font-size: 20px; font-weight: bold; color: var(--primary-color); margin: 0;">الإعدادات</h1>
+            <a href="home.html" class="icon-btn"><i class="fas fa-arrow-right"></i></a>
+            <span>الإعدادات العامة</span>
         </div>
-        </div>
+    </div>
 
-    <div class="settings-container">
-        
-        <div class="mini-profile-card" onclick="window.location.href='profile-view.html'">
-            <img src="side.png" id="settingsUserImg" class="mini-profile-img">
-            <div class="mini-profile-info">
-                <h4 id="settingsUserName">المستخدم</h4>
-                <p>تعديل الملف الشخصي</p>
+    <div class="posts-container" style="padding-top: 20px;">
+
+        <div class="settings-section-title">المظهر والتطبيق</div>
+        <div class="post-card" style="padding: 5px 15px;">
+            
+            <div class="setting-item" onclick="customToggleDarkMode()">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-moon"></i></div>
+                    <span class="setting-text">الوضع المظلم</span>
+                </div>
+                <i id="themeIcon" class="fas fa-toggle-off toggle-switch"></i>
             </div>
-            <i class="fas fa-chevron-left setting-arrow" style="margin-right: auto;"></i>
+
+            <div class="setting-item" onclick="alert('اللغة العربية هي الافتراضية حالياً')">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-language"></i></div>
+                    <span class="setting-text">اللغة</span>
+                </div>
+                <div style="color:var(--text-sub); font-size:12px;">العربية <i class="fas fa-chevron-left setting-arrow"></i></div>
+            </div>
+
         </div>
 
         <div class="settings-section-title">الحساب والأمان</div>
-        <div class="settings-card">
-            <div class="setting-item" onclick="openChangePassword()">
-                <div class="setting-left">
+        <div class="post-card" style="padding: 5px 15px;">
+            
+            <div class="setting-item" onclick="visitMyProfile()">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fas fa-user-edit"></i></div>
+                    <span class="setting-text">تعديل الملف الشخصي</span>
+                </div>
+                <i class="fas fa-chevron-left setting-arrow"></i>
+            </div>
+
+            <div class="setting-item" onclick="alert('قريباً: ميزة تغيير كلمة المرور')">
+                <div class="setting-info">
                     <div class="setting-icon"><i class="fas fa-lock"></i></div>
                     <span class="setting-text">تغيير كلمة المرور</span>
                 </div>
                 <i class="fas fa-chevron-left setting-arrow"></i>
             </div>
-            <div class="setting-item">
-                <div class="setting-left">
-                    <div class="setting-icon"><i class="fas fa-shield-alt"></i></div>
-                    <span class="setting-text">الخصوصية</span>
-                </div>
-                <i class="fas fa-chevron-left setting-arrow"></i>
-            </div>
+
         </div>
 
-        <div class="settings-section-title">التطبيق</div>
-        <div class="settings-card">
-            <div class="setting-item">
-                <div class="setting-left">
-                    <div class="setting-icon"><i class="fas fa-moon"></i></div>
-                    <span class="setting-text">الوضع المظلم</span>
+        <div class="settings-section-title">أخرى</div>
+        <div class="post-card" style="padding: 5px 15px;">
+            
+            <div class="setting-item" onclick="window.location.href='https://github.com/hoobyme'">
+                <div class="setting-info">
+                    <div class="setting-icon"><i class="fab fa-github"></i></div>
+                    <span class="setting-text">عن المطور</span>
                 </div>
-                <label class="switch">
-                    <input type="checkbox" id="darkModeSwitch" onchange="toggleDarkMode()">
-                    <span class="slider"></span>
-                </label>
+                <i class="fas fa-external-link-alt setting-arrow"></i>
             </div>
-            <div class="setting-item">
-                <div class="setting-left">
-                    <div class="setting-icon"><i class="fas fa-bell"></i></div>
-                    <span class="setting-text">الإشعارات</span>
+
+            <div class="setting-item" onclick="logout()" style="border-top: 1px solid var(--input-bg);">
+                <div class="setting-info">
+                    <div class="setting-icon" style="background: rgba(244, 67, 54, 0.1); color: #f44336;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <span class="setting-text" style="color: #f44336;">تسجيل الخروج</span>
                 </div>
-                <label class="switch">
-                    <input type="checkbox" checked>
-                    <span class="slider"></span>
-                </label>
             </div>
-            <div class="setting-item">
-                <div class="setting-left">
-                    <div class="setting-icon"><i class="fas fa-globe"></i></div>
-                    <span class="setting-text">اللغة</span>
-                </div>
-                <span style="font-size:12px; color:var(--text-sub);">العربية</span>
-            </div>
+
         </div>
 
-        <div class="settings-section-title" style="color:var(--danger-color);">إجراءات الحساب</div>
-        <div class="settings-card" style="border-color: var(--danger-color);">
-            <div class="setting-item" onclick="logout()">
-                <div class="setting-left">
-                    <div class="setting-icon"><i class="fas fa-sign-out-alt"></i></div>
-                    <span class="setting-text">تسجيل الخروج</span>
-                </div>
-            </div>
-            <div class="setting-item" onclick="deleteAccount()">
-                <div class="setting-left">
-                    <div class="setting-icon danger-icon"><i class="fas fa-trash-alt"></i></div>
-                    <span class="setting-text danger-text">حذف الحساب نهائياً</span>
-                </div>
-            </div>
+        <div style="text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 20px; opacity: 0.7;">
+            <img src="logo.png" style="width: 25px; margin-bottom: 5px; opacity: 0.5;">
+            <br>
+            Hooby App v1.0.0
         </div>
 
     </div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
-        <a href="profile-view.html" class="nav-item"><i class="fas fa-user"></i></a>
-    </div>
-
-    <div id="passwordModal" class="modal-popup-overlay">
-        <div class="modal-box">
-            <h3 style="margin-top:0; color:var(--primary-color)">تغيير كلمة المرور</h3>
-            <div class="input-rect"><input type="password" placeholder="كلمة المرور الحالية"></div>
-            <div class="input-rect"><input type="password" placeholder="كلمة المرور الجديدة"></div>
-            <div class="input-rect"><input type="password" placeholder="تأكيد كلمة المرور"></div>
-            <button onclick="savePassword()" class="btn-publish">حفظ</button>
-            <button onclick="document.getElementById('passwordModal').style.display='none'" class="btn-text">إلغاء</button>
-        </div>
+        <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
+        <div class="nav-item-add" onclick="window.location.href='home.html'"><i class="fas fa-plus"></i></div>
+        <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
+        <div class="nav-item" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
 
     <script type="module" src="main.js"></script>
     
     <script>
-        // كود خاص بالإعدادات لتحميل البيانات عند الفتح
-        window.onload = function() {
-            // تفعيل السويتش إذا كان الوضع المظلم مفعلاً
-            if(localStorage.getItem('theme') === 'dark') {
-                document.body.classList.add('dark-mode');
-                const switchBtn = document.getElementById('darkModeSwitch');
-                if(switchBtn) switchBtn.checked = true;
-            }
-            
-            // تحميل صورة واسم المستخدم
-            document.getElementById("settingsUserImg").src = localStorage.getItem("hobbyImage") || "side.png";
-            document.getElementById("settingsUserName").innerText = localStorage.getItem("hobbyName") || "المستخدم";
-        }
-
-        window.openChangePassword = function() { document.getElementById('passwordModal').style.display = 'flex'; }
-        window.savePassword = function() { alert("تم تغيير كلمة المرور بنجاح!"); document.getElementById('passwordModal').style.display = 'none'; }
-        
-        window.deleteAccount = function() {
-            if(confirm("هل أنت متأكد تماماً؟ سيتم حذف حسابك ولن يمكنك استعادته.")) {
-                if(confirm("تحذير أخير: هذا الإجراء لا رجعة فيه!")) {
-                    localStorage.clear();
-                    window.location.href = 'index.html';
+        // دالة لتحديث شكل الأيقونة
+        function updateThemeIcon() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const icon = document.getElementById('themeIcon');
+            if(icon) {
+                if(isDark) {
+                    icon.classList.remove('fa-toggle-off');
+                    icon.classList.add('fa-toggle-on', 'on');
+                } else {
+                    icon.classList.remove('fa-toggle-on', 'on');
+                    icon.classList.add('fa-toggle-off');
                 }
             }
         }
+
+        // دالة خاصة لهذه الصفحة لتغيير الوضع وتحديث الأيقونة
+        function customToggleDarkMode() {
+            if(window.toggleDarkMode) {
+                window.toggleDarkMode(); // استدعاء الدالة الأصلية من main.js
+                updateThemeIcon(); // تحديث الأيقونة
+            }
+        }
+
+        // عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            // انتظار بسيط لضمان تحميل الثيم من الذاكرة
+            setTimeout(updateThemeIcon, 100);
+        });
     </script>
 </body>
 </html>
