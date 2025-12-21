@@ -52,40 +52,43 @@
         <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
         <div class="nav-item" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
+    
+<div id="addPostOverlay" class="overlay" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>إنشاء منشور جديد</h3>
+                <span class="close-btn" onclick="closeAddPost()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <input type="text" id="postTitle" class="clean-input title-input" placeholder="عنوان الموضوع...">
+                
+                <textarea id="postContent" class="clean-input content-input" placeholder="بماذا تفكر اليوم؟ (يمكنك لصق رابط يوتيوب هنا للفيديو)"></textarea>
+                
+                <div id="previewContainer" style="display:none; position:relative;">
+                    <img id="imagePreview" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px;">
+                    <button onclick="document.getElementById('postImageInput').value=''; document.getElementById('previewContainer').style.display='none';" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:25px; height:25px; cursor:pointer;">&times;</button>
+                </div>
 
-    <div id="addPostOverlay" class="add-post-overlay">
-        <div class="add-post-header">
-            <button onclick="closeAddPost()" class="btn-text">إلغاء</button>
-            <h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3>
-            <button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button>
-        </div>
-        <div class="add-post-body">
-            <p class="label-green">الوسائط</p>
-            <div class="upload-square" onclick="triggerFileUpload()">
-                <div style="text-align: center; color: var(--primary-color);">
-                    <i class="fas fa-image" style="font-size: 40px; margin-bottom: 10px; display: block;"></i>
-                    <div style="font-weight: 600; font-size: 14px;">اضغط لإضافة صورة</div>
+                <div class="post-tools">
+                    <div class="tool-btn" onclick="triggerFileUpload()">
+                        <i class="fas fa-image"></i> صورة
+                    </div>
+                    <div class="tool-btn" onclick="alert('لإضافة فيديو: انسخ رابط الفيديو من يوتيوب والصقه في خانة الكتابة.')">
+                        <i class="fab fa-youtube"></i> فيديو
+                    </div>
                 </div>
-                <img id="imagePreview" src="" class="preview-img-box">
-                <input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()">
+
+                <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
+
+                <button class="publish-btn-pro btn-publish" onclick="saveNewPost()">
+                    نشر الآن <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
-            <div class="media-row">
-                <div class="media-square" id="audioBox" onclick="triggerAudioUpload()"><i class="fas fa-microphone"></i><input type="file" id="postAudioInput" accept="audio/*" style="display: none;" onchange="handleAudioSelect()"></div>
-                <div class="media-square" id="linkBox" onclick="addLink()"><i class="fas fa-link"></i></div>
-            </div>
-            <p class="label-green">العنوان</p>
-            <div class="input-rect" style="position: relative;">
-                <input type="text" id="postTitle" placeholder="اكتب عنواناً جذاباً..." style="padding-right: 40px;">
-                <div class="hashtag-icon" onclick="addHashtagInput()" title="أضف هاشتاجات">
-                    <i class="fas fa-hashtag"></i>
-                </div>
-                <input type="text" id="postHashtags" placeholder="#هوبي #شغفك" class="hashtag-input" style="display: none;">
-            </div>
-            <p class="label-green">الموضوع</p>
-            <div class="input-rect"><textarea id="postContent" placeholder="شاركنا أفكارك..."></textarea></div>
         </div>
     </div>
     
     <script type="module" src="main.js"></script>
 </body>
 </html>
+
