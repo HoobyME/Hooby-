@@ -7,88 +7,66 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-
-    <div class="overlay" onclick="toggleMenu()"></div>
-    
-    <div class="sidebar" id="sidebar">
-        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
-        
-        <a href="#" onclick="visitMyProfile()" class="menu-item">
-            <i class="fas fa-user-circle"></i> الملف الشخصي
-        </a>
-        
-        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;">
-            <i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span>
-        </div>
-        
-        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;">
-            <i class="fas fa-cog"></i> الإعدادات العامة
-        </a>
-        
-        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;">
-            <i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج
-        </a>
-    </div>
-
-    <div class="header">
+<body class="dark-mode"> <div class="header">
         <div class="brand-area">
-            <div class="app-logo"><img src="logo.png" alt=""> هوبي</div>
-            <a href="notifications.html" class="header-icon"><i class="far fa-bell"></i></a>
-            <a href="messages.html" class="header-icon"><i class="far fa-comment-alt"></i></a>
+            <img src="logo.png" style="width:30px;">
+            <span>هوبي</span>
         </div>
-        <div style="display: flex; gap: 10px;">
-            <a href="search.html" class="icon-btn"><i class="fas fa-search"></i></a>
-            <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
+        <div>
+            <a onclick="toggleMenu()" class="icon-btn"><i class="fas fa-bars"></i></a>
         </div>
     </div>
 
-    <div id="postsContainer" style="padding-bottom: 100px;">
-        <div style="text-align:center; padding:20px; color:#777;" id="loadingMsg">جاري تحميل المنشورات...</div>
+    <div class="sidebar" id="sidebar">
+        <h3>القائمة</h3>
+        <div class="nav-item" onclick="visitMyProfile()" style="cursor:pointer; display:block; margin:10px 0;">
+            <i class="fas fa-user-circle"></i> الملف الشخصي
+        </div>
+        <div class="nav-item" onclick="toggleDarkMode()" style="cursor:pointer; display:block; margin:10px 0;">
+            <i class="fas fa-moon"></i> الوضع المظلم
+        </div>
+        <div class="nav-item" onclick="location.href='settings.html'" style="cursor:pointer; display:block; margin:10px 0;">
+            <i class="fas fa-cog"></i> الإعدادات العامة
+        </div>
+        <div class="nav-item" onclick="logout()" style="cursor:pointer; display:block; margin:10px 0; color:red;">
+            <i class="fas fa-sign-out-alt"></i> خروج
+        </div>
+    </div>
+
+    <div id="postsContainer" class="posts-container">
+        <p style="text-align:center; padding:20px;">جاري تحميل المنشورات...</p>
+    </div>
+
+    <div id="addPostOverlay" class="overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>منشور جديد</h3>
+                <span class="close-btn" onclick="closeAddPost()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="postTitle" placeholder="عنوان المنشور" class="modal-input">
+                <textarea id="postContent" placeholder="بماذا تفكر؟ (الصق رابط يوتيوب للفيديو)" class="modal-input" rows="4"></textarea>
+                
+                <img id="imagePreview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin:10px 0;">
+
+                <div class="modal-actions">
+                    <button class="action-btn" onclick="triggerFileUpload()" style="border:1px solid var(--border-color); width:auto; padding:5px 15px;"><i class="fas fa-image"></i> صورة</button>
+                    <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
+                </div>
+
+                <button class="btn-publish" onclick="saveNewPost()">نشر</button>
+            </div>
+        </div>
     </div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item active"><i class="fas fa-home"></i></a>
-        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
-        <div class="nav-item" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
+        <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
+        <div class="nav-item-add" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
+        <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
+        <div class="nav-item" style="cursor:pointer;" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
-    
-<div id="addPostOverlay" class="overlay" style="display:none;">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>إنشاء منشور جديد</h3>
-                <span class="close-btn" onclick="closeAddPost()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <input type="text" id="postTitle" class="clean-input title-input" placeholder="عنوان الموضوع...">
-                
-                <textarea id="postContent" class="clean-input content-input" placeholder="بماذا تفكر اليوم؟ (يمكنك لصق رابط يوتيوب هنا للفيديو)"></textarea>
-                
-                <div id="previewContainer" style="display:none; position:relative;">
-                    <img id="imagePreview" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px;">
-                    <button onclick="document.getElementById('postImageInput').value=''; document.getElementById('previewContainer').style.display='none';" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:25px; height:25px; cursor:pointer;">&times;</button>
-                </div>
 
-                <div class="post-tools">
-                    <div class="tool-btn" onclick="triggerFileUpload()">
-                        <i class="fas fa-image"></i> صورة
-                    </div>
-                    <div class="tool-btn" onclick="alert('لإضافة فيديو: انسخ رابط الفيديو من يوتيوب والصقه في خانة الكتابة.')">
-                        <i class="fab fa-youtube"></i> فيديو
-                    </div>
-                </div>
-
-                <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
-
-                <button class="publish-btn-pro btn-publish" onclick="saveNewPost()">
-                    نشر الآن <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-    
     <script type="module" src="main.js"></script>
 </body>
 </html>
-
