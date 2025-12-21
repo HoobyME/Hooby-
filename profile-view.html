@@ -3,99 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الملف الشخصي - هوبي</title>
+    <title>الملف الشخصي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* --- تنسيقات البروفايل --- */
-        .profile-header {
-            background: var(--card-bg);
-            padding: 30px 20px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 10px;
-            position: relative;
-        }
-        
-        /* حاوية الصورة والقلم */
-        .avatar-container {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            margin: 0 auto 10px auto;
-        }
-        .profile-avatar {
-            width: 100%; height: 100%;
-            border-radius: 50%;
-            border: 3px solid var(--primary-color);
-            object-fit: cover;
-        }
-        .edit-icon-img {
-            position: absolute; bottom: 0; left: 0;
-            background: var(--primary-color); color: white;
-            width: 30px; height: 30px; border-radius: 50%;
-            display: none; /* مخفي للغرباء */
-            align-items: center; justify-content: center;
-            cursor: pointer; border: 2px solid var(--card-bg);
-        }
-
-        /* حاوية النصوص والأقلام */
-        .profile-name-container, .profile-bio-container {
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
+        .profile-header { background: var(--card-bg); padding: 30px 20px; text-align: center; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; position: relative; }
+        .avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto 10px auto; }
+        .profile-avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; }
+        .edit-icon-img { position: absolute; bottom: 0; left: 0; background: var(--primary-color); color: white; width: 30px; height: 30px; border-radius: 50%; display: none; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); }
+        .profile-name-container, .profile-bio-container { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .profile-name { font-size: 22px; font-weight: bold; margin: 0; }
-        .edit-icon-text {
-            color: var(--primary-color); cursor: pointer; font-size: 16px; display: none;
-        }
-        .profile-bio { 
-            color: var(--text-sub); font-size: 14px; margin: 10px auto; 
-            max-width: 80%; line-height: 1.5;
-        }
-
+        .edit-icon-text { color: var(--primary-color); cursor: pointer; font-size: 16px; display: none; }
+        .profile-bio { color: var(--text-sub); font-size: 14px; margin: 10px auto; max-width: 80%; }
         .profile-stats { display: flex; justify-content: center; gap: 20px; margin: 15px 0; color: var(--text-sub); font-size: 14px; }
         .profile-stats span { font-weight: bold; color: var(--text-color); display: block; font-size: 16px; }
-        
         .profile-actions { display: flex; justify-content: center; gap: 15px; margin-top: 15px; }
-        .action-btn-profile { padding: 8px 25px; border-radius: 20px; border: none; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+        .action-btn-profile { padding: 8px 25px; border-radius: 20px; border: none; cursor: pointer; font-size: 14px; font-weight: bold; }
         .btn-follow { background: var(--primary-color); color: white; }
-        .btn-follow.following { background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); }
         .btn-message { background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); }
-
-        /* النافذة المنبثقة للتعديل */
-        .edit-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
-        }
-        .edit-modal-content {
-            background: var(--card-bg); padding: 20px; border-radius: 15px;
-            width: 90%; max-width: 400px; text-align: center;
-        }
-        .modal-input {
-            width: 100%; padding: 10px; margin: 10px 0;
-            border: 1px solid var(--border-color); border-radius: 8px;
-            background: var(--bg-color); color: var(--text-color);
-        }
-
-        /* --- 🔥 تنسيق زر النشر العائم (المهم جداً) 🔥 --- */
-        .nav-item-add {
-            background: var(--primary-color);
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-top: -25px; /* يرفعه للأعلى ليبرز */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: 0.2s;
-            border: 4px solid var(--bg-color); /* إطار يجعله مفصولاً عن الشريط */
-        }
-        .nav-item-add:hover {
-            transform: scale(1.1);
-        }
+        
+        /* ستايل نافذة تعديل البايو */
+        .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .edit-modal-content { background: var(--card-bg); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
     </style>
 </head>
 <body>
@@ -113,93 +42,62 @@
                 <img src="side.png" id="p-img" class="profile-avatar">
                 <div id="edit-img-icon" class="edit-icon-img" onclick="triggerImgUpload()"><i class="fas fa-pen"></i></div>
             </div>
-
             <div class="profile-name-container">
                 <h2 id="p-name" class="profile-name">...</h2>
-                <i id="edit-name-icon" class="fas fa-pen edit-icon-text" onclick="alert('تغيير الاسم غير متاح حالياً للحفاظ على أرشيف المنشورات')"></i>
+                <i id="edit-name-icon" class="fas fa-pen edit-icon-text" onclick="alert('لا يمكن تغيير الاسم حالياً')"></i>
             </div>
-
             <div class="profile-bio-container">
                 <p id="p-bio" class="profile-bio"></p>
                 <i id="edit-bio-icon" class="fas fa-pen edit-icon-text" onclick="openEditModal('bio')"></i>
             </div>
-            
             <div class="profile-stats">
                 <div><span id="p-posts-count">0</span> منشورات</div>
                 <div><span id="p-followers-count">0</span> متابعين</div>
                 <div><span id="p-following-count">0</span> يتابع</div>
             </div>
-
             <div class="profile-actions" id="profileActionsBtns"></div>
         </div>
     </div>
 
+    <div id="profilePostsContainer" class="posts-container" style="padding-bottom: 70px;"></div>
+
     <div id="editProfileModal" class="edit-modal">
         <div class="edit-modal-content">
-            <h3>تعديل النبذة (Bio)</h3>
-            <textarea id="editBioInput" class="modal-input" rows="3" placeholder="اكتب نبذة عنك..."></textarea>
-            <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
-                <button onclick="saveProfileChanges()" class="action-btn-profile btn-follow">حفظ</button>
-                <button onclick="closeEditModal()" class="action-btn-profile btn-message">إلغاء</button>
-            </div>
+            <h3>تعديل النبذة</h3>
+            <textarea id="editBioInput" class="modal-input" rows="3" style="width:100%; margin:10px 0;"></textarea>
+            <button onclick="saveProfileChanges()" class="action-btn-profile btn-follow">حفظ</button>
+            <button onclick="closeEditModal()" class="action-btn-profile btn-message">إلغاء</button>
         </div>
     </div>
 
+    <div id="addPostOverlay" class="overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>منشور جديد</h3>
+                <span class="close-btn" onclick="closeAddPost()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="postTitle" placeholder="عنوان المنشور" class="modal-input">
+                <textarea id="postContent" placeholder="بماذا تفكر؟" class="modal-input" rows="4"></textarea>
+                <img id="imagePreview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin:10px 0;">
+                <div class="modal-actions">
+                    <button class="action-btn" onclick="triggerFileUpload()" style="border:1px solid var(--border-color);"><i class="fas fa-image"></i> صورة</button>
+                    <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
+                </div>
+                <button class="btn-publish" onclick="saveNewPost()">نشر</button>
+            </div>
+        </div>
+    </div>
     <input type="file" id="profileImgInput" accept="image/*" style="display:none;" onchange="uploadNewProfileImg()">
-
-    <div id="profilePostsContainer" class="posts-container" style="padding-bottom: 70px;"></div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
-        
         <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
-        
-        <div class="nav-item-add" onclick="openAddPost()">
-            <i class="fas fa-plus"></i>
-        </div>
-        
+        <div class="nav-item-add" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
         <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
-        
         <div class="nav-item active" style="cursor:pointer;" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
-    </div>
-   
-    <div id="addPostOverlay" class="overlay" style="display:none;">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>إنشاء منشور جديد</h3>
-                <span class="close-btn" onclick="closeAddPost()">&times;</span>
-            </div>
-            
-            <div class="modal-body">
-                <input type="text" id="postTitle" class="clean-input title-input" placeholder="عنوان الموضوع...">
-                
-                <textarea id="postContent" class="clean-input content-input" placeholder="بماذا تفكر اليوم؟ (يمكنك لصق رابط يوتيوب هنا للفيديو)"></textarea>
-                
-                <div id="previewContainer" style="display:none; position:relative;">
-                    <img id="imagePreview" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px;">
-                    <button onclick="document.getElementById('postImageInput').value=''; document.getElementById('previewContainer').style.display='none';" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:25px; height:25px; cursor:pointer;">&times;</button>
-                </div>
-
-                <div class="post-tools">
-                    <div class="tool-btn" onclick="triggerFileUpload()">
-                        <i class="fas fa-image"></i> صورة
-                    </div>
-                    <div class="tool-btn" onclick="alert('لإضافة فيديو: انسخ رابط الفيديو من يوتيوب والصقه في خانة الكتابة.')">
-                        <i class="fab fa-youtube"></i> فيديو
-                    </div>
-                </div>
-
-                <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
-
-                <button class="publish-btn-pro btn-publish" onclick="saveNewPost()">
-                    نشر الآن <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
     </div>
 
     <script type="module" src="main.js"></script>
 </body>
 </html>
-
-
