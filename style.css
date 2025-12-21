@@ -1,117 +1,290 @@
-/* --- تصميم نافذة النشر (بدون تغويش - واضح جداً) --- */
+/* --- style.css: النسخة الكاملة النهائية (المحدثة) --- */
 
+:root {
+    /* الألوان الأساسية (الوضع النهاري) */
+    --primary-color: #4CAF50;
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+    --text-color: #050505;
+    --text-sub: #65676b;
+    --border-color: #ddd;
+    --input-bg: #f0f2f5;
+    --nav-height: 60px;
+}
+
+/* الوضع الليلي (يتم تفعيله عبر كلاس .dark-mode في الـ body) */
+body.dark-mode {
+    --bg-color: #18191a;
+    --card-bg: #242526;
+    --text-color: #e4e6eb;
+    --text-sub: #b0b3b8;
+    --border-color: #3e4042;
+    --input-bg: #3a3b3c;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding-bottom: 80px; /* مساحة للشريط السفلي */
+    padding-top: 60px;    /* مساحة للهيدر العلوي */
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* --- الهيدر العلوي --- */
+.header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--nav-height);
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    z-index: 1000;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.brand-area {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+    gap: 10px;
+}
+
+.icon-btn {
+    font-size: 20px;
+    color: var(--text-color);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* --- القائمة الجانبية (للكمبيوتر) --- */
+.sidebar {
+    position: fixed;
+    top: var(--nav-height);
+    right: 0;
+    width: 250px;
+    height: 100%;
+    background: var(--card-bg);
+    border-left: 1px solid var(--border-color);
+    padding: 20px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index: 999;
+}
+.sidebar.active { transform: translateX(0); }
+
+/* --- الشريط السفلي (للموبايل) - مع زر النشر العائم --- */
+.bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+}
+
+.nav-item {
+    font-size: 24px;
+    color: var(--text-sub);
+    text-decoration: none;
+    padding: 10px;
+    transition: 0.2s;
+}
+
+.nav-item.active, .nav-item:hover {
+    color: var(--primary-color);
+}
+
+/* 🔥 زر النشر العائم في المنتصف 🔥 */
+.nav-item-add {
+    background: var(--primary-color);
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-top: -25px; /* يرتفع للأعلى */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: 0.2s;
+    border: 4px solid var(--bg-color); /* إطار لفصله عن الخلفية */
+}
+.nav-item-add:hover {
+    transform: scale(1.1);
+}
+
+/* --- البطاقات والمنشورات --- */
+.posts-container {
+    max-width: 600px;
+    margin: 10px auto;
+    padding: 0 10px;
+}
+
+.post-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.user-avatar-small {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    margin-left: 10px;
+    object-fit: cover;
+}
+
+.user-info-text h4 { margin: 0; font-size: 15px; }
+.user-info-text span { font-size: 12px; color: var(--text-sub); }
+
+.post-body h3 { margin: 0 0 5px 0; font-size: 16px; }
+.post-body p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+
+/* أزرار التفاعل */
+.post-actions {
+    display: flex;
+    border-top: 1px solid var(--border-color);
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.action-btn {
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-sub);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.action-btn:hover { background: rgba(0,0,0,0.05); }
+.action-btn.active { color: var(--primary-color); }
+
+.efada-icon { width: 20px; height: 20px; }
+
+/* --- التعليقات --- */
+.comments-section { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color); }
+.comments-section.active { display: block; }
+.comment-item { display: flex; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+.comment-avatar { width: 30px; height: 30px; border-radius: 50%; }
+.comment-content { background: var(--input-bg); padding: 8px 12px; border-radius: 15px; flex: 1; }
+.comment-author { font-weight: bold; display: block; margin-bottom: 2px; }
+
+.comment-input-area { display: flex; gap: 5px; margin-top: 10px; }
+.comment-input { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); }
+.send-comment-btn { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 18px; }
+
+/* --- قوائم الخيارات (ثلاث نقاط) --- */
+.options-btn { margin-right: auto; cursor: pointer; padding: 5px; color: var(--text-sub); }
+.options-menu {
+    display: none; position: absolute; top: 40px; left: 10px;
+    background: var(--card-bg); border: 1px solid var(--border-color);
+    border-radius: 8px; width: 150px; z-index: 10;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.options-menu.active { display: block; }
+.menu-option { padding: 10px; font-size: 14px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+.menu-option:hover { background: rgba(0,0,0,0.05); }
+.menu-option.delete { color: #f44336; }
+
+/* --- 🔥 نافذة النشر المنبثقة (Modal) - التصميم الجديد 🔥 --- */
 .overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    /* تم إزالة Blur وجعل الخلفية أغمق لزيادة الوضوح */
-    background: rgba(0, 0, 0, 0.8); 
+    background-color: rgba(0, 0, 0, 0.8); /* خلفية داكنة واضحة */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2000;
-    animation: fadeIn 0.2s ease;
+    z-index: 9999;
 }
 
 .modal {
-    background: var(--card-bg);
+    background-color: var(--card-bg);
     width: 90%;
     max-width: 500px;
-    border-radius: 15px; /* تقليل التدوير قليلاً لشكل أنظف */
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     border: 1px solid var(--border-color);
-    position: relative; /* لضمان عدم تأثر العناصر الداخلية */
+    position: relative;
 }
 
 .modal-header {
-    padding: 15px 20px;
+    padding: 15px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--bg-color); /* تمييز الهيدر بلون مختلف قليلاً */
+    background: var(--bg-color);
 }
+.modal-header h3 { margin: 0; color: var(--text-color); font-size: 18px; }
 
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-    color: var(--text-color);
-}
+.close-btn { font-size: 28px; cursor: pointer; color: var(--text-sub); line-height: 1; }
 
-.close-btn {
-    font-size: 28px;
-    color: var(--text-sub);
-    cursor: pointer;
-    line-height: 1;
-}
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; background: var(--card-bg); }
 
-.modal-body {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    background: var(--card-bg);
-}
-
-/* تحسين حقول الإدخال لتكون واضحة */
 .clean-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-color);
-    font-family: inherit;
+    width: 100%; border: none; outline: none; background: transparent;
+    color: var(--text-color); font-size: 16px;
 }
+.title-input { font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+.content-input { min-height: 120px; resize: none; }
 
-.title-input {
-    font-size: 18px;
-    font-weight: bold;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-}
-
-.content-input {
-    font-size: 16px;
-    resize: none;
-    min-height: 120px;
-}
-
-.post-tools {
-    display: flex;
-    gap: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-}
-
+.post-tools { display: flex; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 15px; }
 .tool-btn {
-    padding: 8px 15px;
-    border-radius: 20px;
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    background: transparent;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: bold;
+    padding: 8px 15px; border-radius: 20px;
+    border: 1px solid var(--primary-color); color: var(--primary-color);
+    cursor: pointer; font-size: 13px; font-weight: bold;
     display: flex; align-items: center; gap: 5px;
 }
+.tool-btn:hover { background: var(--primary-color); color: white; }
 
 .publish-btn-pro {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 12px;
-    border-radius: 8px; /* جعلناه مربعاً بحواف ناعمة */
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 10px;
-    width: 100%;
+    background: var(--primary-color); color: white; border: none;
+    padding: 12px; border-radius: 8px; font-size: 16px;
+    font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;
 }
+.publish-btn-pro:disabled { background: #ccc; cursor: not-allowed; }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+/* --- تنسيقات البروفايل الإضافية --- */
+/* (ملاحظة: معظم تنسيقات البروفايل موجودة في ملف HTML نفسه لضمان العمل، لكن هذه إضافات عامة) */
+.profile-avatar { object-fit: cover; }
+.profile-stats { color: var(--text-sub); }
+
+/* --- استجابة الشاشات --- */
+@media (min-width: 600px) {
+    .bottom-nav { display: none; } /* إخفاء الشريط السفلي في الشاشات الكبيرة */
+    .sidebar { transform: translateX(0); position: static; height: auto; display: block; }
 }
