@@ -3,160 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الملف الشخصي</title>
+    <title>الملف الشخصي - هوبي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .profile-header {
+            background: var(--card-bg);
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-color);
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+        .profile-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+        .profile-stats span {
+            font-weight: bold;
+            color: var(--text-color);
+            display: block;
+            font-size: 16px;
+        }
+        
+        /* --- إصلاح مكان الأزرار (في المنتصف) --- */
+        .profile-actions {
+            display: flex;
+            justify-content: center; /* هذا السطر يضعها في المنتصف */
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .action-btn-profile {
+            padding: 8px 25px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-follow {
+            background: var(--primary-color);
+            color: white;
+        }
+        .btn-follow.following {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        .btn-message {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+    </style>
 </head>
 <body>
 
-    <div class="overlay" onclick="toggleMenu()"></div>
-    
-    <div class="sidebar" id="sidebar">
-        <h2 style="color: var(--primary-color); margin-bottom: 20px;">القائمة</h2>
-        <a href="#" onclick="visitMyProfile()" class="menu-item"><i class="fas fa-user-circle"></i> الملف الشخصي</a>
-        <div class="menu-item" onclick="toggleDarkMode()" style="cursor: pointer;"><i class="fas fa-moon"></i><span id="darkText">الوضع المظلم</span></div>
-        <a href="settings.html" class="menu-item" style="border-top: 1px solid var(--border-color); margin-top: 5px; padding-top: 15px;"><i class="fas fa-cog"></i> الإعدادات العامة</a>
-        <a href="#" onclick="logout()" class="menu-item" style="color: #f44336;"><i class="fas fa-sign-out-alt" style="color: #f44336;"></i> خروج</a>
-    </div>
-
     <div class="header">
         <div class="brand-area">
-            <div class="app-logo"><img src="logo.png" alt=""> هوبي</div>
-            <a href="notifications.html" class="header-icon"><i class="far fa-bell"></i></a>
-            <a href="messages.html" class="header-icon"><i class="far fa-comment-alt"></i></a>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <a href="search.html" class="icon-btn"><i class="fas fa-search"></i></a>
-            <div class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
+            <a href="home.html" class="icon-btn"><i class="fas fa-arrow-right"></i></a>
+            <span style="margin-right: 10px;">الملف الشخصي</span>
         </div>
     </div>
 
-    <div class="profile-header">
-        <div class="profile-pic-container" id="picContainer">
-            <img src="side.png" id="displayPic" class="profile-pic">
-            <div class="edit-badge" id="editBadge"><i class="fas fa-camera"></i></div>
-        </div>
-        <input type="file" id="fileInput" hidden accept="image/*">
-
-        <div class="profile-info">
-            <div><h2 id="displayName">مستخدم <i class="fas fa-pen edit-icon" id="editNameIcon" onclick="editName()"></i></h2></div>
-            <div><p id="displayBio">... <i class="fas fa-pen edit-icon" id="editBioIcon" onclick="editBio()"></i></p></div>
+    <div id="profileContent">
+        <div class="profile-header">
+            <img src="side.png" id="p-img" class="profile-avatar">
+            <h2 id="p-name" class="profile-name">جاري التحميل...</h2>
             
-            <div class="profile-actions">
-                <button id="followUserBtn" class="action-btn-profile" onclick="toggleFollowUser(this)">متابعة</button>
-                <button id="messageBtn" class="action-btn-profile" onclick="openChat()">مراسلة</button>
+            <div class="profile-stats">
+                <div><span id="p-posts-count">0</span> منشورات</div>
+                <div><span id="p-followers-count">0</span> متابعين</div>
+                <div><span id="p-following-count">0</span> يتابع</div>
             </div>
-        </div>
 
-        <div class="stats-row">
-            <div class="stat-box"><h3>0</h3><span>منشور</span></div>
-            <div class="stat-box" id="followersBox" onclick="openFollowersList()">
-                <h3 id="followersCount">0</h3><span>متابع</span>
-            </div>
-            <div class="stat-box" onclick="openFollowingList()">
-                <h3 id="followingCount">0</h3><span>تتابع</span>
-            </div>
+            <div class="profile-actions" id="profileActionsBtns">
+                </div>
         </div>
     </div>
 
-    <div id="profilePostsContainer" style="padding-bottom: 100px; margin-top: 20px;">
-        <p style="width:100%; text-align:center; color:#777; padding: 20px;">جاري تحميل منشوراتك...</p>
-    </div>
+    <div id="profilePostsContainer" class="posts-container" style="padding-bottom: 70px;"></div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
-        <div class="add-post-btn" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
-        <div class="nav-item active" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
-    </div>
-
-    <div id="addPostOverlay" class="add-post-overlay">
-        <div class="add-post-header">
-            <button onclick="closeAddPost()" class="btn-text">إلغاء</button>
-            <h3 style="margin:0; color:var(--primary-color)">منشور جديد</h3>
-            <button onclick="saveNewPost()" class="btn-text btn-publish">نشر</button>
-        </div>
-        <div class="add-post-body">
-            <p class="label-green">الوسائط</p>
-            <div class="upload-square" onclick="triggerFileUpload()">
-                <div style="text-align: center; color: var(--primary-color);">
-                    <i class="fas fa-image" style="font-size: 40px; margin-bottom: 10px; display: block;"></i>
-                    <div style="font-weight: 600; font-size: 14px;">اضغط لإضافة صورة</div>
-                </div>
-                <img id="imagePreview" src="" class="preview-img-box">
-                <input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewFile()">
-            </div>
-            <div class="media-row">
-                <div class="media-square" id="audioBox" onclick="triggerAudioUpload()"><i class="fas fa-microphone"></i><input type="file" id="postAudioInput" accept="audio/*" style="display: none;" onchange="handleAudioSelect()"></div>
-                <div class="media-square" id="linkBox" onclick="addLink()"><i class="fas fa-link"></i></div>
-            </div>
-            <p class="label-green">العنوان</p>
-            <div class="input-rect" style="position: relative;">
-                <input type="text" id="postTitle" placeholder="اكتب عنواناً جذاباً..." style="padding-right: 40px;">
-                <div class="hashtag-icon" onclick="addHashtagInput()" title="أضف هاشتاجات">
-                    <i class="fas fa-hashtag"></i>
-                </div>
-                <input type="text" id="postHashtags" placeholder="#هوبي #شغفك" class="hashtag-input" style="display: none;">
-            </div>
-            <p class="label-green">الموضوع</p>
-            <div class="input-rect"><textarea id="postContent" placeholder="شاركنا أفكارك..."></textarea></div>
-        </div>
+        <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
+        <a href="profile-view.html" class="nav-item active"><i class="fas fa-user"></i></a>
     </div>
 
     <script type="module" src="main.js"></script>
-    
-    <script>
-        // كود إدارة واجهة البروفايل (الصور والأسماء)
-        let isOwner = false;
-        let currentViewingUser = null;
-
-        window.onload = function() {
-            if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
-
-            const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
-            
-            if (!viewingData || viewingData.isMe) {
-                isOwner = true; 
-                currentViewingUser = { name: localStorage.getItem('hobbyName') }; 
-                loadMyProfile();
-            } else {
-                isOwner = false; 
-                currentViewingUser = viewingData; 
-                loadGuestProfile(viewingData);
-            }
-        }
-
-        function loadMyProfile() {
-            document.getElementById("displayPic").src = localStorage.getItem("hobbyImage") || "side.png";
-            document.getElementById("displayName").innerHTML = (localStorage.getItem("hobbyName") || "أنت") + ' <i class="fas fa-pen edit-icon" onclick="editName()"></i>';
-            document.getElementById("displayBio").innerHTML = (localStorage.getItem("hobbyBio") || "مرحباً") + ' <i class="fas fa-pen edit-icon" onclick="editBio()"></i>';
-            document.getElementById("editBadge").style.display = "flex";
-            document.querySelectorAll(".edit-icon").forEach(el => el.style.display = "inline-block");
-            document.getElementById("picContainer").onclick = function() { document.getElementById('fileInput').click(); };
-            document.getElementById("followUserBtn").style.display = "none";
-            document.getElementById("messageBtn").style.display = "none";
-        }
-
-        function loadGuestProfile(data) {
-            document.getElementById("displayPic").src = data.img || "side.png";
-            document.getElementById("displayName").innerText = data.name;
-            document.getElementById("displayBio").innerText = "نبذة عن " + data.name;
-            document.getElementById("editBadge").style.display = "none";
-            document.querySelectorAll(".edit-icon").forEach(el => el.style.display = "none");
-            document.getElementById("picContainer").onclick = null;
-            document.getElementById("followUserBtn").style.display = "block";
-            document.getElementById("messageBtn").style.display = "block";
-        }
-
-        window.editName = function() { let n = prompt("الاسم:"); if(n) { localStorage.setItem("hobbyName", n); loadMyProfile(); location.reload(); } }
-        window.editBio = function() { let b = prompt("النبذة:"); if(b) { localStorage.setItem("hobbyBio", b); loadMyProfile(); } }
-        
-        const fileInput = document.getElementById('fileInput');
-        if(fileInput) {
-            fileInput.addEventListener('change', function() {
-                const f = this.files[0];
-                if(f){ const r = new FileReader(); r.onload = function(e){ localStorage.setItem("hobbyImage", e.target.result); loadMyProfile(); }; r.readAsDataURL(f); }
-            });
-        }
-    </script>
 </body>
 </html>
