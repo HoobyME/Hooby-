@@ -1,4 +1,4 @@
-/* --- style.css: النسخة الكاملة والمصححة --- */
+/* --- style.css: النسخة الكاملة والمصححة (إصلاح الصور العملاقة) --- */
 
 :root {
     /* الألوان (الوضع النهاري) */
@@ -28,7 +28,7 @@ body.dark-mode {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* منع الصور من تجاوز حجم الشاشة (حل مشكلة الصورة العملاقة) */
+/* 🔥 الإصلاح الأهم: منع الصور من تجاوز حجم الشاشة 🔥 */
 img, video {
     max-width: 100%;
     height: auto;
@@ -41,7 +41,7 @@ body {
     color: var(--text-color);
     padding-bottom: 80px;
     padding-top: 60px;
-    overflow-x: hidden; /* منع التمرير الأفقي */
+    overflow-x: hidden;
 }
 
 /* --- الهيدر --- */
@@ -133,11 +133,11 @@ body {
 .action-btn { flex: 1; text-align: center; color: var(--text-sub); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
 .action-btn.active { color: var(--primary-color); }
 
-/* 🔥 إصلاح الأيقونة الخضراء العملاقة 🔥 */
+/* 🔥 إصلاح حجم الأيقونة الخضراء تحديداً 🔥 */
 .efada-icon { 
     width: 20px; 
     height: 20px; 
-    object-fit: contain; /* يمنع تمدد الصورة */
+    object-fit: contain; 
 }
 
 /* --- التعليقات --- */
@@ -158,13 +158,13 @@ body {
 .menu-option { padding: 10px; font-size: 14px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
 .menu-option:hover { background: rgba(0,0,0,0.05); }
 
-/* --- نافذة النشر (الإصلاح النهائي) --- */
+/* --- نافذة النشر (إصلاح عدم القدرة على الضغط) --- */
 .overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
-    display: none; /* مخفية افتراضياً */
+    display: none; /* 👈 مخفية افتراضياً (حل مشكلة عدم الضغط) */
     justify-content: center;
     align-items: center;
     z-index: 9999;
