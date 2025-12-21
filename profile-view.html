@@ -162,28 +162,44 @@
         
         <div class="nav-item active" style="cursor:pointer;" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
-<div id="addPostOverlay" class="overlay" style="display:none;">
+   
+    <div id="addPostOverlay" class="overlay" style="display:none;">
         <div class="modal">
             <div class="modal-header">
-                <h3>منشور جديد</h3>
+                <h3>إنشاء منشور جديد</h3>
                 <span class="close-btn" onclick="closeAddPost()">&times;</span>
             </div>
+            
             <div class="modal-body">
-                <input type="text" id="postTitle" placeholder="عنوان المنشور" class="modal-input">
-                <textarea id="postContent" placeholder="بماذا تفكر؟" class="modal-input" rows="4"></textarea>
+                <input type="text" id="postTitle" class="clean-input title-input" placeholder="عنوان الموضوع...">
                 
-                <img id="imagePreview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin:10px 0;">
-
-                <div class="modal-actions">
-                    <button class="action-btn" onclick="triggerFileUpload()"><i class="fas fa-image"></i> صورة</button>
-                    <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
+                <textarea id="postContent" class="clean-input content-input" placeholder="بماذا تفكر اليوم؟ (يمكنك لصق رابط يوتيوب هنا للفيديو)"></textarea>
+                
+                <div id="previewContainer" style="display:none; position:relative;">
+                    <img id="imagePreview" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px;">
+                    <button onclick="document.getElementById('postImageInput').value=''; document.getElementById('previewContainer').style.display='none';" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:25px; height:25px; cursor:pointer;">&times;</button>
                 </div>
 
-                <button class="btn-publish" onclick="saveNewPost()" style="width:100%; margin-top:10px; padding:10px; background:var(--primary-color); color:white; border:none; border-radius:5px; cursor:pointer;">نشر</button>
+                <div class="post-tools">
+                    <div class="tool-btn" onclick="triggerFileUpload()">
+                        <i class="fas fa-image"></i> صورة
+                    </div>
+                    <div class="tool-btn" onclick="alert('لإضافة فيديو: انسخ رابط الفيديو من يوتيوب والصقه في خانة الكتابة.')">
+                        <i class="fab fa-youtube"></i> فيديو
+                    </div>
+                </div>
+
+                <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
+
+                <button class="publish-btn-pro btn-publish" onclick="saveNewPost()">
+                    نشر الآن <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
         </div>
     </div>
+
     <script type="module" src="main.js"></script>
 </body>
 </html>
+
 
