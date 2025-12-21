@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الكاملة (مع إصلاح الرسائل والدردشة) --- */
+/* --- main.js: النسخة النهائية (صورة افتراضية جديدة + إصلاح الرسائل) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -24,6 +24,9 @@ const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 const usersRef = ref(db, 'users');
 
+// اسم الصورة الافتراضية الجديد (تأكد أنك رفعتها بهذا الاسم)
+const DEFAULT_IMG = "default.jpg";
+
 // 1. الأمان والتحقق
 function checkAuth() {
     const path = window.location.href;
@@ -40,7 +43,7 @@ function getSafeName(name) {
 
 function registerUserPresence() {
     const myName = localStorage.getItem('hobbyName');
-    const myImg = localStorage.getItem('hobbyImage') || "side.png";
+    const myImg = localStorage.getItem('hobbyImage') || DEFAULT_IMG;
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
         update(ref(db, 'users/' + getSafeName(myName)), { 
             name: myName, img: myImg, lastActive: serverTimestamp() 
@@ -90,8 +93,8 @@ function createPostCard(post, postId) {
 
     card.innerHTML = `
         <div class="post-header">
-            <img src="${post.authorImg}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg}')" style="cursor:pointer">
-            <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg}')" style="cursor:pointer"><h4>${post.author}</h4><span>الآن</span></div>
+            <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
+            <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer"><h4>${post.author}</h4><span>الآن</span></div>
             <div class="options-btn" onclick="togglePostMenu('${postId}')"><i class="fas fa-ellipsis-h"></i></div>
             <div id="menu-${postId}" class="options-menu"><div class="menu-option" onclick="hidePost('${postId}')">إخفاء</div>${delHTML}</div>
         </div>
@@ -109,7 +112,8 @@ function createPostCard(post, postId) {
         const c = snap.val();
         const cSafe = c.author.replace(/'/g, "\\'");
         const list = card.querySelector('.comments-list');
-        if(list) list.innerHTML += `<div class="comment-item"><img src="${c.authorImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${c.authorImg}')"><div class="comment-content"><span class="comment-author" onclick="visitUserProfile('${cSafe}','${c.authorImg}')">${c.author}</span><span>${c.text}</span></div></div>`;
+        const cImg = c.authorImg || DEFAULT_IMG;
+        if(list) list.innerHTML += `<div class="comment-item"><img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')"><div class="comment-content"><span class="comment-author" onclick="visitUserProfile('${cSafe}','${cImg}')">${c.author}</span><span>${c.text}</span></div></div>`;
     });
 
     return card;
@@ -140,26 +144,20 @@ if (document.getElementById('profilePostsContainer')) {
 }
 
 // =========================================================
-// 🔥 قسم الرسائل والدردشة (تمت إعادته) 🔥
+// 🔥 قسم الرسائل (يستخدم الصورة الافتراضية الجديدة) 🔥
 // =========================================================
 let currentChatPartner = null;
 
-// 1. إذا كنا في صفحة الرسائل، شغل الكود التالي
 if (document.getElementById('usersList')) {
     const userListContainer = document.getElementById('usersList');
-    userListContainer.innerHTML = ""; // مسح كلمة "جاري التحميل" فوراً
-
-    // جلب المستخدمين
+    userListContainer.innerHTML = ""; 
     onChildAdded(usersRef, (snapshot) => {
         const user = snapshot.val();
-        // لا تظهر نفسي في القائمة
         if (user.name === localStorage.getItem('hobbyName')) return;
         
-        // إضافة المستخدم للقائمة
-        // لاحظ: استخدمنا user-item-info لتنسيق الاسم
         userListContainer.innerHTML += `
             <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                <img src="${user.img||'side.png'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
                 <div class="user-item-info">
                     <h4 style="margin:0;">${user.name}</h4>
                     <span style="font-size:12px; color:gray;">اضغط للمراسلة</span>
@@ -168,51 +166,36 @@ if (document.getElementById('usersList')) {
         `;
     });
     
-    // التحقق هل جئت من زر "مراسلة" في البروفايل؟
     const pendingChat = localStorage.getItem('pendingChat');
     if (pendingChat) {
         const user = JSON.parse(pendingChat);
-        setTimeout(() => { 
-            startChat(user); 
-            localStorage.removeItem('pendingChat'); 
-        }, 500); // تأخير بسيط لضمان تحميل الصفحة
+        setTimeout(() => { startChat(user); localStorage.removeItem('pendingChat'); }, 500);
     }
 }
 
-// 2. بدء المحادثة
 window.startChat = function(user) {
     currentChatPartner = user.name;
-    
-    // إظهار منطقة الشات وإخفاء القائمة (في الموبايل)
     if(window.innerWidth <= 768) {
         if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none';
         if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex';
     }
-
-    // تعبئة الهيدر
     const headerName = document.getElementById('chatHeaderName');
     const headerImg = document.getElementById('chatHeaderImg');
     if(headerName) {
         headerName.innerText = user.name;
-        headerName.onclick = () => window.visitUserProfile(user.name, user.img);
+        headerName.onclick = () => window.visitUserProfile(user.name, user.img || DEFAULT_IMG);
     }
-    if(headerImg) headerImg.src = user.img || 'side.png';
-    
-    // إظهار مربع الكتابة
+    if(headerImg) headerImg.src = user.img || DEFAULT_IMG;
     if(document.getElementById('inputArea')) document.getElementById('inputArea').style.display = 'flex';
 
-    // تحميل الرسائل القديمة
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
     const msgContainer = document.getElementById('chatMessages');
     if(msgContainer) {
-        msgContainer.innerHTML = ""; // مسح الرسائل السابقة
-        // استمع للرسائل الجديدة
+        msgContainer.innerHTML = "";
         onChildAdded(query(ref(db, 'chats/' + chatId), limitToLast(50)), (snapshot) => {
             const msg = snapshot.val();
             const div = document.createElement('div');
-            // كلاس الرسالة (مرسلة أم مستقبلة)
             div.className = `message ${msg.sender === localStorage.getItem('hobbyName') ? 'sent' : 'received'}`;
-            // تنسيق بسيط للرسالة داخل JS لضمان ظهورها
             div.style.padding = "8px 12px";
             div.style.margin = "5px";
             div.style.borderRadius = "10px";
@@ -220,36 +203,27 @@ window.startChat = function(user) {
             div.style.backgroundColor = msg.sender === localStorage.getItem('hobbyName') ? "#4CAF50" : "#ddd";
             div.style.color = msg.sender === localStorage.getItem('hobbyName') ? "#fff" : "#000";
             div.style.alignSelf = msg.sender === localStorage.getItem('hobbyName') ? "flex-end" : "flex-start";
-            
             div.innerText = msg.text;
             msgContainer.appendChild(div);
-            msgContainer.scrollTop = msgContainer.scrollHeight; // النزول للأسفل
+            msgContainer.scrollTop = msgContainer.scrollHeight;
         });
     }
 }
 
-// 3. إرسال رسالة
 window.sendChatMessage = function() {
     const input = document.getElementById('msgInput');
     const txt = input.value;
-    
     if(!txt || !currentChatPartner) return;
-    
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
-    
     push(ref(db, 'chats/' + chatId), { 
         sender: localStorage.getItem('hobbyName'), 
-        text: txt, 
-        timestamp: serverTimestamp() 
-    }).then(() => {
-        input.value = ""; // تفريغ الحقل
-    });
+        text: txt, timestamp: serverTimestamp() 
+    }).then(() => { input.value = ""; });
 }
 
-// 4. زر العودة (للموبايل)
 window.backToUsers = function() {
     if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'block';
-    if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'none'; // في الكمبيوتر قد نحتاج تعديل هذا
+    if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'none';
 }
 
 
@@ -273,7 +247,7 @@ window.saveNewPost = async function() {
 
     push(postsRef, {
         title: title || "بدون عنوان", content: content || "", postImg: fileUrl,
-        author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage') || "side.png",
+        author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
         timestamp: serverTimestamp(), likes: 0
     }).then(() => { alert("✅ تم النشر!"); window.closeAddPost(); location.reload(); });
 }
@@ -292,18 +266,18 @@ window.toggleLike = function(postId, postAuthor) {
 
 window.visitMyProfile = function() {
     const myName = localStorage.getItem('hobbyName');
-    localStorage.setItem('viewingProfile', JSON.stringify({ name: myName, img: localStorage.getItem('hobbyImage')||"side.png", isMe: true }));
+    localStorage.setItem('viewingProfile', JSON.stringify({ name: myName, img: localStorage.getItem('hobbyImage')||DEFAULT_IMG, isMe: true }));
     window.location.href = 'profile-view.html';
 }
 window.visitUserProfile = function(name, img) {
     const myName = localStorage.getItem('hobbyName');
-    localStorage.setItem('viewingProfile', JSON.stringify({ name: name, img: img || "side.png", isMe: (name === myName) }));
+    localStorage.setItem('viewingProfile', JSON.stringify({ name: name, img: img || DEFAULT_IMG, isMe: (name === myName) }));
     window.location.href = 'profile-view.html';
 }
 window.sendComment = function(postId, postAuthor) {
     const t = document.getElementById(`comment-input-${postId}`).value;
     if(!t) return;
-    push(ref(db, `posts/${postId}/comments`), {text:t, author:localStorage.getItem('hobbyName'), authorImg:localStorage.getItem('hobbyImage'), timestamp:serverTimestamp()});
+    push(ref(db, `posts/${postId}/comments`), {text:t, author:localStorage.getItem('hobbyName'), authorImg:localStorage.getItem('hobbyImage') || DEFAULT_IMG, timestamp:serverTimestamp()});
 }
 window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).classList.toggle('active'); }
 window.hidePost = function(id) { document.getElementById(`post-card-${id}`).style.display='none'; }
@@ -399,7 +373,7 @@ if (document.getElementById('profileContent')) {
             const userData = snapshot.val() || {};
             const finalImg = userData.img || viewingData.img;
             document.getElementById('p-name').innerText = userData.name || viewingData.name;
-            document.getElementById('p-img').src = finalImg;
+            document.getElementById('p-img').src = finalImg || DEFAULT_IMG;
             document.getElementById('p-bio').innerText = userData.bio || "لا توجد نبذة";
             
             const actionsDiv = document.getElementById('profileActionsBtns');
