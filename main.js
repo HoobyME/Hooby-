@@ -1,10 +1,10 @@
-/* --- main.js: النسخة الكاملة (تفعيل المتابعة والمراسلة للآخرين) --- */
+/* --- main.js: النسخة الكاملة (مع إصلاح الرسائل والدردشة) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// مفتاح ImgBB المحفوظ
+// مفتاح ImgBB الخاص بك
 const IMGBB_API_KEY = "340c983156e536035bd7806ebdf2c56c"; 
 
 const firebaseConfig = {
@@ -139,6 +139,120 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
+// =========================================================
+// 🔥 قسم الرسائل والدردشة (تمت إعادته) 🔥
+// =========================================================
+let currentChatPartner = null;
+
+// 1. إذا كنا في صفحة الرسائل، شغل الكود التالي
+if (document.getElementById('usersList')) {
+    const userListContainer = document.getElementById('usersList');
+    userListContainer.innerHTML = ""; // مسح كلمة "جاري التحميل" فوراً
+
+    // جلب المستخدمين
+    onChildAdded(usersRef, (snapshot) => {
+        const user = snapshot.val();
+        // لا تظهر نفسي في القائمة
+        if (user.name === localStorage.getItem('hobbyName')) return;
+        
+        // إضافة المستخدم للقائمة
+        // لاحظ: استخدمنا user-item-info لتنسيق الاسم
+        userListContainer.innerHTML += `
+            <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                <img src="${user.img||'side.png'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                <div class="user-item-info">
+                    <h4 style="margin:0;">${user.name}</h4>
+                    <span style="font-size:12px; color:gray;">اضغط للمراسلة</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    // التحقق هل جئت من زر "مراسلة" في البروفايل؟
+    const pendingChat = localStorage.getItem('pendingChat');
+    if (pendingChat) {
+        const user = JSON.parse(pendingChat);
+        setTimeout(() => { 
+            startChat(user); 
+            localStorage.removeItem('pendingChat'); 
+        }, 500); // تأخير بسيط لضمان تحميل الصفحة
+    }
+}
+
+// 2. بدء المحادثة
+window.startChat = function(user) {
+    currentChatPartner = user.name;
+    
+    // إظهار منطقة الشات وإخفاء القائمة (في الموبايل)
+    if(window.innerWidth <= 768) {
+        if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none';
+        if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex';
+    }
+
+    // تعبئة الهيدر
+    const headerName = document.getElementById('chatHeaderName');
+    const headerImg = document.getElementById('chatHeaderImg');
+    if(headerName) {
+        headerName.innerText = user.name;
+        headerName.onclick = () => window.visitUserProfile(user.name, user.img);
+    }
+    if(headerImg) headerImg.src = user.img || 'side.png';
+    
+    // إظهار مربع الكتابة
+    if(document.getElementById('inputArea')) document.getElementById('inputArea').style.display = 'flex';
+
+    // تحميل الرسائل القديمة
+    const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
+    const msgContainer = document.getElementById('chatMessages');
+    if(msgContainer) {
+        msgContainer.innerHTML = ""; // مسح الرسائل السابقة
+        // استمع للرسائل الجديدة
+        onChildAdded(query(ref(db, 'chats/' + chatId), limitToLast(50)), (snapshot) => {
+            const msg = snapshot.val();
+            const div = document.createElement('div');
+            // كلاس الرسالة (مرسلة أم مستقبلة)
+            div.className = `message ${msg.sender === localStorage.getItem('hobbyName') ? 'sent' : 'received'}`;
+            // تنسيق بسيط للرسالة داخل JS لضمان ظهورها
+            div.style.padding = "8px 12px";
+            div.style.margin = "5px";
+            div.style.borderRadius = "10px";
+            div.style.maxWidth = "70%";
+            div.style.backgroundColor = msg.sender === localStorage.getItem('hobbyName') ? "#4CAF50" : "#ddd";
+            div.style.color = msg.sender === localStorage.getItem('hobbyName') ? "#fff" : "#000";
+            div.style.alignSelf = msg.sender === localStorage.getItem('hobbyName') ? "flex-end" : "flex-start";
+            
+            div.innerText = msg.text;
+            msgContainer.appendChild(div);
+            msgContainer.scrollTop = msgContainer.scrollHeight; // النزول للأسفل
+        });
+    }
+}
+
+// 3. إرسال رسالة
+window.sendChatMessage = function() {
+    const input = document.getElementById('msgInput');
+    const txt = input.value;
+    
+    if(!txt || !currentChatPartner) return;
+    
+    const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
+    
+    push(ref(db, 'chats/' + chatId), { 
+        sender: localStorage.getItem('hobbyName'), 
+        text: txt, 
+        timestamp: serverTimestamp() 
+    }).then(() => {
+        input.value = ""; // تفريغ الحقل
+    });
+}
+
+// 4. زر العودة (للموبايل)
+window.backToUsers = function() {
+    if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'block';
+    if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'none'; // في الكمبيوتر قد نحتاج تعديل هذا
+}
+
+
 // --- الوظائف العامة ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -235,17 +349,13 @@ window.editProfileName = function() {
     }
 }
 
-// 🔥 دوال المتابعة والمراسلة 🔥
-
-// 1. تفعيل المتابعة
+// دوال المتابعة والمراسلة
 window.toggleFollow = function(targetName) {
     const myName = localStorage.getItem('hobbyName');
     const mySafe = getSafeName(myName);
     const targetSafe = getSafeName(targetName);
     const followingRef = ref(db, `users/${mySafe}/following/${targetSafe}`);
     const followersRef = ref(db, `users/${targetSafe}/followers/${mySafe}`);
-    
-    // تحديث الواجهة فوراً (UX)
     const btn = document.getElementById('followBtn');
     if(btn) {
         if(btn.classList.contains('following')) {
@@ -256,52 +366,31 @@ window.toggleFollow = function(targetName) {
             btn.classList.add('following');
         }
     }
-
-    // تحديث قاعدة البيانات
     get(followingRef).then((snapshot) => {
-        if (snapshot.exists()) { 
-            remove(followingRef); 
-            remove(followersRef); 
-        } else { 
-            set(followingRef, true); 
-            set(followersRef, true); 
-        }
+        if (snapshot.exists()) { remove(followingRef); remove(followersRef); } else { set(followingRef, true); set(followersRef, true); }
     });
 }
-
-// 2. التحقق من حالة المتابعة عند تحميل البروفايل
 function checkFollowStatus(targetName) {
     const myName = localStorage.getItem('hobbyName');
     onValue(ref(db, `users/${getSafeName(myName)}/following/${getSafeName(targetName)}`), (snap) => {
         const btn = document.getElementById('followBtn');
         if(btn) {
-            if (snap.exists()) { 
-                btn.innerHTML = '<i class="fas fa-check"></i> أتابعه';
-                btn.classList.add('following'); 
-            } else { 
-                btn.innerHTML = '<i class="fas fa-user-plus"></i> متابعة';
-                btn.classList.remove('following'); 
-            }
+            if (snap.exists()) { btn.innerHTML = '<i class="fas fa-check"></i> أتابعه'; btn.classList.add('following'); } 
+            else { btn.innerHTML = '<i class="fas fa-user-plus"></i> متابعة'; btn.classList.remove('following'); }
         }
     });
 }
-
-// 3. زر المراسلة (يفتح صفحة الرسائل مع بيانات الشخص)
 window.messageFromProfile = function(targetName, targetImg) {
     const chatData = { name: targetName, img: targetImg };
     localStorage.setItem('pendingChat', JSON.stringify(chatData));
     window.location.href = 'messages.html';
 }
-
-// 4. تحميل إحصائيات المتابعين
 function loadProfileStats(targetName) {
     const safeTarget = getSafeName(targetName);
     onValue(ref(db, `users/${safeTarget}/followers`), (snap) => document.getElementById('p-followers-count').innerText = snap.size);
     onValue(ref(db, `users/${safeTarget}/following`), (snap) => document.getElementById('p-following-count').innerText = snap.size);
 }
 
-
-// --- منطق عرض البروفايل (تعديل + أزرار المتابعة) ---
 if (document.getElementById('profileContent')) {
     const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
     const myName = localStorage.getItem('hobbyName');
@@ -309,7 +398,6 @@ if (document.getElementById('profileContent')) {
         onValue(ref(db, `users/${getSafeName(viewingData.name)}`), (snapshot) => {
             const userData = snapshot.val() || {};
             const finalImg = userData.img || viewingData.img;
-            
             document.getElementById('p-name').innerText = userData.name || viewingData.name;
             document.getElementById('p-img').src = finalImg;
             document.getElementById('p-bio').innerText = userData.bio || "لا توجد نبذة";
@@ -318,28 +406,17 @@ if (document.getElementById('profileContent')) {
             actionsDiv.innerHTML = "";
             
             if (viewingData.name === myName) {
-                 // 🟢 أنا: أظهر أدوات التعديل
                  if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex';
                  if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block';
                  if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block';
-                 
-                 // إضافة زر بسيط لنفسي (إعدادات مثلاً) للحفاظ على التناسق
                  actionsDiv.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`;
-
             } else {
-                // 🔵 شخص آخر: أظهر أزرار المتابعة والمراسلة
                 if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none';
                 if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none';
                 if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none';
-                
-                // 🔥 حقن الأزرار الفعالة هنا 🔥
                 actionsDiv.innerHTML = `
-                    <button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${viewingData.name}')">
-                        <i class="fas fa-user-plus"></i> متابعة
-                    </button>
-                    <button class="action-btn-profile btn-message" onclick="messageFromProfile('${viewingData.name}', '${finalImg}')">
-                        <i class="far fa-envelope"></i> مراسلة
-                    </button>
+                    <button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${viewingData.name}')"><i class="fas fa-user-plus"></i> متابعة</button>
+                    <button class="action-btn-profile btn-message" onclick="messageFromProfile('${viewingData.name}', '${finalImg}')"><i class="far fa-envelope"></i> مراسلة</button>
                 `;
                 checkFollowStatus(viewingData.name);
             }
