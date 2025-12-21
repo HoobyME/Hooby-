@@ -1,10 +1,10 @@
-/* --- main.js: النسخة النهائية (مع إصلاح قلم الاسم) --- */
+/* --- main.js: النسخة الكاملة (تفعيل المتابعة والمراسلة للآخرين) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 👇👇 ضع مفتاحك هنا 👇👇
+// مفتاح ImgBB المحفوظ
 const IMGBB_API_KEY = "340c983156e536035bd7806ebdf2c56c"; 
 
 const firebaseConfig = {
@@ -24,7 +24,7 @@ const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 const usersRef = ref(db, 'users');
 
-// 1. الأمان
+// 1. الأمان والتحقق
 function checkAuth() {
     const path = window.location.href;
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
@@ -49,8 +49,7 @@ function registerUserPresence() {
 }
 registerUserPresence();
 
-
-// --- وظيفة رفع الصور (ImgBB) ---
+// --- وظيفة رفع الصور ---
 async function uploadToImgBB(file) {
     const formData = new FormData();
     formData.append("image", file);
@@ -58,11 +57,11 @@ async function uploadToImgBB(file) {
         const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
         const data = await response.json();
         if (data.success) return data.data.url;
-        else { alert("خطأ: " + (data.error ? data.error.message : "غير معروف")); return null; }
-    } catch (error) { alert("فشل الاتصال"); return null; }
+        else { alert("خطأ من ImgBB: " + (data.error ? data.error.message : "غير معروف")); return null; }
+    } catch (error) { alert("فشل الاتصال برفع الصور"); return null; }
 }
 
-// --- المنشورات (Create Card) ---
+// --- إنشاء بطاقة المنشور ---
 function createPostCard(post, postId) {
     const myName = localStorage.getItem('hobbyName');
     const safeAuthor = post.author ? post.author.replace(/'/g, "\\'") : "مجهول";
@@ -73,7 +72,6 @@ function createPostCard(post, postId) {
     card.className = 'post-card';
     card.id = `post-card-${postId}`;
     
-    // Lazy Loading
     let mediaHTML = "";
     if (post.postImg && post.postImg.length > 5) {
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
@@ -141,7 +139,7 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- الدوال العامة ---
+// --- الوظائف العامة ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -223,58 +221,130 @@ window.openEditModal = function(type) { if(type === 'bio') { document.getElement
 window.closeEditModal = function() { document.getElementById('editProfileModal').style.display = 'none'; }
 window.saveProfileChanges = function() { const myName = localStorage.getItem('hobbyName'); const newBio = document.getElementById('editBioInput').value; update(ref(db, `users/${getSafeName(myName)}`), { bio: newBio }).then(() => window.closeEditModal()); }
 
-// 🔥 دالة تغيير الاسم الجديدة 🔥
 window.editProfileName = function() {
     const oldName = localStorage.getItem('hobbyName');
     const newName = prompt("أدخل اسمك الجديد:", oldName);
-    
     if (newName && newName !== oldName && newName.trim() !== "") {
-        // تحديث في قاعدة البيانات
         const safeOld = getSafeName(oldName);
-        const safeNew = getSafeName(newName);
-        
-        // ملاحظة: تغيير الاسم في قواعد البيانات المعقدة يحتاج نقل البيانات، 
-        // لكن للتبسيط سنقوم بتحديث الاسم المعروض فقط في ملف المستخدم الحالي
-        // الطريقة الصحيحة هي إنشاء مستخدم جديد ونقل البيانات، لكن هنا سنكتفي بتحديث الحقل
-        
         update(ref(db, `users/${safeOld}`), { name: newName })
         .then(() => {
             localStorage.setItem('hobbyName', newName);
             document.getElementById('p-name').innerText = newName;
-            alert("تم تغيير الاسم! (قد تحتاج لتسجيل الدخول مجدداً لتحديث كل شيء)");
+            alert("تم تغيير الاسم!");
         });
     }
 }
 
-// منطق البروفايل (إظهار الأقلام)
+// 🔥 دوال المتابعة والمراسلة 🔥
+
+// 1. تفعيل المتابعة
+window.toggleFollow = function(targetName) {
+    const myName = localStorage.getItem('hobbyName');
+    const mySafe = getSafeName(myName);
+    const targetSafe = getSafeName(targetName);
+    const followingRef = ref(db, `users/${mySafe}/following/${targetSafe}`);
+    const followersRef = ref(db, `users/${targetSafe}/followers/${mySafe}`);
+    
+    // تحديث الواجهة فوراً (UX)
+    const btn = document.getElementById('followBtn');
+    if(btn) {
+        if(btn.classList.contains('following')) {
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> متابعة';
+            btn.classList.remove('following');
+        } else {
+            btn.innerHTML = '<i class="fas fa-check"></i> أتابعه';
+            btn.classList.add('following');
+        }
+    }
+
+    // تحديث قاعدة البيانات
+    get(followingRef).then((snapshot) => {
+        if (snapshot.exists()) { 
+            remove(followingRef); 
+            remove(followersRef); 
+        } else { 
+            set(followingRef, true); 
+            set(followersRef, true); 
+        }
+    });
+}
+
+// 2. التحقق من حالة المتابعة عند تحميل البروفايل
+function checkFollowStatus(targetName) {
+    const myName = localStorage.getItem('hobbyName');
+    onValue(ref(db, `users/${getSafeName(myName)}/following/${getSafeName(targetName)}`), (snap) => {
+        const btn = document.getElementById('followBtn');
+        if(btn) {
+            if (snap.exists()) { 
+                btn.innerHTML = '<i class="fas fa-check"></i> أتابعه';
+                btn.classList.add('following'); 
+            } else { 
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> متابعة';
+                btn.classList.remove('following'); 
+            }
+        }
+    });
+}
+
+// 3. زر المراسلة (يفتح صفحة الرسائل مع بيانات الشخص)
+window.messageFromProfile = function(targetName, targetImg) {
+    const chatData = { name: targetName, img: targetImg };
+    localStorage.setItem('pendingChat', JSON.stringify(chatData));
+    window.location.href = 'messages.html';
+}
+
+// 4. تحميل إحصائيات المتابعين
+function loadProfileStats(targetName) {
+    const safeTarget = getSafeName(targetName);
+    onValue(ref(db, `users/${safeTarget}/followers`), (snap) => document.getElementById('p-followers-count').innerText = snap.size);
+    onValue(ref(db, `users/${safeTarget}/following`), (snap) => document.getElementById('p-following-count').innerText = snap.size);
+}
+
+
+// --- منطق عرض البروفايل (تعديل + أزرار المتابعة) ---
 if (document.getElementById('profileContent')) {
     const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
     const myName = localStorage.getItem('hobbyName');
     if (viewingData) {
         onValue(ref(db, `users/${getSafeName(viewingData.name)}`), (snapshot) => {
             const userData = snapshot.val() || {};
+            const finalImg = userData.img || viewingData.img;
+            
             document.getElementById('p-name').innerText = userData.name || viewingData.name;
-            document.getElementById('p-img').src = userData.img || viewingData.img;
+            document.getElementById('p-img').src = finalImg;
             document.getElementById('p-bio').innerText = userData.bio || "لا توجد نبذة";
+            
             const actionsDiv = document.getElementById('profileActionsBtns');
             actionsDiv.innerHTML = "";
             
             if (viewingData.name === myName) {
-                 // أنا: أظهر الأقلام
+                 // 🟢 أنا: أظهر أدوات التعديل
                  if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex';
                  if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block';
-                 // 🔥 هنا يظهر قلم الاسم 🔥
                  if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block';
+                 
+                 // إضافة زر بسيط لنفسي (إعدادات مثلاً) للحفاظ على التناسق
+                 actionsDiv.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`;
+
             } else {
-                // ليس أنا: أخفِ الأقلام
+                // 🔵 شخص آخر: أظهر أزرار المتابعة والمراسلة
                 if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none';
                 if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none';
                 if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none';
                 
-                // إضافة زر المتابعة والمراسلة للغرباء
-                // (تم اختصار الكود هنا لأنه موجود في الردود السابقة، لكنه يعمل تلقائياً)
+                // 🔥 حقن الأزرار الفعالة هنا 🔥
+                actionsDiv.innerHTML = `
+                    <button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${viewingData.name}')">
+                        <i class="fas fa-user-plus"></i> متابعة
+                    </button>
+                    <button class="action-btn-profile btn-message" onclick="messageFromProfile('${viewingData.name}', '${finalImg}')">
+                        <i class="far fa-envelope"></i> مراسلة
+                    </button>
+                `;
+                checkFollowStatus(viewingData.name);
             }
         });
+        loadProfileStats(viewingData.name);
     }
 }
 
