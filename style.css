@@ -302,5 +302,146 @@ body {
 .menu-option.delete {
     color: #f44336; /* لون أحمر للحذف */
 }
+/* --- تصميم نافذة النشر الاحترافي (New Add Post Modal) --- */
+
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); /* خلفية معتمة أكثر للتركيز */
+    backdrop-filter: blur(5px); /* تأثير ضبابي للخلفية (Glassmorphism) */
+    display: flex;
+    justify-content: center;
+    align-items: center; /* توسيط في الشاشة */
+    z-index: 2000; /* فوق كل شيء */
+    animation: fadeIn 0.3s ease;
+}
+
+.modal {
+    background: var(--card-bg);
+    width: 90%;
+    max-width: 500px;
+    border-radius: 20px;
+    padding: 0; /* سنستخدم padding داخلي */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-color);
+}
+
+.close-btn {
+    font-size: 24px;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: 0.2s;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+}
+.close-btn:hover {
+    background: rgba(0,0,0,0.05);
+    color: #f44336;
+}
+
+.modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* حقول الإدخال المخفية الحواف */
+.clean-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-color);
+    font-family: inherit;
+}
+
+.title-input {
+    font-size: 18px;
+    font-weight: bold;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.content-input {
+    font-size: 16px;
+    resize: none;
+    min-height: 100px;
+}
+
+/* منطقة الأدوات (صورة، فيديو) */
+.post-tools {
+    display: flex;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.tool-btn {
+    padding: 8px 15px;
+    border-radius: 20px;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(76, 175, 80, 0.05);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    display: flex; align-items: center; gap: 5px;
+    transition: 0.2s;
+}
+
+.tool-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* زر النشر الكبير */
+.publish-btn-pro {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.2s;
+    box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+}
+.publish-btn-pro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+}
+.publish-btn-pro:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
 
 
