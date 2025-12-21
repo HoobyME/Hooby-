@@ -1,11 +1,13 @@
-/* --- main.js: النسخة النهائية (صورة افتراضية جديدة + إصلاح الرسائل) --- */
+/* --- main.js: نسخة Bunny.net الاحترافية (سريعة جداً) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// مفتاح ImgBB الخاص بك
-const IMGBB_API_KEY = "340c983156e536035bd7806ebdf2c56c"; 
+// 👇👇 إعدادات Bunny.net (عدلها ببياناتك) 👇👇
+const BUNNY_STORAGE_NAME = "hooby"; // اسم المخزن (موجود في صورتك)
+const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; // (Password) انسخه من خانة FTP & API Access
+const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; // (Hostname) الرابط الذي حصلت عليه في الخطوة الأولى
 
 const firebaseConfig = {
   apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
@@ -24,8 +26,7 @@ const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 const usersRef = ref(db, 'users');
 
-// اسم الصورة الافتراضية الجديد (تأكد أنك رفعتها بهذا الاسم)
-const DEFAULT_IMG = "default.jpg";
+const DEFAULT_IMG = "default.jpg"; // الصورة الافتراضية
 
 // 1. الأمان والتحقق
 function checkAuth() {
@@ -52,17 +53,48 @@ function registerUserPresence() {
 }
 registerUserPresence();
 
-// --- وظيفة رفع الصور ---
-async function uploadToImgBB(file) {
-    const formData = new FormData();
-    formData.append("image", file);
+
+// =========================================================
+// 🚀 وظيفة الرفع إلى Bunny.net (الجديدة)
+// =========================================================
+async function uploadToBunny(file) {
+    // 1. إنشاء اسم فريد للملف (لتجنب تكرار الأسماء)
+    const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
+    
+    // 2. رابط الرفع (API Endpoint)
+    const uploadUrl = `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`;
+
     try {
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
-        const data = await response.json();
-        if (data.success) return data.data.url;
-        else { alert("خطأ من ImgBB: " + (data.error ? data.error.message : "غير معروف")); return null; }
-    } catch (error) { alert("فشل الاتصال برفع الصور"); return null; }
+        console.log("جاري الرفع إلى Bunny...");
+        const response = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'AccessKey': BUNNY_API_KEY, // مفتاح الأمان
+                'Content-Type': 'application/octet-stream'
+            },
+            body: file // نرسل الملف كما هو
+        });
+
+        const responseData = await response.json();
+
+        if (response.ok) {
+            // 3. نجاح! نركب رابط الـ CDN للعرض
+            // ملاحظة: قد يحتاج الرابط لبضع ثوانٍ ليعمل أول مرة
+            const finalUrl = `${BUNNY_CDN_URL}/${fileName}`;
+            console.log("تم الرفع:", finalUrl);
+            return finalUrl;
+        } else {
+            console.error("Bunny Error:", responseData);
+            alert("فشل الرفع: تأكد من مفتاح الـ API");
+            return null;
+        }
+    } catch (error) {
+        console.error("Upload Error:", error);
+        alert("فشل الاتصال بالخادم");
+        return null;
+    }
 }
+
 
 // --- إنشاء بطاقة المنشور ---
 function createPostCard(post, postId) {
@@ -143,9 +175,7 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// =========================================================
-// 🔥 قسم الرسائل (يستخدم الصورة الافتراضية الجديدة) 🔥
-// =========================================================
+// --- قسم الرسائل (المصحح) ---
 let currentChatPartner = null;
 
 if (document.getElementById('usersList')) {
@@ -154,7 +184,6 @@ if (document.getElementById('usersList')) {
     onChildAdded(usersRef, (snapshot) => {
         const user = snapshot.val();
         if (user.name === localStorage.getItem('hobbyName')) return;
-        
         userListContainer.innerHTML += `
             <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
                 <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
@@ -226,8 +255,7 @@ window.backToUsers = function() {
     if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'none';
 }
 
-
-// --- الوظائف العامة ---
+// --- الوظائف العامة (مع استخدام Bunny) ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -240,7 +268,8 @@ window.saveNewPost = async function() {
     let fileUrl = "";
     if (file) {
         if(file.type.startsWith('image/')) {
-            fileUrl = await uploadToImgBB(file);
+            // 🔥 هنا نستخدم Bunny بدلاً من ImgBB 🔥
+            fileUrl = await uploadToBunny(file);
             if (!fileUrl) { if(btn) { btn.innerText = "نشر"; btn.disabled = false; } return; }
         } else { alert("الفيديو غير مدعوم مباشرة"); if(btn) { btn.innerText = "نشر"; btn.disabled = false; } return; }
     }
@@ -297,7 +326,7 @@ window.uploadNewProfileImg = async function() {
     const file = document.getElementById('profileImgInput').files[0];
     if(file) {
         alert("جاري الرفع... ⏳");
-        const newUrl = await uploadToImgBB(file);
+        const newUrl = await uploadToBunny(file); // 🔥 Bunny
         if (newUrl) {
             const myName = localStorage.getItem('hobbyName');
             update(ref(db, `users/${getSafeName(myName)}`), { img: newUrl })
