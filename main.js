@@ -1,15 +1,15 @@
-/* --- main.js: النسخة الكاملة (صور + فيديو Bunny Stream) --- */
+/* --- main.js: النسخة الذكية (Smart Updates) لحل مشكلة الفيديو --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 1. إعدادات Bunny Storage (للصور)
+// إعدادات Bunny
 const BUNNY_STORAGE_NAME = "hooby"; 
 const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; 
 const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; 
 
-// 2. إعدادات Bunny Stream (للفيديو - تم استخراجها من صورتك)
+// إعدادات Bunny Stream (للفيديو)
 const STREAM_LIB_ID = "569937";
 const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
 
@@ -65,10 +65,9 @@ function registerUserPresence() {
 registerUserPresence();
 
 // =========================================================
-// 🚀 وظائف الرفع (صور + فيديو)
+// 🚀 وظائف الرفع
 // =========================================================
 
-// رفع الصور (Storage)
 async function uploadToBunny(file) {
     const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const uploadUrl = `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`;
@@ -83,44 +82,33 @@ async function uploadToBunny(file) {
     } catch (error) { alert("خطأ اتصال"); return null; }
 }
 
-// 🔥 رفع الفيديو (Stream) - الجديد 🔥
 async function uploadVideoToBunnyStream(file) {
     try {
-        // 1. إنشاء ملف الفيديو في المكتبة
         const createUrl = `https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`;
         const createRes = await fetch(createUrl, {
             method: 'POST',
             headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: file.name })
         });
-        
         if (!createRes.ok) throw new Error("فشل إنشاء الفيديو");
         const videoData = await createRes.json();
         const videoId = videoData.guid;
 
-        // 2. رفع محتوى الفيديو
         const uploadUrl = `https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${videoId}`;
         const uploadRes = await fetch(uploadUrl, {
             method: 'PUT',
             headers: { 'AccessKey': STREAM_API_KEY },
             body: file
         });
-
-        if (!uploadRes.ok) throw new Error("فشل رفع ملف الفيديو");
-
-        // 3. إرجاع رابط المشغل (Embed URL)
-        // هذا الرابط سيعمل داخل Iframe
+        if (!uploadRes.ok) throw new Error("فشل الرفع");
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${videoId}`;
-
     } catch (error) {
-        console.error(error);
-        alert("حدث خطأ أثناء رفع الفيديو: " + error.message);
-        return null;
+        console.error(error); alert("خطأ: " + error.message); return null;
     }
 }
 
 // =========================================================
-// 📱 عرض المنشورات (صور + فيديو)
+// 📱 عرض المنشورات (النظام الجديد المستقر)
 // =========================================================
 
 function getPostHTML(post, postId) {
@@ -130,25 +118,12 @@ function getPostHTML(post, postId) {
     const activeClass = isLiked ? 'active' : '';
 
     let mediaHTML = "";
-    
-    // فحص نوع الميديا (هل هو فيديو من Bunny Stream؟)
     if (post.postImg && post.postImg.includes("iframe.mediadelivery.net")) {
-        // ✅ عرض مشغل فيديو Bunny
-        mediaHTML = `
-            <div style="position:relative; padding-top:56.25%; margin-top:10px;">
-                <iframe src="${post.postImg}?autoplay=false" 
-                style="border:none; position:absolute; top:0; height:100%; width:100%; border-radius:10px;" 
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" 
-                allowfullscreen="true"></iframe>
-            </div>
-        `;
-    } 
-    // هل هو صورة عادية؟
-    else if (post.postImg && post.postImg.length > 5) {
+        mediaHTML = `<div style="position:relative; padding-top:56.25%; margin-top:10px;"><iframe src="${post.postImg}?autoplay=false" style="border:none; position:absolute; top:0; height:100%; width:100%; border-radius:10px;" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe></div>`;
+    } else if (post.postImg && post.postImg.length > 5) {
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
     }
 
-    // دعم يوتيوب القديم (احتياط)
     let contentHTML = post.content;
     if (post.content && (post.content.includes('youtube.com') || post.content.includes('youtu.be'))) {
         const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
@@ -169,7 +144,7 @@ function getPostHTML(post, postId) {
             <div class="post-body"><h3>${post.title}</h3><p>${contentHTML}</p>${mediaHTML}</div>
             <div class="post-actions">
                 <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}', '${safeAuthor}')">
-                    <img src="logo.png" class="efada-icon"><span>إفادة</span><span class="like-count">${post.likes||0}</span>
+                    <img src="logo.png" class="efada-icon"><span>إفادة</span><span class="like-count" id="like-count-${postId}">${post.likes||0}</span>
                 </div>
                 <div class="action-btn" onclick="toggleComments('${postId}')"><i class="far fa-comment"></i> تعليق</div>
             </div>
@@ -184,6 +159,7 @@ function getPostHTML(post, postId) {
     `;
 }
 
+// دالة منفصلة لتحميل التعليقات (لكي لا تتأثر بتحديث المنشور)
 function loadCommentsForPost(postId) {
     onChildAdded(ref(db, `posts/${postId}/comments`), (snap) => {
         const c = snap.val();
@@ -196,35 +172,50 @@ function loadCommentsForPost(postId) {
     });
 }
 
-// عرض المنشورات (الكاش + المباشر)
+// 🔥🔥 المنطق الجديد: التحديث الذكي (Smart Update) 🔥🔥
 if (document.getElementById('postsContainer')) {
     const container = document.getElementById('postsContainer');
-    const CACHE_KEY = 'cached_posts_v1';
-    const cachedData = localStorage.getItem(CACHE_KEY);
-    
-    if (cachedData) {
-        const postsArray = JSON.parse(cachedData);
-        container.innerHTML = "";
-        const loader = document.getElementById('pageLoader'); if(loader) loader.style.display = 'none';
-        postsArray.forEach(item => { container.innerHTML += getPostHTML(item.data, item.id); setTimeout(() => loadCommentsForPost(item.id), 100); });
-    }
+    const loader = document.getElementById('pageLoader');
 
-    onValue(query(postsRef, limitToLast(20)), (snapshot) => {
-        const data = snapshot.val();
-        if(!data) { const l = document.getElementById('pageLoader'); if(l) l.style.display = 'none'; if(!cachedData) container.innerHTML = "<p style='text-align:center; padding:20px'>لا توجد منشورات.</p>"; return; }
-        const postsArray = Object.entries(data).map(([key, val]) => ({ id: key, data: val })).reverse();
-        localStorage.setItem(CACHE_KEY, JSON.stringify(postsArray));
-        container.innerHTML = "";
-        const loader = document.getElementById('pageLoader'); if(loader) loader.style.display = 'none';
-        postsArray.forEach(item => { container.innerHTML += getPostHTML(item.data, item.id); loadCommentsForPost(item.id); });
+    // 1. عند إضافة منشور جديد (أو التحميل الأول)
+    onChildAdded(query(postsRef, limitToLast(20)), (snapshot) => {
+        if(loader) loader.style.display = 'none';
+        const post = snapshot.val();
+        const cardHTML = getPostHTML(post, snapshot.key);
+        // نستخدم prepend لإضافة الجديد في الأعلى
+        container.insertAdjacentHTML('afterbegin', cardHTML);
+        loadCommentsForPost(snapshot.key);
+    });
+
+    // 2. 🔥 عند حدوث تغيير (لايك مثلاً) - نحدث الرقم فقط ولا نمسح الفيديو! 🔥
+    onChildChanged(postsRef, (snapshot) => {
+        const post = snapshot.val();
+        const postId = snapshot.key;
+        const myName = localStorage.getItem('hobbyName');
+        const isLiked = (post.likedBy && getSafeName(myName) && post.likedBy[getSafeName(myName)]);
+
+        // تحديث رقم اللايكات فقط
+        const countSpan = document.getElementById(`like-count-${postId}`);
+        if(countSpan) countSpan.innerText = post.likes || 0;
+
+        // تحديث لون الزر
+        const likeBtn = document.getElementById(`like-btn-${postId}`);
+        if(likeBtn) {
+            if(isLiked) likeBtn.classList.add('active');
+            else likeBtn.classList.remove('active');
+        }
+        // لاحظ: لم نقم بمسح innerHTML وبالتالي الفيديو سيستمر بالعمل! ✅
     });
 }
 
+// (منطق البروفايل بقي كما هو، لأنه صفحة منفصلة)
 if (document.getElementById('profilePostsContainer')) {
     const container = document.getElementById('profilePostsContainer');
     let viewingName = localStorage.getItem('hobbyName');
     const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
     if (viewingData && viewingData.name) viewingName = viewingData.name;
+    
+    // هنا نستخدم onValue للتبسيط لأن المستخدم نادراً ما يرى تحديثات لحظية في البروفايل
     onValue(query(postsRef, limitToLast(50)), (snapshot) => {
         container.innerHTML = "";
         const data = snapshot.val();
@@ -235,7 +226,7 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- زر النشر المعدل (ذكي جداً الآن) ---
+// --- زر النشر ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -246,47 +237,32 @@ window.saveNewPost = async function() {
     if(btn) { btn.innerText = "جاري الرفع والنشر... ⏳"; btn.disabled = true; }
 
     let fileUrl = "";
-    
     if (file) {
-        // 🔥 هنا الذكاء: فحص نوع الملف 🔥
         if (file.type.startsWith('image/')) {
-            // إذا صورة -> ارفعها للستورج العادي
             console.log("جار رفع صورة...");
             fileUrl = await uploadToBunny(file);
         } else if (file.type.startsWith('video/')) {
-            // إذا فيديو -> ارفعه للستريم (Stream)
             console.log("جار رفع فيديو...");
             fileUrl = await uploadVideoToBunnyStream(file);
         } else {
-            alert("نوع الملف غير مدعوم");
-            if(btn) { btn.innerText = "نشر"; btn.disabled = false; }
-            return;
+            alert("نوع الملف غير مدعوم"); if(btn) { btn.innerText = "نشر"; btn.disabled = false; } return;
         }
-
-        if (!fileUrl) { 
-            alert("فشل الرفع"); 
-            if(btn) { btn.innerText = "نشر"; btn.disabled = false; } 
-            return; 
-        }
+        if (!fileUrl) { alert("فشل الرفع"); if(btn) { btn.innerText = "نشر"; btn.disabled = false; } return; }
     }
 
     push(postsRef, {
         title: title || "بدون عنوان", 
         content: content || "", 
-        postImg: fileUrl, // سيكون رابط صورة أو رابط فيديو
+        postImg: fileUrl, 
         author: localStorage.getItem('hobbyName'), 
         authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
-        timestamp: serverTimestamp(), 
-        likes: 0
+        timestamp: serverTimestamp(), likes: 0
     }).then(() => { 
-        alert("✅ تم النشر بنجاح!"); 
-        window.closeAddPost(); 
-        location.reload(); 
+        alert("✅ تم النشر!"); window.closeAddPost(); location.reload(); 
     });
 }
 
-
-// --- باقي الوظائف (لم تتغير) ---
+// --- باقي الوظائف ---
 window.logout = function() {
     if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
         localStorage.removeItem('hobbyLoggedIn');
@@ -347,7 +323,7 @@ window.startChat = function(user) {
 }
 window.sendChatMessage = function() { const inp = document.getElementById('msgInput'); const txt = inp.value; if(!txt || !currentChatPartner) return; const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: txt, timestamp: serverTimestamp() }); const receiverSafe = getSafeName(currentChatPartner); push(ref(db, `notifications/${receiverSafe}`), { senderName: localStorage.getItem('hobbyName'), senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, text: txt, type: 'message', timestamp: serverTimestamp() }); inp.value=""; }
 window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
-window.toggleLike = function(postId, postAuthor) { const uid = getSafeName(localStorage.getItem('hobbyName')); const btn = document.getElementById(`like-btn-${postId}`); const countSpan = btn.querySelector('.like-count'); let c = parseInt(countSpan.innerText)||0; if(btn.classList.contains('active')){ btn.classList.remove('active'); countSpan.innerText = c>0?c-1:0; } else { btn.classList.add('active'); countSpan.innerText = c+1; } runTransaction(ref(db, `posts/${postId}`), (p) => { if(p) { if(!p.likedBy) p.likedBy={}; if(p.likedBy[uid]) { p.likes--; p.likedBy[uid]=null; } else { p.likes++; p.likedBy[uid]=true; } } return p; }); }
+window.toggleLike = function(postId, postAuthor) { const uid = getSafeName(localStorage.getItem('hobbyName')); const btn = document.getElementById(`like-btn-${postId}`); const countSpan = document.getElementById(`like-count-${postId}`); let c = parseInt(countSpan.innerText)||0; if(btn.classList.contains('active')){ btn.classList.remove('active'); countSpan.innerText = c>0?c-1:0; } else { btn.classList.add('active'); countSpan.innerText = c+1; } runTransaction(ref(db, `posts/${postId}`), (p) => { if(p) { if(!p.likedBy) p.likedBy={}; if(p.likedBy[uid]) { p.likes--; p.likedBy[uid]=null; } else { p.likes++; p.likedBy[uid]=true; } } return p; }); }
 window.visitUserProfile = function(name, img) { localStorage.setItem('viewingProfile', JSON.stringify({ name: name, img: img||DEFAULT_IMG, isMe: (name===localStorage.getItem('hobbyName')) })); window.location.href = 'profile-view.html'; }
 window.visitMyProfile = function() { window.visitUserProfile(localStorage.getItem('hobbyName'), localStorage.getItem('hobbyImage')); }
 window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).classList.toggle('active'); }
