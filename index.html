@@ -2,73 +2,86 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - هوبي</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>هوبي - تسجيل الدخول</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body.login-body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .login-card { background-color: #fff; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-        .logo-area img { width: 70px; margin-bottom: 10px; }
-        .logo-area h1 { color: #4CAF50; margin: 0; font-size: 26px; font-weight: bold; margin-bottom: 5px; }
-        .subtitle { color: #777; font-size: 14px; margin-bottom: 30px; }
+        /* ستايل صفحة الدخول البسيط والأنيق */
+        body {
+            margin: 0; padding: 0;
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh;
+            color: #1c1e21;
+        }
+        .login-card {
+            background: white;
+            padding: 40px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .logo { width: 80px; margin-bottom: 20px; }
+        h2 { margin-bottom: 10px; color: #4CAF50; }
+        p { color: #65676b; margin-bottom: 30px; font-size: 14px; }
         
-        .social-btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 12px; margin-bottom: 15px;
-            border-radius: 12px; font-size: 15px; font-weight: bold;
-            cursor: pointer; transition: 0.3s; text-decoration: none; border: none; color: white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); box-sizing: border-box;
+        .btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; padding: 12px;
+            margin-bottom: 15px;
+            border: none; border-radius: 6px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            transition: 0.2s; text-decoration: none;
         }
-        .social-btn:hover { transform: translateY(-2px); }
-        .social-btn.google { background-color: #4285F4; }
-        .social-btn.reddit { background-color: #FF4500; opacity: 0.6; cursor: not-allowed; } /* جعلنا ريديت باهتاً مؤقتاً */
-        .social-btn.hobby { background-color: #4CAF50; }
-
-        .divider { margin: 25px 0; font-size: 13px; color: #aaa; display: flex; align-items: center; }
-        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #ddd; }
-        .divider::before { margin-left: 10px; } .divider::after { margin-right: 10px; }
-
-        .email-btn {
-            width: 100%; padding: 12px; background: transparent; color: #333;
-            border: 2px solid #ddd; border-radius: 12px; font-size: 15px; font-weight: bold;
-            cursor: pointer; transition: 0.3s; box-sizing: border-box;
-        }
-        .email-btn:hover { border-color: #4CAF50; color: #4CAF50; }
-    </script>
+        .btn-google { background: white; color: #757575; border: 1px solid #ddd; }
+        .btn-google:hover { background: #f1f1f1; }
+        .btn-google img { width: 20px; margin-left: 10px; }
+        
+        .btn-hooby { background: #4CAF50; color: white; }
+        .btn-hooby:hover { background: #43A047; }
+        
+        .footer { margin-top: 20px; font-size: 12px; color: #aaa; }
     </style>
+
+    <script>
+        // هل المستخدم مسجل دخول من قبل؟
+        if (localStorage.getItem('hobbyLoggedIn') === 'true') {
+            // نعم! انقله فوراً للرئيسية ولا تظهر صفحة الدخول
+            window.location.href = 'home.html';
+        }
+    </script>
 </head>
-<body class="login-body">
+<body>
 
     <div class="login-card">
-        <div class="logo-area">
-            <img src="logo.png" alt="logo">
-            <h1>مرحباً بك في هوبي</h1>
-        </div>
-        <p class="subtitle">اختر طريقة تسجيل الدخول المفضلة</p>
+        <img src="logo.png" class="logo" alt="Hooby Logo">
+        <h2>أهلاً بك في هوبي</h2>
+        <p>مجتمعك الإبداعي حيث تلتقي الأفكار.</p>
 
-        <div class="social-btn google" onclick="handleGoogleLogin()">
-            <i class="fab fa-google"></i> متابعة باستخدام Google
-        </div>
-
-        <div class="social-btn reddit" onclick="alert('خدمة ريديت غير متاحة حالياً، يرجى استخدام جوجل.')">
-            <i class="fab fa-reddit-alien"></i> متابعة باستخدام Reddit
-        </div>
-
-        <div class="social-btn hobby" onclick="window.location.href='login-email.html'">
-            <i class="fas fa-envelope"></i> تسجيل الدخول بحساب هوبي
-        </div>
-
-        <div class="divider">أو</div>
-
-        <button class="email-btn" onclick="window.location.href='signup.html'">
-            إنشاء حساب جديد
+        <button class="btn btn-google" onclick="googleLogin()">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg">
+            استمرار باستخدام Google
         </button>
+
+        <div style="margin: 20px 0; color: #ccc;">أو</div>
+
+        <button class="btn btn-hooby" onclick="window.location.href='login-email.html'">
+            <i class="fas fa-envelope" style="margin-left: 10px;"></i>
+            حساب هوبي
+        </button>
+
+        <div class="footer">
+            Hooby App © 2025
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
@@ -83,29 +96,45 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getDatabase(app);
         const provider = new GoogleAuthProvider();
 
-        window.handleGoogleLogin = function() {
+        // دالة تسجيل الدخول بجوجل
+        window.googleLogin = function() {
             signInWithPopup(auth, provider)
                 .then((result) => {
-                    // 1. نجاح الدخول! الحصول على بيانات المستخدم من جوجل
                     const user = result.user;
-                    const name = user.displayName;
-                    const email = user.email;
-                    const photo = user.photoURL; // رابط صورة بروفايلك من جوجل
-
-                    // 2. حفظ البيانات في المتصفح لاستخدامها في الموقع
+                    
+                    // 1. حفظ بيانات الجلسة في المتصفح (هذا هو المفتاح للدخول التلقائي)
                     localStorage.setItem('hobbyLoggedIn', 'true');
-                    localStorage.setItem('hobbyName', name);
-                    localStorage.setItem('hobbyImage', photo); // سنستخدم صورة جوجل كصورة شخصية!
+                    localStorage.setItem('hobbyName', user.displayName);
+                    localStorage.setItem('hobbyImage', user.photoURL);
+                    localStorage.setItem('hobbyEmail', user.email);
 
-                    alert(`أهلاً بك يا ${name}!`);
-                    window.location.href = 'home.html';
-                }).catch((error) => {
+                    // 2. حفظ المستخدم في قاعدة البيانات (لأول مرة أو تحديث)
+                    const safeName = user.displayName.replace(/[.#$\[\]]/g, "_");
+                    const userRef = ref(db, 'users/' + safeName);
+                    
+                    get(userRef).then((snapshot) => {
+                        if (!snapshot.exists()) {
+                            // مستخدم جديد
+                            update(userRef, {
+                                name: user.displayName,
+                                email: user.email,
+                                img: user.photoURL,
+                                joined: new Date().toISOString()
+                            });
+                        }
+                    }).finally(() => {
+                        // 3. التوجيه للصفحة الرئيسية
+                        window.location.href = 'home.html';
+                    });
+                })
+                .catch((error) => {
                     console.error(error);
-                    alert("فشل الدخول عبر جوجل: " + error.message);
+                    alert("حدث خطأ في التسجيل: " + error.message);
                 });
         }
     </script>
 </body>
-</html>
+</html>س
