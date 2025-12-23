@@ -1,4 +1,4 @@
-/* --- main.js: تسجيل الدخول لمرة واحدة + سرعة قصوى + Bunny CDN --- */
+/* --- main.js: النسخة الشاملة (مع الإشعارات الحقيقية) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -6,7 +6,7 @@ import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/fire
 
 // إعدادات Bunny
 const BUNNY_STORAGE_NAME = "hooby"; 
-const BUNNY_API_KEY = "3b08269e-05e8-4660-844c8028741e-450f-48d1"; 
+const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; 
 const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; 
 
 const firebaseConfig = {
@@ -28,32 +28,25 @@ const usersRef = ref(db, 'users');
 
 const DEFAULT_IMG = "default.jpg";
 
-// =========================================================
-// 🔐 نظام الأمان الذكي (تسجيل الدخول لمرة واحدة)
-// =========================================================
+// صوت الإشعار (رابط صوت قصير ولطيف)
+const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+// 1. الأمان والتحقق
 function checkAuth() {
     const path = window.location.href;
-    // هل المستخدم مسجل دخول؟ (موجود في الذاكرة)
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
-
-    // قائمة صفحات الدخول (العامة)
     const isLoginPage = path.includes('index.html') || path.includes('signup.html') || path.includes('login-email.html') || path.endsWith('/');
 
     if (isLoggedIn) {
-        // ✅ الحالة 1: المستخدم مسجل دخول -> وحاول يفتح صفحة الدخول
-        // التصرف: اطرده فوراً للرئيسية
-        if (isLoginPage) {
-            window.location.href = 'home.html';
-        }
+        if (isLoginPage) window.location.href = 'home.html';
+        // طلب إذن الإشعارات بمجرد دخول المستخدم
+        requestNotificationPermission();
+        // بدء مراقبة الإشعارات
+        monitorNotifications();
     } else {
-        // ❌ الحالة 2: المستخدم غير مسجل -> وحاول يفتح صفحة داخلية
-        // التصرف: اطرده فوراً لصفحة الدخول
-        if (!isLoginPage) {
-            window.location.href = 'index.html';
-        }
+        if (!isLoginPage) window.location.href = 'index.html';
     }
 }
-// تشغيل التحقق فوراً عند فتح أي صفحة
 checkAuth(); 
 
 function getSafeName(name) {
@@ -73,7 +66,66 @@ function registerUserPresence() {
 registerUserPresence();
 
 // =========================================================
-// 🚀 وظائف النظام (Bunny Upload + Cache Posts)
+// 🔔 نظام الإشعارات الجديد
+// =========================================================
+
+// 1. طلب الإذن من المتصفح
+function requestNotificationPermission() {
+    if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+            console.log("حالة الإذن:", permission);
+        });
+    }
+}
+
+// 2. إرسال إشعار للمتصفح وتشغيل الصوت
+function showSystemNotification(sender, message, img) {
+    // تشغيل الصوت
+    NOTIFICATION_SOUND.play().catch(e => console.log("الصوت يحتاج تفاعل المستخدم أولاً"));
+
+    // إظهار الإشعار المرئي
+    if (Notification.permission === "granted") {
+        const notif = new Notification(`رسالة من ${sender}`, {
+            body: message,
+            icon: img || DEFAULT_IMG,
+            vibrate: [200, 100, 200]
+        });
+
+        notif.onclick = function() {
+            window.focus();
+            window.location.href = 'messages.html'; // الذهاب للرسائل عند الضغط
+        };
+    }
+}
+
+// 3. مراقبة الرسائل الجديدة القادمة لي
+function monitorNotifications() {
+    const mySafeName = getSafeName(localStorage.getItem('hobbyName'));
+    if (!mySafeName) return;
+
+    // نستمع لعقدة الإشعارات الخاصة بي
+    const notifRef = ref(db, `notifications/${mySafeName}`);
+    
+    // نستخدم limitToLast(1) لكي لا يرن الهاتف على الإشعارات القديمة عند فتح الموقع
+    onChildAdded(query(notifRef, limitToLast(1)), (snapshot) => {
+        const data = snapshot.val();
+        // التأكد أن الإشعار جديد (وصل في آخر دقيقة) لكي لا يرن على القديم
+        const now = Date.now();
+        const msgTime = data.timestamp; // تأكد أن السيرفر يرسل الوقت
+        
+        // إذا كان الإشعار جديداً جداً (أقل من 10 ثواني)
+        if (msgTime && (now - msgTime < 10000)) {
+            // لا تظهر إشعار إذا كنت أتحدث مع الشخص حالياً
+            if (currentChatPartner !== data.senderName) {
+                showSystemNotification(data.senderName, data.text, data.senderImg);
+            }
+        }
+    });
+}
+
+
+// =========================================================
+// 🚀 وظائف النظام (Bunny + Posts)
 // =========================================================
 
 async function uploadToBunny(file) {
@@ -184,25 +236,16 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// =========================================================
-// 🔥 تسجيل الخروج (مسح الذاكرة) 🔥
-// =========================================================
 window.logout = function() {
     if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
-        // مسح بيانات الدخول من المتصفح
         localStorage.removeItem('hobbyLoggedIn');
         localStorage.removeItem('hobbyName');
         localStorage.removeItem('hobbyImage');
-        // تسجيل الخروج من فايربيس أيضاً
-        signOut(auth).then(() => {
-            window.location.href = 'index.html';
-        }).catch(() => {
-            window.location.href = 'index.html';
-        });
+        signOut(auth).then(() => { window.location.href = 'index.html'; }).catch(() => { window.location.href = 'index.html'; });
     }
 }
 
-// --- الوظائف العامة (الرفع، التفاعل، الدردشة) ---
+// --- الوظائف العامة ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -253,10 +296,37 @@ window.startChat = function(user) {
         msgContainer.appendChild(div); msgContainer.scrollTop = msgContainer.scrollHeight;
     });
 }
-window.sendChatMessage = function() { const inp = document.getElementById('msgInput'); if(!inp.value || !currentChatPartner) return; const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: inp.value, timestamp: serverTimestamp() }).then(()=>inp.value=""); }
-window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
 
-// باقي الدوال
+// 🔥 دالة الإرسال المعدلة (مع الإشعار) 🔥
+window.sendChatMessage = function() { 
+    const inp = document.getElementById('msgInput'); 
+    const txt = inp.value;
+    if(!txt || !currentChatPartner) return; 
+    
+    const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); 
+    
+    // 1. إرسال الرسالة للشات
+    push(ref(db, 'chats/' + chatId), { 
+        sender: localStorage.getItem('hobbyName'), 
+        text: txt, 
+        timestamp: serverTimestamp() 
+    });
+
+    // 2. إرسال "إشعار" للشخص الآخر
+    const receiverSafe = getSafeName(currentChatPartner);
+    const notifData = {
+        senderName: localStorage.getItem('hobbyName'),
+        senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+        text: txt,
+        type: 'message',
+        timestamp: serverTimestamp() // الوقت الحالي
+    };
+    push(ref(db, `notifications/${receiverSafe}`), notifData);
+
+    inp.value=""; 
+}
+
+window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
 window.toggleLike = function(postId, postAuthor) {
     const uid = getSafeName(localStorage.getItem('hobbyName'));
     const btn = document.getElementById(`like-btn-${postId}`); const countSpan = btn.querySelector('.like-count'); let c = parseInt(countSpan.innerText)||0;
