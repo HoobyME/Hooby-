@@ -60,7 +60,7 @@
 
                 <div class="modal-actions">
                     <button class="action-btn" onclick="triggerFileUpload()" style="border:1px solid var(--border-color); width:auto; padding:5px 15px;"><i class="fas fa-image"></i> صورة</button>
-                    <input type="file" id="postImageInput" accept="image/*" style="display:none;" onchange="previewFile()">
+                   <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
                 </div>
 
                 <button class="btn-publish" onclick="saveNewPost()">نشر</button>
@@ -79,4 +79,5 @@
     <script type="module" src="main.js"></script>
 </body>
 </html>
+
 
