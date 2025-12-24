@@ -208,3 +208,23 @@ body {
     display: none; /* مخفية افتراضياً */
 }
 .notification-badge.active { display: block; }
+
+/* --- مؤشر حالة الاتصال (Online/Offline Status) --- */
+.user-status-indicator {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+.status-online {
+    background-color: #4CAF50; /* أخضر */
+    box-shadow: 0 0 5px #4CAF50;
+}
+.status-offline {
+    background-color: #ccc; /* رمادي */
+}
+.status-text {
+    font-size: 11px;
+    color: var(--text-sub);
+}
+
