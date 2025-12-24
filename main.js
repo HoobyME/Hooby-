@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الشاملة (تعليقات متطورة + تصويت + ردود) --- */
+/* --- main.js: النسخة الشاملة النهائية --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -83,7 +83,7 @@ function timeAgo(timestamp) {
 }
 
 // =========================================================
-// 🚀 وظائف الرفع
+// 🚀 وظائف الرفع المتقدمة
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -149,55 +149,62 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات المتطور (تصويت + ردود)
+// 💬 نظام التعليقات العصري (Bubble Style + Side Actions)
 // =========================================================
 
-// 1. دالة إنشاء HTML التعليق (مع الأزرار والردود)
 function createCommentHTML(c, commentId, postId, isReply = false) {
     const cSafe = c.author ? c.author.replace(/'/g, "\\'") : "مجهول";
     const cImg = c.authorImg || DEFAULT_IMG;
     const myName = localStorage.getItem('hobbyName');
     
-    // حساب حالة التصويت
-    const myVote = (c.votes && c.votes[getSafeName(myName)]) ? c.votes[getSafeName(myName)] : null; // 'like' or 'dislike' or null
+    // حالة التصويت
+    const myVote = (c.votes && c.votes[getSafeName(myName)]) ? c.votes[getSafeName(myName)] : null;
     const likeActive = (myVote === 'like') ? 'active-like' : '';
     const dislikeActive = (myVote === 'dislike') ? 'active-dislike' : '';
     
-    // زر الرد (يظهر فقط في التعليقات الرئيسية)
-    const replyBtnHTML = !isReply ? `<div class="comment-action-btn" onclick="toggleReplyBox('${postId}', '${commentId}')"><i class="fas fa-reply"></i> رد</div>` : '';
+    // زر الرد
+    const replyBtn = !isReply ? 
+        `<div class="action-icon-btn" onclick="toggleReplyBox('${postId}', '${commentId}')" title="رد"><i class="fas fa-reply"></i></div>` : '';
 
     return `
         <div class="comment-item" id="comment-${commentId}">
             <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
-            <div style="flex:1;">
-                <div class="comment-content">
-                    <span class="comment-author" onclick="visitUserProfile('${cSafe}','${cImg}')">${c.author}</span>
-                    <span>${c.text}</span>
+            
+            <div style="flex:1; max-width: 100%;">
+                <div class="comment-bubble">
+                    <div class="comment-author" onclick="visitUserProfile('${cSafe}','${cImg}')">${c.author}</div>
+                    <div class="comment-text-content">${c.text}</div>
                 </div>
-                
-                <div class="comment-actions">
-                    <div class="comment-action-btn ${likeActive}" onclick="voteComment('${postId}', '${commentId}', 'like', ${isReply}, '${isReply ? c.parentId : null}')">
-                        <i class="far fa-thumbs-up"></i> <span id="likes-${commentId}">${c.likesCount || 0}</span>
+
+                <div class="comment-actions-side">
+                    <span style="font-size:11px; margin-left:5px;">${timeAgo(c.timestamp)}</span>
+                    
+                    <div class="action-icon-btn ${likeActive}" onclick="voteComment('${postId}', '${commentId}', 'like', ${isReply}, '${isReply ? c.parentId : null}')">
+                        <i class="far fa-thumbs-up"></i> <span id="likes-${commentId}" style="font-size:11px;">${c.likesCount || 0}</span>
                     </div>
-                    <div class="comment-action-btn ${dislikeActive}" onclick="voteComment('${postId}', '${commentId}', 'dislike', ${isReply}, '${isReply ? c.parentId : null}')">
-                        <i class="far fa-thumbs-down"></i> <span id="dislikes-${commentId}">${c.dislikesCount || 0}</span>
+                    
+                    <div class="action-icon-btn ${dislikeActive}" onclick="voteComment('${postId}', '${commentId}', 'dislike', ${isReply}, '${isReply ? c.parentId : null}')">
+                        <i class="far fa-thumbs-down"></i>
                     </div>
-                    ${replyBtnHTML}
-                    <span style="margin-right:auto; opacity:0.7;">${timeAgo(c.timestamp)}</span>
+                    
+                    ${replyBtn}
                 </div>
 
                 <div id="reply-box-${commentId}" class="reply-input-box">
                     <input type="text" id="reply-input-${commentId}" class="reply-field" placeholder="اكتب رداً...">
-                    <button onclick="sendReply('${postId}', '${commentId}')" class="send-comment-btn" style="width:30px; height:30px; font-size:14px;"><i class="fas fa-paper-plane"></i></button>
+                    <button onclick="sendReply('${postId}', '${commentId}')" class="send-comment-btn" style="width:30px; height:30px;"><i class="fas fa-paper-plane"></i></button>
                 </div>
 
-                <div id="replies-container-${commentId}" class="replies-container"></div>
+                <div id="show-replies-btn-${commentId}" class="show-replies-btn" style="display:none;" onclick="toggleReplies('${commentId}')">
+                    <span>عرض الردود</span> <i class="fas fa-chevron-down"></i>
+                </div>
+
+                <div id="replies-wrapper-${commentId}" class="replies-wrapper"></div>
             </div>
         </div>
     `;
 }
 
-// 2. دالة تحميل التعليقات وردودها
 function loadCommentsForPost(postId) {
     const commentsRef = ref(db, `posts/${postId}/comments`);
     
@@ -207,24 +214,32 @@ function loadCommentsForPost(postId) {
         const list = document.getElementById(`comments-list-${postId}`);
         
         if(list) {
-            // إضافة التعليق الرئيسي
             list.insertAdjacentHTML('beforeend', createCommentHTML(c, commentId, postId));
             
-            // تحميل الردود لهذا التعليق
+            // الاستماع للردود وتحديث الزر
             const repliesRef = ref(db, `posts/${postId}/comments/${commentId}/replies`);
-            onChildAdded(repliesRef, (replySnap) => {
-                const r = replySnap.val();
-                r.parentId = commentId; // نحفظ معرف الأب للتصويت
-                const replyContainer = document.getElementById(`replies-container-${commentId}`);
-                if(replyContainer) {
-                    replyContainer.insertAdjacentHTML('beforeend', createCommentHTML(r, replySnap.key, postId, true));
+            onValue(repliesRef, (rSnap) => {
+                const repliesCount = rSnap.size;
+                const btn = document.getElementById(`show-replies-btn-${commentId}`);
+                const wrapper = document.getElementById(`replies-wrapper-${commentId}`);
+                
+                if (btn && repliesCount > 0) {
+                    btn.style.display = 'flex';
+                    btn.querySelector('span').innerText = `عرض ${repliesCount} ردود`;
+                    wrapper.innerHTML = "";
+                    rSnap.forEach((childSnap) => {
+                        const r = childSnap.val();
+                        r.parentId = commentId;
+                        wrapper.insertAdjacentHTML('beforeend', createCommentHTML(r, childSnap.key, postId, true));
+                    });
+                } else if (btn) {
+                    btn.style.display = 'none';
                 }
             });
         }
     });
 }
 
-// 3. دالة التصويت (Like/Dislike) على التعليق أو الرد
 window.voteComment = function(postId, commentId, type, isReply, parentId) {
     const myName = getSafeName(localStorage.getItem('hobbyName'));
     let path = `posts/${postId}/comments/${commentId}`;
@@ -235,68 +250,46 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
             if (!comment.votes) comment.votes = {};
             if (!comment.likesCount) comment.likesCount = 0;
             if (!comment.dislikesCount) comment.dislikesCount = 0;
-
             const currentVote = comment.votes[myName];
-
             if (currentVote === type) {
-                // إزالة التصويت إذا ضغطت عليه مرة أخرى
-                if(type === 'like') comment.likesCount--;
-                else comment.dislikesCount--;
+                if(type === 'like') comment.likesCount--; else comment.dislikesCount--;
                 comment.votes[myName] = null;
             } else {
-                // تغيير التصويت
                 if (currentVote === 'like') comment.likesCount--;
                 if (currentVote === 'dislike') comment.dislikesCount--;
-
-                if (type === 'like') comment.likesCount++;
-                else comment.dislikesCount++;
+                if (type === 'like') comment.likesCount++; else comment.dislikesCount++;
                 comment.votes[myName] = type;
             }
         }
         return comment;
-    }).then(() => {
-        // تحديث الواجهة يدوياً (للسرعة) أو الاعتماد على التحديث التلقائي إذا أضفنا onChildChanged
-        // هنا سنعتمد على إعادة تحميل الصفحة أو تحديث العنصر لو أردنا دقة متناهية،
-        // لكن للتبسيط سنترك التحديث للمرة القادمة أو يمكن إضافة منطق تحديث فوري لل DOM هنا.
-        // تحديث بسيط للواجهة:
-        // (ملاحظة: للحصول على تحديث فوري للأرقام والألوان، يجب إضافة مستمع onChildChanged للتعليقات، 
-        // ولكن ذلك سيزيد من تعقيد الكود. runTransaction يضمن صحة الأرقام في السيرفر).
-        // الحل السريع: إعادة تحميل التعليقات لهذا المنشور أو تحديث العنصر فقط.
-        // سنكتفي بتحديث السيرفر، والمستخدم سيرى التحديث عند العودة.
     });
 }
 
-// 4. إظهار/إخفاء صندوق الرد
 window.toggleReplyBox = function(postId, commentId) {
     const box = document.getElementById(`reply-box-${commentId}`);
     if(box) box.classList.toggle('active');
 }
 
-// 5. إرسال الرد
 window.sendReply = function(postId, commentId) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
     if(!text) return;
-
-    const replyData = {
-        text: text,
-        author: localStorage.getItem('hobbyName'),
-        authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
-        timestamp: serverTimestamp(),
-        likesCount: 0, dislikesCount: 0
-    };
-
-    push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData)
-    .then(() => {
-        input.value = "";
-        toggleReplyBox(postId, commentId); // إخفاء الصندوق
-    });
+    const replyData = { text: text, author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
+    push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
 }
 
+window.toggleReplies = function(commentId) {
+    const wrapper = document.getElementById(`replies-wrapper-${commentId}`);
+    const btn = document.getElementById(`show-replies-btn-${commentId}`);
+    const icon = btn.querySelector('i');
+    if (wrapper.classList.contains('open')) { wrapper.classList.remove('open'); icon.className = "fas fa-chevron-down"; } 
+    else { wrapper.classList.add('open'); icon.className = "fas fa-chevron-up"; }
+}
 
 // =========================================================
 // 📱 عرض المنشورات
 // =========================================================
+
 function getPostHTML(post, postId) {
     const myName = localStorage.getItem('hobbyName');
     const safeAuthor = post.author ? post.author.replace(/'/g, "\\'") : "مجهول";
