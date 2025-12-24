@@ -223,7 +223,57 @@ body {
 .status-offline {
     background-color: #ccc; /* رمادي */
 }
-.status-text {
+.status-text {/* --- نظام التعليقات المتطور --- */
+
+/* تنسيق أزرار التفاعل أسفل التعليق */
+.comment-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--text-sub);
+}
+
+.comment-action-btn {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: 0.2s;
+}
+
+.comment-action-btn:hover { color: var(--text-color); }
+
+/* ألوان التفاعل */
+.comment-action-btn.active-like { color: #4CAF50; font-weight: bold; }
+.comment-action-btn.active-dislike { color: #f44336; font-weight: bold; }
+
+/* صندوق الرد المخفي */
+.reply-input-box {
+    display: none; /* مخفي افتراضياً */
+    margin-top: 10px;
+    margin-right: 40px; /* إزاحة للداخل */
+    gap: 5px;
+}
+.reply-input-box.active { display: flex; }
+
+.reply-field {
+    flex: 1;
+    padding: 8px;
+    border-radius: 15px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-size: 12px;
+}
+
+/* حاوية الردود (إزاحة للداخل) */
+.replies-container {
+    margin-right: 40px; /* إزاحة الردود لليسار في العربية */
+    border-right: 2px solid var(--border-color); /* خط توضيحي */
+    padding-right: 10px;
+    margin-top: 5px;
+}
     font-size: 11px;
     color: var(--text-sub);
 }
