@@ -1,4 +1,4 @@
-/* --- main.js: النسخة المتطورة (شريط تقدم + إشعارات داخلية) --- */
+/* --- main.js: النسخة الكاملة (مؤشر حالة الاتصال + كل الميزات) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -43,11 +43,11 @@ function checkAuth() {
         if (isLoginPage) window.location.href = 'home.html';
         requestNotificationPermission();
         monitorNotifications();
-        
-        // إذا فتحنا صفحة الرسائل، نخفي النقطة الحمراء
         if (path.includes('messages.html')) {
             localStorage.setItem('hasUnreadMessages', 'false');
         }
+        // تحديث حالة الظهور فوراً عند الدخول
+        registerUserPresence();
     } else {
         if (!isLoginPage) window.location.href = 'index.html';
     }
@@ -59,77 +59,68 @@ function getSafeName(name) {
     return name.replace(/[.#$\[\]]/g, "_");
 }
 
+// تحديث حالة الظهور (Online) كل دقيقة
 function registerUserPresence() {
     const myName = localStorage.getItem('hobbyName');
     const myImg = localStorage.getItem('hobbyImage') || DEFAULT_IMG;
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
-        update(ref(db, 'users/' + getSafeName(myName)), { 
+        const userRef = ref(db, 'users/' + getSafeName(myName));
+        update(userRef, { 
             name: myName, img: myImg, lastActive: serverTimestamp() 
         });
     }
 }
-registerUserPresence();
+// تحديث التواجد كل دقيقتين لضمان بقاء الحالة "متصل"
+setInterval(registerUserPresence, 120000); 
 
 // =========================================================
-// 🚀 وظائف الرفع المتقدمة (مع شريط التقدم XHR)
+// 🚀 وظائف الرفع المتقدمة
 // =========================================================
 
-// دالة مساعدة لتحديث واجهة شريط التقدم
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
     const fill = document.getElementById('progressBarFill');
     const text = document.getElementById('progressText');
-    
     if (overlay) {
-        overlay.style.display = 'flex'; // إظهار النافذة
+        overlay.style.display = 'flex';
         fill.style.width = percent + '%';
         text.innerText = `جاري الرفع: ${Math.round(percent)}%`;
     }
 }
 
-// إخفاء شريط التقدم
 function hideProgressBar() {
     const overlay = document.getElementById('uploadProgressOverlay');
     if (overlay) overlay.style.display = 'none';
 }
 
-// دالة رفع عامة تدعم التقدم (XHR)
 function uploadWithProgress(url, method, headers, body) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
-        
-        // إضافة الهيدرز
         for (const [key, value] of Object.entries(headers)) {
             xhr.setRequestHeader(key, value);
         }
-
-        // متابعة التقدم
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
                 const percentComplete = (e.loaded / e.total) * 100;
                 updateProgressBar(percentComplete);
             }
         };
-
         xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-                resolve(JSON.parse(xhr.responseText || '{}')); // Bunny أحيانا يرجع JSON وأحيانا لا
+                resolve(JSON.parse(xhr.responseText || '{}')); 
             } else {
                 reject(new Error(`Upload failed: ${xhr.statusText}`));
             }
         };
-
         xhr.onerror = () => reject(new Error("Network Error"));
         xhr.send(body);
     });
 }
 
-// 1. رفع صورة (Bunny Storage) مع التقدم
 async function uploadToBunny(file) {
     const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const uploadUrl = `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`;
-    
     try {
         await uploadWithProgress(uploadUrl, 'PUT', { 
             'AccessKey': BUNNY_API_KEY, 
@@ -137,15 +128,12 @@ async function uploadToBunny(file) {
         }, file);
         return `${BUNNY_CDN_URL}/${fileName}`;
     } catch (error) {
-        console.error(error);
-        return null;
+        console.error(error); return null;
     }
 }
 
-// 2. رفع فيديو (Bunny Stream) مع التقدم
 async function uploadVideoToBunnyStream(file) {
     try {
-        // خطوة 1: إنشاء الفيديو (سريع جداً لا يحتاج تقدم)
         const createUrl = `https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`;
         const createRes = await fetch(createUrl, {
             method: 'POST',
@@ -156,34 +144,27 @@ async function uploadVideoToBunnyStream(file) {
         const videoData = await createRes.json();
         const videoId = videoData.guid;
 
-        // خطوة 2: رفع الفيديو الفعلي (هنا نحتاج التقدم)
         const uploadUrl = `https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${videoId}`;
         await uploadWithProgress(uploadUrl, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
 
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${videoId}`;
     } catch (error) {
-        console.error(error);
-        return null;
+        console.error(error); return null;
     }
 }
 
 // =========================================================
-// 🔔 نظام الإشعارات (صوت + نقطة حمراء)
+// 🔔 نظام الإشعارات
 // =========================================================
 
 function requestNotificationPermission() { if ("Notification" in window) { Notification.requestPermission(); } }
 
 function showSystemNotification(sender, message, img) {
-    // 1. تشغيل الصوت
     NOTIFICATION_SOUND.play().catch(e => {});
-    
-    // 2. إشعار المتصفح
     if (Notification.permission === "granted") {
         const notif = new Notification(`رسالة من ${sender}`, { body: message, icon: img || DEFAULT_IMG });
         notif.onclick = function() { window.focus(); window.location.href = 'messages.html'; };
     }
-
-    // 3. 🔥 إظهار النقطة الحمراء داخل التطبيق 🔥
     const badge = document.getElementById('msgBadge');
     if (badge && !window.location.href.includes('messages.html')) {
         badge.classList.add('active');
@@ -195,7 +176,6 @@ function monitorNotifications() {
     const mySafeName = getSafeName(localStorage.getItem('hobbyName'));
     if (!mySafeName) return;
     
-    // استرجاع حالة النقطة الحمراء من الذاكرة (إذا حدثت الصفحة)
     if (localStorage.getItem('hasUnreadMessages') === 'true') {
         const badge = document.getElementById('msgBadge');
         if(badge) badge.classList.add('active');
@@ -205,7 +185,6 @@ function monitorNotifications() {
     onChildAdded(query(notifRef, limitToLast(1)), (snapshot) => {
         const data = snapshot.val();
         const now = Date.now();
-        // إذا الإشعار جديد (وصل الآن)
         if (data.timestamp && (now - data.timestamp < 10000)) {
             if (currentChatPartner !== data.senderName) { 
                 showSystemNotification(data.senderName, data.text, data.senderImg); 
@@ -317,7 +296,7 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- زر النشر (يستخدم دالة التقدم الجديدة) ---
+// --- زر النشر ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -325,12 +304,10 @@ window.saveNewPost = async function() {
     const btn = document.querySelector('.btn-publish'); 
 
     if(!title && !content && !file) { alert("اكتب شيئاً أو اختر ملفاً!"); return; }
-    if(btn) { btn.disabled = true; } // نعطل الزر فقط ولا نغير نصه لأن شريط التقدم سيظهر
+    if(btn) { btn.disabled = true; } 
 
     let fileUrl = "";
-    
     if (file) {
-        // سيظهر شريط التقدم تلقائياً داخل هذه الدوال
         if (file.type.startsWith('image/')) {
             fileUrl = await uploadToBunny(file);
         } else if (file.type.startsWith('video/')) {
@@ -352,13 +329,53 @@ window.saveNewPost = async function() {
         authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
         timestamp: serverTimestamp(), likes: 0
     }).then(() => { 
-        hideProgressBar(); // إخفاء الشريط عند الانتهاء
+        hideProgressBar(); 
         alert("✅ تم النشر!"); 
         window.closeAddPost(); 
         location.reload(); 
     });
 }
 
+// =========================================================
+// 🟢🟢🟢 قسم عرض المستخدمين (تم تحديثه لإظهار الحالة) 🟢🟢🟢
+// =========================================================
+if (document.getElementById('usersList')) {
+    const userListContainer = document.getElementById('usersList');
+    userListContainer.innerHTML = ""; 
+
+    onValue(usersRef, (snapshot) => {
+        userListContainer.innerHTML = ""; // إعادة رسم القائمة عند تحديث الحالة
+        const users = snapshot.val();
+        const myName = localStorage.getItem('hobbyName');
+
+        // نحول البيانات لمصفوفة لسهولة التعامل
+        Object.values(users).forEach(user => {
+            if (user.name === myName) return; // لا تظهر نفسي
+
+            // حساب حالة الاتصال
+            const lastActiveTime = user.lastActive || 0;
+            const currentTime = Date.now();
+            // نعتبره متصل إذا كان نشطاً في آخر 3 دقائق (180000 مللي ثانية)
+            const isOnline = (currentTime - lastActiveTime) < 180000;
+            
+            const statusClass = isOnline ? "status-online" : "status-offline";
+            const statusText = isOnline ? "متصل" : "غير متصل";
+
+            userListContainer.innerHTML += `
+                <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                    <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                    <div class="user-item-info">
+                        <h4 style="margin:0;">${user.name}</h4>
+                        <div style="display:flex; align-items:center; margin-top:2px;">
+                            <span class="user-status-indicator ${statusClass}"></span>
+                            <span class="status-text">${statusText}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    });
+}
 
 // --- باقي الوظائف ---
 window.logout = function() {
@@ -369,15 +386,7 @@ window.logout = function() {
         signOut(auth).then(() => { window.location.href = 'index.html'; }).catch(() => { window.location.href = 'index.html'; });
     }
 }
-if (document.getElementById('usersList')) {
-    const userListContainer = document.getElementById('usersList');
-    userListContainer.innerHTML = ""; 
-    onChildAdded(usersRef, (snapshot) => {
-        const user = snapshot.val();
-        if (user.name === localStorage.getItem('hobbyName')) return;
-        userListContainer.innerHTML += `<div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;"><img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;"><div class="user-item-info"><h4 style="margin:0;">${user.name}</h4><span style="font-size:12px; color:gray;">اضغط للمراسلة</span></div></div>`;
-    });
-}
+
 let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
