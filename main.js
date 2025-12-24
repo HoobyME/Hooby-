@@ -166,9 +166,17 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     const parentIdParam = isReply ? `'${c.parentId}'` : 'null';
 
     // زر الرد (فقط للتعليق الرئيسي)
-    const replyBtn = !isReply ? 
-        `<div class="action-icon-btn" onclick="toggleReplyBox('${postId}', '${commentId}')" title="رد"><i class="fas fa-reply"></i></div>` : '';
+   let replyAction = "";
+    if (!isReply) {
+        // إذا كان تعليق رئيسي -> نفتح الصندوق الخاص به
+        replyAction = `toggleReplyBox('${postId}', '${commentId}')`;
+    } else {
+        // إذا كان رداً فرعياً -> نفتح صندوق الأب ونعمل منشن للشخص
+        replyAction = `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
+    }
 
+    // الزر يظهر الآن دائماً (سواء كان تعليقاً رئيسياً أو فرعياً)
+    const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
     return `
         <div class="comment-item" id="comment-${commentId}">
             <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
@@ -305,7 +313,21 @@ window.toggleReplyBox = function(postId, commentId) {
     const box = document.getElementById(`reply-box-${commentId}`);
     if(box) box.classList.toggle('active');
 }
-
+// دالة الرد على الرد (المنشن)
+window.prepareReplyToReply = function(postId, parentId, authorName) {
+    // 1. فتح صندوق الرد الخاص بالتعليق الأب
+    const box = document.getElementById(`reply-box-${parentId}`);
+    if(box) {
+        box.classList.add('active'); // إجبار الصندوق على الفتح
+        
+        // 2. وضع اسم الشخص في الحقل (منشن)
+        const input = document.getElementById(`reply-input-${parentId}`);
+        if(input) {
+            input.value = `@${authorName} `; // إضافة الاسم مع مسافة
+            input.focus(); // وضع المؤشر للكتابة فوراً
+        }
+    }
+}
 window.sendReply = function(postId, commentId) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
@@ -505,4 +527,5 @@ window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 if(document.getElementById('profileContent')) { const v = JSON.parse(localStorage.getItem('viewingProfile')), m = localStorage.getItem('hobbyName'); if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { const u = s.val()||{}; document.getElementById('p-name').innerText = u.name||v.name; document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); }); }
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
 
