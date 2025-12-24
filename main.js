@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الكاملة (مؤشر حالة الاتصال + كل الميزات) --- */
+/* --- main.js: النسخة الكاملة (تاريخ حقيقي + حالة الاتصال + فيديو + إشعارات) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -43,10 +43,7 @@ function checkAuth() {
         if (isLoginPage) window.location.href = 'home.html';
         requestNotificationPermission();
         monitorNotifications();
-        if (path.includes('messages.html')) {
-            localStorage.setItem('hasUnreadMessages', 'false');
-        }
-        // تحديث حالة الظهور فوراً عند الدخول
+        if (path.includes('messages.html')) localStorage.setItem('hasUnreadMessages', 'false');
         registerUserPresence();
     } else {
         if (!isLoginPage) window.location.href = 'index.html';
@@ -59,60 +56,62 @@ function getSafeName(name) {
     return name.replace(/[.#$\[\]]/g, "_");
 }
 
-// تحديث حالة الظهور (Online) كل دقيقة
 function registerUserPresence() {
     const myName = localStorage.getItem('hobbyName');
     const myImg = localStorage.getItem('hobbyImage') || DEFAULT_IMG;
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
-        const userRef = ref(db, 'users/' + getSafeName(myName));
-        update(userRef, { 
+        update(ref(db, 'users/' + getSafeName(myName)), { 
             name: myName, img: myImg, lastActive: serverTimestamp() 
         });
     }
 }
-// تحديث التواجد كل دقيقتين لضمان بقاء الحالة "متصل"
 setInterval(registerUserPresence, 120000); 
+
+// =========================================================
+// 🕒 دالة حساب الوقت (Time Ago) - الجديدة 🕒
+// =========================================================
+function timeAgo(timestamp) {
+    if (!timestamp) return "الآن";
+    
+    const now = Date.now();
+    const diff = Math.floor((now - timestamp) / 1000); // الفرق بالثواني
+
+    if (diff < 60) return "الآن";
+    
+    const minutes = Math.floor(diff / 60);
+    if (minutes < 60) return `منذ ${minutes} دقيقة`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `منذ ${hours} ساعة`;
+    
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `منذ ${days} أيام`;
+    
+    // إذا مر أكثر من أسبوع، نعرض التاريخ
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('ar-EG');
+}
 
 // =========================================================
 // 🚀 وظائف الرفع المتقدمة
 // =========================================================
-
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
-    const fill = document.getElementById('progressBarFill');
-    const text = document.getElementById('progressText');
     if (overlay) {
         overlay.style.display = 'flex';
-        fill.style.width = percent + '%';
-        text.innerText = `جاري الرفع: ${Math.round(percent)}%`;
+        document.getElementById('progressBarFill').style.width = percent + '%';
+        document.getElementById('progressText').innerText = `جاري الرفع: ${Math.round(percent)}%`;
     }
 }
-
-function hideProgressBar() {
-    const overlay = document.getElementById('uploadProgressOverlay');
-    if (overlay) overlay.style.display = 'none';
-}
+function hideProgressBar() { const overlay = document.getElementById('uploadProgressOverlay'); if(overlay) overlay.style.display='none'; }
 
 function uploadWithProgress(url, method, headers, body) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
-        for (const [key, value] of Object.entries(headers)) {
-            xhr.setRequestHeader(key, value);
-        }
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-                const percentComplete = (e.loaded / e.total) * 100;
-                updateProgressBar(percentComplete);
-            }
-        };
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                resolve(JSON.parse(xhr.responseText || '{}')); 
-            } else {
-                reject(new Error(`Upload failed: ${xhr.statusText}`));
-            }
-        };
+        for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value);
+        xhr.upload.onprogress = (e) => { if (e.lengthComputable) updateProgressBar((e.loaded / e.total) * 100); };
+        xhr.onload = () => { (xhr.status >= 200 && xhr.status < 300) ? resolve(JSON.parse(xhr.responseText||'{}')) : reject(new Error(xhr.statusText)); };
         xhr.onerror = () => reject(new Error("Network Error"));
         xhr.send(body);
     });
@@ -120,82 +119,47 @@ function uploadWithProgress(url, method, headers, body) {
 
 async function uploadToBunny(file) {
     const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
-    const uploadUrl = `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`;
     try {
-        await uploadWithProgress(uploadUrl, 'PUT', { 
-            'AccessKey': BUNNY_API_KEY, 
-            'Content-Type': 'application/octet-stream' 
-        }, file);
+        await uploadWithProgress(`https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
         return `${BUNNY_CDN_URL}/${fileName}`;
-    } catch (error) {
-        console.error(error); return null;
-    }
+    } catch (e) { console.error(e); return null; }
 }
 
 async function uploadVideoToBunnyStream(file) {
     try {
-        const createUrl = `https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`;
-        const createRes = await fetch(createUrl, {
-            method: 'POST',
-            headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: file.name })
-        });
-        if (!createRes.ok) throw new Error("فشل إنشاء الفيديو");
-        const videoData = await createRes.json();
-        const videoId = videoData.guid;
-
-        const uploadUrl = `https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${videoId}`;
-        await uploadWithProgress(uploadUrl, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
-
-        return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${videoId}`;
-    } catch (error) {
-        console.error(error); return null;
-    }
+        const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { method: 'POST', headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: file.name }) });
+        if (!createRes.ok) throw new Error("Create Failed");
+        const vid = (await createRes.json()).guid;
+        await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
+        return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
+    } catch (e) { console.error(e); return null; }
 }
 
 // =========================================================
-// 🔔 نظام الإشعارات
+// 🔔 الإشعارات
 // =========================================================
-
-function requestNotificationPermission() { if ("Notification" in window) { Notification.requestPermission(); } }
-
+function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
 function showSystemNotification(sender, message, img) {
-    NOTIFICATION_SOUND.play().catch(e => {});
+    NOTIFICATION_SOUND.play().catch(()=>{});
     if (Notification.permission === "granted") {
-        const notif = new Notification(`رسالة من ${sender}`, { body: message, icon: img || DEFAULT_IMG });
-        notif.onclick = function() { window.focus(); window.location.href = 'messages.html'; };
+        const n = new Notification(`رسالة من ${sender}`, { body: message, icon: img || DEFAULT_IMG });
+        n.onclick = () => { window.focus(); window.location.href = 'messages.html'; };
     }
-    const badge = document.getElementById('msgBadge');
-    if (badge && !window.location.href.includes('messages.html')) {
-        badge.classList.add('active');
-        localStorage.setItem('hasUnreadMessages', 'true');
-    }
+    const b = document.getElementById('msgBadge');
+    if (b && !window.location.href.includes('messages.html')) { b.classList.add('active'); localStorage.setItem('hasUnreadMessages', 'true'); }
 }
-
 function monitorNotifications() {
-    const mySafeName = getSafeName(localStorage.getItem('hobbyName'));
-    if (!mySafeName) return;
-    
-    if (localStorage.getItem('hasUnreadMessages') === 'true') {
-        const badge = document.getElementById('msgBadge');
-        if(badge) badge.classList.add('active');
-    }
-
-    const notifRef = ref(db, `notifications/${mySafeName}`);
-    onChildAdded(query(notifRef, limitToLast(1)), (snapshot) => {
-        const data = snapshot.val();
-        const now = Date.now();
-        if (data.timestamp && (now - data.timestamp < 10000)) {
-            if (currentChatPartner !== data.senderName) { 
-                showSystemNotification(data.senderName, data.text, data.senderImg); 
-            }
-        }
+    const myName = getSafeName(localStorage.getItem('hobbyName'));
+    if (!myName) return;
+    if (localStorage.getItem('hasUnreadMessages') === 'true') { const b = document.getElementById('msgBadge'); if(b) b.classList.add('active'); }
+    onChildAdded(query(ref(db, `notifications/${myName}`), limitToLast(1)), (s) => {
+        const d = s.val();
+        if (d.timestamp && (Date.now() - d.timestamp < 10000) && currentChatPartner !== d.senderName) showSystemNotification(d.senderName, d.text, d.senderImg);
     });
 }
 
-
 // =========================================================
-// 📱 عرض المنشورات
+// 📱 عرض المنشورات (مع التاريخ الحقيقي)
 // =========================================================
 
 function getPostHTML(post, postId) {
@@ -203,6 +167,9 @@ function getPostHTML(post, postId) {
     const safeAuthor = post.author ? post.author.replace(/'/g, "\\'") : "مجهول";
     let isLiked = (post.likedBy && getSafeName(myName) && post.likedBy[getSafeName(myName)]);
     const activeClass = isLiked ? 'active' : '';
+
+    // 🔥 هنا نستخدم دالة الوقت الجديدة 🔥
+    const timeString = timeAgo(post.timestamp);
 
     let mediaHTML = "";
     if (post.postImg && post.postImg.includes("iframe.mediadelivery.net")) {
@@ -223,7 +190,9 @@ function getPostHTML(post, postId) {
         <div class="post-card" id="post-card-${postId}">
             <div class="post-header">
                 <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
-                <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer"><h4>${post.author}</h4><span>الآن</span></div>
+                <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
+                    <h4>${post.author}</h4>
+                    <span>${timeString}</span> </div>
                 <div class="options-btn" onclick="togglePostMenu('${postId}')"><i class="fas fa-ellipsis-h"></i></div>
                 <div id="menu-${postId}" class="options-menu"><div class="menu-option" onclick="hidePost('${postId}')">إخفاء</div>${delHTML}</div>
             </div>
@@ -302,73 +271,43 @@ window.saveNewPost = async function() {
     const content = document.getElementById('postContent').value;
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
-
     if(!title && !content && !file) { alert("اكتب شيئاً أو اختر ملفاً!"); return; }
-    if(btn) { btn.disabled = true; } 
+    if(btn) btn.disabled = true;
 
     let fileUrl = "";
     if (file) {
-        if (file.type.startsWith('image/')) {
-            fileUrl = await uploadToBunny(file);
-        } else if (file.type.startsWith('video/')) {
-            fileUrl = await uploadVideoToBunnyStream(file);
-        } else {
-            alert("نوع الملف غير مدعوم"); hideProgressBar(); if(btn) btn.disabled=false; return;
-        }
-
-        if (!fileUrl) { 
-            alert("فشل الرفع"); hideProgressBar(); if(btn) btn.disabled=false; return; 
-        }
+        if (file.type.startsWith('image/')) fileUrl = await uploadToBunny(file);
+        else if (file.type.startsWith('video/')) fileUrl = await uploadVideoToBunnyStream(file);
+        else { alert("نوع الملف غير مدعوم"); hideProgressBar(); if(btn) btn.disabled=false; return; }
+        if (!fileUrl) { alert("فشل الرفع"); hideProgressBar(); if(btn) btn.disabled=false; return; }
     }
 
     push(postsRef, {
-        title: title || "بدون عنوان", 
-        content: content || "", 
-        postImg: fileUrl, 
-        author: localStorage.getItem('hobbyName'), 
-        authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+        title: title || "بدون عنوان", content: content || "", postImg: fileUrl,
+        author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
         timestamp: serverTimestamp(), likes: 0
-    }).then(() => { 
-        hideProgressBar(); 
-        alert("✅ تم النشر!"); 
-        window.closeAddPost(); 
-        location.reload(); 
-    });
+    }).then(() => { hideProgressBar(); alert("✅ تم النشر!"); window.closeAddPost(); location.reload(); });
 }
 
-// =========================================================
-// 🟢🟢🟢 قسم عرض المستخدمين (تم تحديثه لإظهار الحالة) 🟢🟢🟢
-// =========================================================
+// --- قائمة المستخدمين (مع الحالة) ---
 if (document.getElementById('usersList')) {
     const userListContainer = document.getElementById('usersList');
     userListContainer.innerHTML = ""; 
-
     onValue(usersRef, (snapshot) => {
-        userListContainer.innerHTML = ""; // إعادة رسم القائمة عند تحديث الحالة
+        userListContainer.innerHTML = ""; 
         const users = snapshot.val();
         const myName = localStorage.getItem('hobbyName');
-
-        // نحول البيانات لمصفوفة لسهولة التعامل
         Object.values(users).forEach(user => {
-            if (user.name === myName) return; // لا تظهر نفسي
-
-            // حساب حالة الاتصال
-            const lastActiveTime = user.lastActive || 0;
-            const currentTime = Date.now();
-            // نعتبره متصل إذا كان نشطاً في آخر 3 دقائق (180000 مللي ثانية)
-            const isOnline = (currentTime - lastActiveTime) < 180000;
-            
-            const statusClass = isOnline ? "status-online" : "status-offline";
-            const statusText = isOnline ? "متصل" : "غير متصل";
-
+            if (user.name === myName) return; 
+            const isOnline = (Date.now() - (user.lastActive || 0)) < 180000;
             userListContainer.innerHTML += `
                 <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
                     <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
                     <div class="user-item-info">
                         <h4 style="margin:0;">${user.name}</h4>
                         <div style="display:flex; align-items:center; margin-top:2px;">
-                            <span class="user-status-indicator ${statusClass}"></span>
-                            <span class="status-text">${statusText}</span>
+                            <span class="user-status-indicator ${isOnline ? "status-online" : "status-offline"}"></span>
+                            <span class="status-text">${isOnline ? "متصل" : "غير متصل"}</span>
                         </div>
                     </div>
                 </div>
@@ -378,15 +317,7 @@ if (document.getElementById('usersList')) {
 }
 
 // --- باقي الوظائف ---
-window.logout = function() {
-    if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
-        localStorage.removeItem('hobbyLoggedIn');
-        localStorage.removeItem('hobbyName');
-        localStorage.removeItem('hobbyImage');
-        signOut(auth).then(() => { window.location.href = 'index.html'; }).catch(() => { window.location.href = 'index.html'; });
-    }
-}
-
+window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
 let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
