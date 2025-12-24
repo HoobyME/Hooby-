@@ -164,3 +164,47 @@ body {
 #pageLoader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 500; display: flex; flex-direction: column; align-items: center; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(0,0,0,0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
+/* --- 🟢 شريط تقدم الرفع (Progress Bar) --- */
+.progress-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none; /* مخفي افتراضياً */
+    justify-content: center; align-items: center;
+    z-index: 3000;
+}
+.progress-box {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    width: 80%; max-width: 300px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.progress-bar-container {
+    width: 100%; height: 10px;
+    background: #eee;
+    border-radius: 5px;
+    margin: 15px 0;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--primary-color);
+    transition: width 0.2s;
+}
+.progress-text { font-weight: bold; margin-bottom: 5px; display: block; }
+
+/* --- 🔴 شارة الإشعارات (Red Badge) --- */
+.nav-item { position: relative; } /* ضروري لتموضع النقطة */
+
+.notification-badge {
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 10px; height: 10px;
+    background-color: #f44336; /* أحمر */
+    border-radius: 50%;
+    border: 2px solid var(--card-bg);
+    display: none; /* مخفية افتراضياً */
+}
+.notification-badge.active { display: block; }
