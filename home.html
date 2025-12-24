@@ -2,20 +2,12 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <link rel="preconnect" href="https://www.gstatic.com">
-<link rel="preconnect" href="https://hooby-7d945-default-rtdb.firebaseio.com">
-<link rel="preconnect" href="https://hooby.b-cdn.net">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>هوبي - الرئيسية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div id="pageLoader">
-        <div class="spinner"></div>
-        <p style="margin-top:10px; color:var(--text-sub); font-size:12px;">جاري الاتصال...</p>
-    </div>
 
     <div class="header">
         <div class="brand-area">
@@ -28,23 +20,43 @@
     </div>
 
     <div class="sidebar" id="sidebar">
+        <div class="close-sidebar-btn" onclick="toggleMenu()">&times;</div>
+        
         <h3>القائمة</h3>
-        <div class="nav-item" onclick="visitMyProfile()" style="cursor:pointer; display:block; margin:10px 0;">
+        <div class="nav-item" onclick="visitMyProfile()" style="cursor:pointer; display:block; margin:10px 0; font-size:16px;">
             <i class="fas fa-user-circle"></i> الملف الشخصي
         </div>
-        <div class="nav-item" onclick="toggleDarkMode()" style="cursor:pointer; display:block; margin:10px 0;">
+        <div class="nav-item" onclick="toggleDarkMode()" style="cursor:pointer; display:block; margin:10px 0; font-size:16px;">
             <i class="fas fa-moon"></i> الوضع المظلم
         </div>
-        <div class="nav-item" onclick="location.href='settings.html'" style="cursor:pointer; display:block; margin:10px 0;">
+        <div class="nav-item" onclick="location.href='settings.html'" style="cursor:pointer; display:block; margin:10px 0; font-size:16px;">
             <i class="fas fa-cog"></i> الإعدادات العامة
         </div>
-        <div class="nav-item" onclick="logout()" style="cursor:pointer; display:block; margin:10px 0; color:red;">
+        <div class="nav-item" onclick="logout()" style="cursor:pointer; display:block; margin:10px 0; color:red; font-size:16px;">
             <i class="fas fa-sign-out-alt"></i> خروج
         </div>
     </div>
 
-    <div id="postsContainer" class="posts-container">
+    <div class="posts-container" id="postsContainer">
+        <div id="pageLoader">
+            <div class="spinner"></div>
+            <p style="margin-top:10px; color:gray;">جاري التحميل...</p>
         </div>
+        </div>
+
+    <div class="bottom-nav">
+        <a href="home.html" class="nav-item active"><i class="fas fa-home"></i></a>
+        <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
+        
+        <div class="nav-item-add" onclick="openAddPost()">
+            <i class="fas fa-plus"></i>
+        </div>
+        
+        <a href="messages.html" class="nav-item" id="nav-messages">
+            <i class="far fa-comment-alt"></i>
+            <span id="msgBadge" class="notification-badge"></span> </a>
+        <div class="nav-item" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
+    </div>
 
     <div id="addPostOverlay" class="overlay">
         <div class="modal">
@@ -52,45 +64,34 @@
                 <h3>منشور جديد</h3>
                 <span class="close-btn" onclick="closeAddPost()">&times;</span>
             </div>
-            <div class="modal-body">
-                <input type="text" id="postTitle" placeholder="عنوان المنشور" class="modal-input">
-                <textarea id="postContent" placeholder="بماذا تفكر؟ (للصق رابط فيديو يوتيوب)" class="modal-input" rows="4"></textarea>
-                
-                <img id="imagePreview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin:10px 0;">
-
-                <div class="modal-actions">
-                    <button class="action-btn" onclick="triggerFileUpload()" style="border:1px solid var(--border-color); width:auto; padding:5px 15px;"><i class="fas fa-image"></i> صورة</button>
-                   <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
-                </div>
-
-                <button class="btn-publish" onclick="saveNewPost()">نشر</button>
+            
+            <input type="text" id="postTitle" class="modal-input" placeholder="عنوان المنشور">
+            <textarea id="postContent" class="modal-input" rows="4" placeholder="بماذا تفكر؟"></textarea>
+            
+            <img id="imagePreview" style="width:100%; max-height:200px; object-fit:contain; display:none; margin-bottom:10px; border-radius:5px;">
+            
+            <div class="modal-actions">
+                <button onclick="triggerFileUpload()" class="action-btn" style="border:1px solid #ddd; border-radius:5px; padding:5px;">
+                    <i class="fas fa-image" style="color:#4CAF50;"></i> صورة/فيديو
+                </button>
+                <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
             </div>
+            
+            <button class="btn-publish" onclick="saveNewPost()">نشر</button>
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <a href="home.html" class="nav-item active"><i class="fas fa-home"></i></a>
-        <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
-        <div class="nav-item-add" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
-   <a href="messages.html" class="nav-item" id="nav-messages">
-    <i class="far fa-comment-alt"></i>
-    <span id="msgBadge" class="notification-badge"></span> </a>
-        <div class="nav-item" style="cursor:pointer;" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
+    <div id="uploadProgressOverlay" class="progress-overlay">
+        <div class="progress-box">
+            <span class="progress-text" id="progressText">جاري الرفع: 0%</span>
+            <div class="progress-bar-container">
+                <div id="progressBarFill" class="progress-bar-fill"></div>
+            </div>
+            <p style="font-size:12px; color:gray;">يرجى عدم إغلاق الصفحة...</p>
+        </div>
     </div>
 
     <script type="module" src="main.js"></script>
-    <div id="uploadProgressOverlay" class="progress-overlay">
-    <div class="progress-box">
-        <span class="progress-text" id="progressText">جاري الرفع: 0%</span>
-        <div class="progress-bar-container">
-            <div id="progressBarFill" class="progress-bar-fill"></div>
-        </div>
-        <p style="font-size:12px; color:gray;">يرجى عدم إغلاق الصفحة...</p>
-    </div>
-</div>
+
 </body>
 </html>
-
-
-
-
