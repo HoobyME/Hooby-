@@ -7,30 +7,39 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        /* تنسيقات خاصة بصفحة البروفايل فقط */
         .profile-header-bg {
-            height: 150px;
-            background: linear-gradient(45deg, var(--primary-color), #2196F3);
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
-            position: relative;
+            height: 160px;
+            background: linear-gradient(135deg, var(--primary-color), #2196F3);
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
         }
         .profile-info-container {
             text-align: center;
-            margin-top: -50px; /* لرفع الصورة للأعلى */
             padding: 0 20px;
+            position: relative;
         }
         .stats-row {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin: 15px 0;
-            color: var(--text-sub);
+            display: flex; justify-content: center; gap: 40px; margin: 20px 0; color: var(--text-sub);
         }
-        .stat-item { text-align: center; }
-        .stat-value { font-weight: bold; font-size: 18px; color: var(--text-color); display: block; }
-        .stat-label { font-size: 12px; }
-        .bio-text { margin: 10px 0; color: var(--text-sub); font-size: 14px; line-height: 1.5; }
+        .stat-value { font-weight: bold; font-size: 20px; color: var(--text-color); display: block; }
+        .stat-label { font-size: 13px; }
+        .posts-header-title {
+            padding: 15px 20px;
+            margin: 0;
+            font-size: 18px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-weight: bold;
+        }
+        /* تنسيق أزرار التعديل */
+        .edit-icon-btn {
+            cursor: pointer;
+            color: var(--primary-color);
+            margin-right: 5px;
+            font-size: 14px;
+            display: none; /* مخفي افتراضياً ويظهر بالكود */
+        }
     </style>
 </head>
 <body>
@@ -43,7 +52,7 @@
         <div onclick="toggleDarkMode()" class="icon-btn"><i class="fas fa-moon"></i></div>
     </div>
 
-    <div id="profileContent">
+    <div id="profileContent" style="padding-bottom: 20px;">
         
         <div class="profile-header-bg"></div>
 
@@ -51,38 +60,40 @@
             <div id="p-img-wrapper" class="profile-avatar-large-wrapper">
                 <img id="p-img" src="default.jpg" class="profile-avatar-large">
                 
-                <div id="edit-img-icon" class="edit-icon" onclick="triggerImgUpload()" 
-                     style="position:absolute; bottom:5px; left:5px; background:rgba(0,0,0,0.6); color:white; width:30px; height:30px; border-radius:50%; display:none; align-items:center; justify-content:center; cursor:pointer;">
+                <div id="edit-img-icon" onclick="triggerImgUpload()" 
+                     style="position:absolute; bottom:0; right:0; background:var(--primary-color); color:white; width:35px; height:35px; border-radius:50%; display:none; align-items:center; justify-content:center; cursor:pointer; border:3px solid var(--card-bg); z-index:20;">
                     <i class="fas fa-camera" style="font-size:14px;"></i>
                 </div>
             </div>
 
-            <div style="margin-top: 10px; display:flex; align-items:center; justify-content:center; gap:10px;">
-                <h2 id="p-name" style="margin:0;">تحميل...</h2>
-                <i id="edit-name-icon" class="fas fa-pen" onclick="editProfileName()" style="font-size:14px; color:var(--text-sub); cursor:pointer; display:none;"></i>
+            <div style="display:flex; align-items:center; justify-content:center; margin-top:10px;">
+                <h2 id="p-name" style="margin:0;">...</h2>
+                <i id="edit-name-icon" class="fas fa-pen edit-icon-btn" onclick="editProfileName()"></i>
             </div>
-
-            <p class="bio-text">
+            
+            <p style="margin: 5px 0; color:var(--text-sub); font-size:14px;">
                 <span id="p-bio">...</span>
-                <i id="edit-bio-icon" class="fas fa-pen" onclick="openEditModal('bio')" style="font-size:12px; color:var(--primary-color); cursor:pointer; margin-right:5px; display:none;"></i>
+                <i id="edit-bio-icon" class="fas fa-pen edit-icon-btn" onclick="openEditModal('bio')"></i>
             </p>
 
-       <div class="stats-row">
-    <div class="stat-item">
-        <span class="stat-value" id="p-posts-count">0</span>
-        <span class="stat-label">منشورات</span>
+            <div class="stats-row">
+                <div class="stat-item"><span class="stat-value" id="p-posts-count">0</span><span class="stat-label">منشورات</span></div>
+                <div class="stat-item"><span class="stat-value" id="p-followers-count">0</span><span class="stat-label">متابعون</span></div>
+                <div class="stat-item"><span class="stat-value" id="p-following-count">0</span><span class="stat-label">يتابع</span></div>
+            </div>
+
+            <div id="profileActionsBtns" class="profile-actions"></div>
+        </div>
+
+        <br>
+        <div class="posts-header-title">
+            <i class="fas fa-th-list" style="margin-left:5px; color:var(--primary-color);"></i> المنشورات
+        </div>
+
+        <div id="profilePostsContainer" class="posts-container" style="margin-top:0;">
+            <p style="text-align:center; padding:20px; color:gray;">جاري تحميل المنشورات...</p>
+        </div>
     </div>
-    
-    <div class="stat-item">
-        <span class="stat-value" id="p-followers-count">0</span>
-        <span class="stat-label">متابعون</span>
-    </div>
-    
-    <div class="stat-item">
-        <span class="stat-value" id="p-following-count">0</span>
-        <span class="stat-label">يتابع</span>
-    </div>
-</div>
 
     <input type="file" id="profileImgInput" accept="image/*" style="display:none;" onchange="uploadNewProfileImg()">
 
@@ -104,11 +115,11 @@
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
         <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
-        <div class="nav-item-add" onclick="location.href='home.html'"><i class="fas fa-plus"></i></div> <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
+        <div class="nav-item-add" onclick="location.href='home.html'"><i class="fas fa-plus"></i></div>
+        <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
         <a href="#" class="nav-item active"><i class="fas fa-user"></i></a>
     </div>
 
     <script type="module" src="main.js"></script>
 </body>
 </html>
-
