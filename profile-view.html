@@ -7,12 +7,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        .profile-header-bg {
-            height: 160px;
-            background: linear-gradient(135deg, var(--primary-color), #2196F3);
-            border-bottom-left-radius: 25px;
-            border-bottom-right-radius: 25px;
-        }
+       <div class="profile-header-bg">
+            <img id="profile-cover-img" src="" class="cover-img-element">
+            
+            <div id="edit-cover-icon" class="edit-cover-btn" onclick="triggerCoverUpload()">
+                <i class="fas fa-camera"></i>
+            </div>
+        </div>
+
+        <input type="file" id="coverImgInput" accept="image/*" style="display:none;" onchange="uploadNewCoverImg()">
         .profile-info-container {
             text-align: center;
             padding: 0 20px;
@@ -123,3 +126,4 @@
     <script type="module" src="main.js"></script>
 </body>
 </html>
+
