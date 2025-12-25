@@ -543,3 +543,15 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
+// 🔥 كود المطورين فقط (احذفه عند النشر النهائي) 🔥
+window.setMyXP = function(amount) {
+    const myName = localStorage.getItem('hobbyName');
+    if (!myName) return alert("سجل الدخول أولاً");
+    
+    update(ref(db, 'users/' + getSafeName(myName)), { xp: amount })
+    .then(() => {
+        alert(`تم تعديل نقاطك إلى ${amount}! 🎉\nقم بتحديث الصفحة لترى الرتبة الجديدة.`);
+        location.reload();
+    });
+}
