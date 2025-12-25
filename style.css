@@ -1,4 +1,4 @@
-/* --- style.css: النسخة النهائية الشاملة --- */
+/* --- style.css: النسخة المستقرة (بدون بنر) --- */
 
 :root {
     --primary-color: #4CAF50;
@@ -122,10 +122,10 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 @keyframes fadeIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
 
 /* =========================================================
-   👑 نظام الإطارات (Gamification) - نسخة مصححة ونهائية
+   👑 نظام الإطارات (Gamification) - نسخة دائرية ومستقرة
    ======================================================== */
 
-/* الإطار الصغير (Home Page, Comments, Chat) - دائري 100% */
+/* الإطار الصغير (Home Page, Comments) - دائري 100% */
 .avatar-wrapper {
     position: relative;
     display: inline-block;
@@ -162,7 +162,7 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 
 /* 🚨 إصلاح البروفايل (Profile Fixes) 🚨 */
 
-/* خلفية الغلاف (Banner) */
+/* الغلاف القديم (بدون صورة) - خلفية فقط */
 .profile-header-bg {
     height: 150px !important;
     width: 100% !important;
@@ -170,48 +170,20 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     border-bottom-left-radius: 30px;
     border-bottom-right-radius: 30px;
     position: relative;
-    overflow: hidden; /* لقص الصورة الزائدة */
     z-index: 1;
     margin-bottom: 0 !important;
 }
 
-/* صورة الغلاف */
-.cover-img-element {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: none;
-}
-
-/* زر تعديل الغلاف */
-.edit-cover-btn {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255,255,255,0.3);
-    z-index: 20;
-}
-
-/* حاوية المعلومات (لرفع الصورة فوق الغلاف) */
+/* حاوية المعلومات */
 .profile-info-container {
     position: relative;
     z-index: 5;
-    margin-top: -75px !important;
+    margin-top: -75px !important; /* لرفع الصورة للمنتصف */
     text-align: center;
     padding: 0 15px;
 }
 
-/* إطار الصورة الكبير في البروفايل (تصحيح الفوضى) */
+/* إطار الصورة الكبير في البروفايل */
 .profile-avatar-large-wrapper {
     width: 130px !important;
     height: 130px !important;
@@ -244,7 +216,7 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .profile-avatar-large-wrapper.lvl-red-chain { border: 5px dashed #f44336; box-shadow: 0 0 20px #f44336; }
 .profile-avatar-large-wrapper.lvl-crown-green { border: 5px solid #ffd700; box-shadow: 0 0 25px #0f0; }
 
-/* رتبة الماكس (تعديل خاص) */
+/* رتبة الماكس */
 .profile-avatar-large-wrapper.lvl-max-phoenix {
     border: 5px solid #ffd700 !important;
     box-shadow: 0 0 25px #ff5722 !important;
