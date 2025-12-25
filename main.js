@@ -1,13 +1,14 @@
-/* --- main.js: النسخة المتزامنة (Live Rank Sync) --- */
+/* --- main.js: النسخة الكاملة النهائية (شاملة الغلاف والرتب والمنشورات) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Bunny
+// إعدادات Bunny CDN & Stream
 const BUNNY_STORAGE_NAME = "hooby"; 
 const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; 
 const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; 
+
 const STREAM_LIB_ID = "569937";
 const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
 
@@ -32,10 +33,12 @@ const usersRef = ref(db, 'users');
 const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
-// خريطة لتخزين أحدث النقاط لكل مستخدم (للأداء السريع)
+// كاش للنقاط (للأداء)
 let userXPCache = {};
 
-// --- التحقق والأمان ---
+// =========================================================
+// 🔐 التحقق والأمان
+// =========================================================
 function checkAuth() {
     const path = window.location.href;
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
@@ -109,13 +112,12 @@ function addXP(userId, amount) {
 
 // =========================================================
 // 🔄 المزامنة الحية (Live Sync Engine) 🔄
-// هذا الكود هو المسؤول عن تحديث الإطارات في الصفحة الرئيسية فوراً
 // =========================================================
 onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
 
-    // 1. تحديث قائمة المستخدمين (للشات)
+    // 1. تحديث قائمة المستخدمين
     const userListContainer = document.getElementById('usersList');
     if (userListContainer) {
         userListContainer.innerHTML = ""; 
@@ -138,25 +140,19 @@ onValue(usersRef, (snapshot) => {
         });
     }
 
-    // 2. 🔥 التحديث السحري: البحث عن كل الصور في المنشورات وتحديث إطاراتها 🔥
+    // 2. تحديث الإطارات في الصفحة الرئيسية فوراً
     Object.values(users).forEach(user => {
-        // نخزن النقاط في الكاش
         userXPCache[user.name] = user.xp || 0;
-        
-        // نبحث عن كل صورة في الصفحة تخص هذا المستخدم
         const newLevelClass = getLevelClass(user.xp || 0);
-        
-        // نحدث أي عنصر يحمل السمة data-author="اسم_المستخدم"
         const elementsToUpdate = document.querySelectorAll(`.avatar-wrapper[data-author="${user.name}"]`);
         elementsToUpdate.forEach(el => {
-            // نغير الكلاس (الإطار) فوراً
             el.className = `avatar-wrapper ${newLevelClass}`;
         });
     });
 });
 
 // =========================================================
-// 🚀 وظائف الرفع
+// 🚀 وظائف الرفع (شاملة الغلاف)
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -198,6 +194,39 @@ async function uploadVideoToBunnyStream(file) {
     } catch (e) { console.error(e); return null; }
 }
 
+// 🔥 دوال رفع الغلاف (Banner)
+window.triggerCoverUpload = function() {
+    document.getElementById('coverImgInput').click();
+}
+
+window.uploadNewCoverImg = async function() {
+    const file = document.getElementById('coverImgInput').files[0];
+    if (file) {
+        const overlay = document.getElementById('uploadProgressOverlay');
+        if(overlay) overlay.style.display = 'flex';
+        try {
+            const url = await uploadToBunny(file);
+            if (url) {
+                const myName = localStorage.getItem('hobbyName');
+                await update(ref(db, `users/${getSafeName(myName)}`), { coverImg: url });
+                const coverImg = document.getElementById('profile-cover-img');
+                if(coverImg) {
+                    coverImg.src = url;
+                    coverImg.style.display = 'block';
+                }
+                alert("تم تحديث الغلاف بنجاح! 🎨");
+            } else {
+                alert("فشل الرفع.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("حدث خطأ.");
+        } finally {
+            if(overlay) overlay.style.display = 'none';
+        }
+    }
+}
+
 // =========================================================
 // 🔔 الإشعارات
 // =========================================================
@@ -222,7 +251,7 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات (المحدث)
+// 💬 نظام التعليقات والمنشورات
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -238,7 +267,7 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
     
-    // استخدام الكاش إذا توفر، أو القيمة القديمة
+    // استخدام الكاش للنقاط الحالية
     const currentXP = userXPCache[c.author] !== undefined ? userXPCache[c.author] : (c.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
@@ -383,7 +412,7 @@ function getPostHTML(post, postId) {
     }
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
     
-    // استخدام الكاش للنقاط الحالية
+    // استخدام الكاش للنقاط
     const currentXP = userXPCache[post.author] !== undefined ? userXPCache[post.author] : (post.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
@@ -440,18 +469,7 @@ if (document.getElementById('postsContainer')) {
     });
 }
 if (document.getElementById('profilePostsContainer')) {
-    const container = document.getElementById('profilePostsContainer');
-    let viewingName = localStorage.getItem('hobbyName');
-    const viewingData = JSON.parse(localStorage.getItem('viewingProfile'));
-    if (viewingData && viewingData.name) viewingName = viewingData.name;
-    onValue(query(postsRef, limitToLast(50)), (snapshot) => {
-        container.innerHTML = "";
-        const data = snapshot.val();
-        if(data) {
-            const postsArray = Object.entries(data).map(([key, val]) => ({ id: key, data: val })).reverse();
-            postsArray.forEach(item => { if(item.data.author === viewingName) { container.innerHTML += getPostHTML(item.data, item.id); loadCommentsForPost(item.id); } });
-        }
-    });
+    // تم نقل المنطق بالكامل للأسفل في دالة profileContent
 }
 
 window.saveNewPost = async function() {
@@ -537,35 +555,94 @@ window.saveProfileChanges = function() { update(ref(db, `users/${getSafeName(loc
 window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('hobbyName')), target = getSafeName(t); const ref1 = ref(db, `users/${m}/following/${target}`), ref2 = ref(db, `users/${target}/followers/${m}`); get(ref1).then(s => { if(s.exists()){ remove(ref1); remove(ref2); } else { set(ref1, true); set(ref2, true); } }); }
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 
-// 🔥 بروفايل فيو (Profile Logic) مع عداد المنشورات 🔥
+// 🔥 بروفايل فيو (Profile Logic) الشامل 🔥
 if(document.getElementById('profileContent')) { 
     const v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
     
     if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { 
         const u = s.val()||{}; 
-        document.getElementById('p-name').innerText = u.name||v.name; 
-        document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; 
-        document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; 
+        // عرض البيانات
+        document.getElementById('p-name').innerText = u.name || v.name; 
+        document.getElementById('p-img').src = u.img || v.img || DEFAULT_IMG; 
+        document.getElementById('p-bio').innerText = u.bio || "لا توجد نبذة"; 
         
+        // عرض الغلاف (Banner)
+        const coverImgElem = document.getElementById('profile-cover-img');
+        if (u.coverImg) {
+            coverImgElem.src = u.coverImg;
+            coverImgElem.style.display = 'block'; 
+        } else {
+            coverImgElem.style.display = 'none'; 
+        }
+
         // تطبيق الرتبة
         const levelClass = getLevelClass(u.xp || 0);
         const imgWrapper = document.getElementById('p-img-wrapper');
-        if(imgWrapper) {
-            imgWrapper.className = `profile-avatar-large-wrapper ${levelClass}`;
-        }
+        if(imgWrapper) imgWrapper.className = `profile-avatar-large-wrapper ${levelClass}`;
 
-        const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } 
+        // إعداد الأزرار والتحكم
+        const d = document.getElementById('profileActionsBtns'); 
+        d.innerHTML = ""; 
+
+        if(v.name === m) { 
+            // إظهار أزرار التعديل
+            if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; 
+            if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; 
+            if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; 
+            if(document.getElementById('edit-cover-icon')) document.getElementById('edit-cover-icon').style.display = 'flex'; // زر الغلاف
+            
+            d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; 
+        } else { 
+            // إخفاء أزرار التعديل
+            if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; 
+            if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; 
+            if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; 
+            if(document.getElementById('edit-cover-icon')) document.getElementById('edit-cover-icon').style.display = 'none'; // زر الغلاف
+            
+            d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; 
+            
+            onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { 
+                const b = document.getElementById('followBtn'); 
+                if(b) { 
+                    if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } 
+                    else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } 
+                } 
+            }); 
+        } 
+        
         onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); 
         onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
 
-        // عداد المنشورات
-        onValue(postsRef, (postSnap) => {
-            let count = 0;
-            postSnap.forEach(p => { if(p.val().author === v.name) count++; });
-            const countElem = document.getElementById('p-posts-count');
-            if(countElem) countElem.innerText = count;
-        });
+        // عرض المنشورات + العداد
+        const postsContainer = document.getElementById('profilePostsContainer');
+        if (postsContainer) {
+            onValue(postsRef, (postSnap) => {
+                postsContainer.innerHTML = ""; 
+                let count = 0;
+                let userPosts = [];
+                
+                postSnap.forEach(childSnap => {
+                    const p = childSnap.val();
+                    if(p.author === v.name) { 
+                        count++;
+                        userPosts.push({ id: childSnap.key, data: p });
+                    }
+                });
+
+                const countElem = document.getElementById('p-posts-count');
+                if(countElem) countElem.innerText = count;
+
+                if (userPosts.length > 0) {
+                    userPosts.reverse().forEach(item => {
+                        postsContainer.innerHTML += getPostHTML(item.data, item.id);
+                        loadCommentsForPost(item.id);
+                    });
+                } else {
+                    postsContainer.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">لا توجد منشورات بعد.</p>`;
+                }
+            });
+        }
     }); 
 }
 
