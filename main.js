@@ -1,4 +1,4 @@
-/* --- main.js: النسخة المستقرة (بدون بنر، مع جميع الميزات الأخرى) --- */
+/* --- main.js: النسخة الكاملة (إصلاح روابط البروفايل في كل مكان) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -116,7 +116,7 @@ onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
 
-    // تحديث قائمة المستخدمين
+    // تحديث قائمة المستخدمين (مع إصلاح الروابط)
     const userListContainer = document.getElementById('usersList');
     if (userListContainer) {
         userListContainer.innerHTML = ""; 
@@ -125,9 +125,11 @@ onValue(usersRef, (snapshot) => {
             if (user.name === myName) return; 
             const isOnline = (Date.now() - (user.lastActive || 0)) < 180000;
             const levelClass = getLevelClass(user.xp || 0);
+            
+            // 🔥 ملاحظة: هنا جعلنا الصورة تذهب للبروفايل، والسطر يفتح الشات
             userListContainer.innerHTML += `
                 <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                    <div class="avatar-wrapper ${levelClass}">
+                    <div class="avatar-wrapper ${levelClass}" onclick="event.stopPropagation(); visitUserProfile('${user.name}', '${user.img||DEFAULT_IMG}')">
                          <img src="${user.img || DEFAULT_IMG}" class="user-avatar-small" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
                     </div>
                     <div class="user-item-info">
@@ -145,6 +147,7 @@ onValue(usersRef, (snapshot) => {
         const newLevelClass = getLevelClass(user.xp || 0);
         const elementsToUpdate = document.querySelectorAll(`.avatar-wrapper[data-author="${user.name}"]`);
         elementsToUpdate.forEach(el => {
+            // نحافظ على الكلاسات الأساسية ونحدث الرتبة
             el.className = `avatar-wrapper ${newLevelClass}`;
         });
     });
@@ -153,71 +156,22 @@ onValue(usersRef, (snapshot) => {
 // =========================================================
 // 🚀 وظائف الرفع
 // =========================================================
-function updateProgressBar(percent) {
-    const overlay = document.getElementById('uploadProgressOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-        document.getElementById('progressBarFill').style.width = percent + '%';
-        document.getElementById('progressText').innerText = `جاري الرفع: ${Math.round(percent)}%`;
-    }
-}
+// (نفس دوال الرفع السابقة - لم تتغير)
+function updateProgressBar(percent) { const overlay = document.getElementById('uploadProgressOverlay'); if (overlay) { overlay.style.display = 'flex'; document.getElementById('progressBarFill').style.width = percent + '%'; document.getElementById('progressText').innerText = `جاري الرفع: ${Math.round(percent)}%`; } }
 function hideProgressBar() { const overlay = document.getElementById('uploadProgressOverlay'); if(overlay) overlay.style.display='none'; }
-
-function uploadWithProgress(url, method, headers, body) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open(method, url, true);
-        for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value);
-        xhr.upload.onprogress = (e) => { if (e.lengthComputable) updateProgressBar((e.loaded / e.total) * 100); };
-        xhr.onload = () => { (xhr.status >= 200 && xhr.status < 300) ? resolve(JSON.parse(xhr.responseText||'{}')) : reject(new Error(xhr.statusText)); };
-        xhr.onerror = () => reject(new Error("Network Error"));
-        xhr.send(body);
-    });
-}
-
-async function uploadToBunny(file) {
-    const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
-    try {
-        await uploadWithProgress(`https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-        return `${BUNNY_CDN_URL}/${fileName}`;
-    } catch (e) { console.error(e); return null; }
-}
-
-async function uploadVideoToBunnyStream(file) {
-    try {
-        const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { method: 'POST', headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: file.name }) });
-        if (!createRes.ok) throw new Error("Create Failed");
-        const vid = (await createRes.json()).guid;
-        await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
-        return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
-    } catch (e) { console.error(e); return null; }
-}
+function uploadWithProgress(url, method, headers, body) { return new Promise((resolve, reject) => { const xhr = new XMLHttpRequest(); xhr.open(method, url, true); for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value); xhr.upload.onprogress = (e) => { if (e.lengthComputable) updateProgressBar((e.loaded / e.total) * 100); }; xhr.onload = () => { (xhr.status >= 200 && xhr.status < 300) ? resolve(JSON.parse(xhr.responseText||'{}')) : reject(new Error(xhr.statusText)); }; xhr.onerror = () => reject(new Error("Network Error")); xhr.send(body); }); }
+async function uploadToBunny(file) { const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_"); try { await uploadWithProgress(`https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file); return `${BUNNY_CDN_URL}/${fileName}`; } catch (e) { console.error(e); return null; } }
+async function uploadVideoToBunnyStream(file) { try { const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { method: 'POST', headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: file.name }) }); if (!createRes.ok) throw new Error("Create Failed"); const vid = (await createRes.json()).guid; await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file); return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`; } catch (e) { console.error(e); return null; } }
 
 // =========================================================
 // 🔔 الإشعارات
 // =========================================================
 function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
-function showSystemNotification(sender, message, img) {
-    NOTIFICATION_SOUND.play().catch(()=>{});
-    if (Notification.permission === "granted") {
-        const n = new Notification(`رسالة من ${sender}`, { body: message, icon: img || DEFAULT_IMG });
-        n.onclick = () => { window.focus(); window.location.href = 'messages.html'; };
-    }
-    const b = document.getElementById('msgBadge');
-    if (b && !window.location.href.includes('messages.html')) { b.classList.add('active'); localStorage.setItem('hasUnreadMessages', 'true'); }
-}
-function monitorNotifications() {
-    const myName = getSafeName(localStorage.getItem('hobbyName'));
-    if (!myName) return;
-    if (localStorage.getItem('hasUnreadMessages') === 'true') { const b = document.getElementById('msgBadge'); if(b) b.classList.add('active'); }
-    onChildAdded(query(ref(db, `notifications/${myName}`), limitToLast(1)), (s) => {
-        const d = s.val();
-        if (d.timestamp && (Date.now() - d.timestamp < 10000) && currentChatPartner !== d.senderName) showSystemNotification(d.senderName, d.text, d.senderImg);
-    });
-}
+function showSystemNotification(sender, message, img) { NOTIFICATION_SOUND.play().catch(()=>{}); if (Notification.permission === "granted") { const n = new Notification(`رسالة من ${sender}`, { body: message, icon: img || DEFAULT_IMG }); n.onclick = () => { window.focus(); window.location.href = 'messages.html'; }; } const b = document.getElementById('msgBadge'); if (b && !window.location.href.includes('messages.html')) { b.classList.add('active'); localStorage.setItem('hasUnreadMessages', 'true'); } }
+function monitorNotifications() { const myName = getSafeName(localStorage.getItem('hobbyName')); if (!myName) return; if (localStorage.getItem('hasUnreadMessages') === 'true') { const b = document.getElementById('msgBadge'); if(b) b.classList.add('active'); } onChildAdded(query(ref(db, `notifications/${myName}`), limitToLast(1)), (s) => { const d = s.val(); if (d.timestamp && (Date.now() - d.timestamp < 10000) && currentChatPartner !== d.senderName) showSystemNotification(d.senderName, d.text, d.senderImg); }); }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات
+// 💬 نظام التعليقات والمنشورات (مع إصلاح الروابط)
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -238,8 +192,8 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
 
     return `
         <div class="comment-item" id="comment-${commentId}">
-            <div class="avatar-wrapper ${levelClass}" data-author="${c.author}">
-                <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
+            <div class="avatar-wrapper ${levelClass}" data-author="${c.author}" onclick="visitUserProfile('${cSafe}','${cImg}')" style="cursor:pointer">
+                <img src="${cImg}" class="comment-avatar" loading="lazy">
             </div>
             <div style="flex:1; max-width: 100%;">
                 <div class="comment-bubble">
@@ -302,58 +256,11 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
     const myName = getSafeName(localStorage.getItem('hobbyName'));
     let path = `posts/${postId}/comments/${commentId}`;
     if(isReply && parentId) path = `posts/${postId}/comments/${parentId}/replies/${commentId}`;
-
-    runTransaction(ref(db, path), (comment) => {
-        if (comment) {
-            if (!comment.votes) comment.votes = {};
-            if (!comment.likesCount) comment.likesCount = 0;
-            if (!comment.dislikesCount) comment.dislikesCount = 0;
-            const currentVote = comment.votes[myName];
-            if (currentVote === type) {
-                if(type === 'like') comment.likesCount--; else comment.dislikesCount--;
-                comment.votes[myName] = null;
-            } else {
-                if (currentVote === 'like') comment.likesCount--;
-                if (currentVote === 'dislike') comment.dislikesCount--;
-                if (type === 'like') comment.likesCount++; else comment.dislikesCount++;
-                comment.votes[myName] = type;
-            }
-        }
-        return comment;
-    }).then((result) => {
-        if (result.snapshot.exists()) {
-            const data = result.snapshot.val();
-            const likeSpan = document.getElementById(`likes-${commentId}`);
-            const dislikeSpan = document.getElementById(`dislikes-${commentId}`);
-            if(likeSpan) likeSpan.innerText = data.likesCount || 0;
-            if(dislikeSpan) dislikeSpan.innerText = data.dislikesCount || 0;
-            const likeBtn = document.getElementById(`btn-like-${commentId}`);
-            const dislikeBtn = document.getElementById(`btn-dislike-${commentId}`);
-            if(likeBtn) likeBtn.classList.remove('active-like');
-            if(dislikeBtn) dislikeBtn.classList.remove('active-dislike');
-            const myVote = data.votes ? data.votes[myName] : null;
-            if (myVote === 'like' && likeBtn) likeBtn.classList.add('active-like');
-            if (myVote === 'dislike' && dislikeBtn) dislikeBtn.classList.add('active-dislike');
-        }
-    });
+    runTransaction(ref(db, path), (comment) => { if (comment) { if (!comment.votes) comment.votes = {}; if (!comment.likesCount) comment.likesCount = 0; if (!comment.dislikesCount) comment.dislikesCount = 0; const currentVote = comment.votes[myName]; if (currentVote === type) { if(type === 'like') comment.likesCount--; else comment.dislikesCount--; comment.votes[myName] = null; } else { if (currentVote === 'like') comment.likesCount--; if (currentVote === 'dislike') comment.dislikesCount--; if (type === 'like') comment.likesCount++; else comment.dislikesCount++; comment.votes[myName] = type; } } return comment; }).then((result) => { if (result.snapshot.exists()) { const data = result.snapshot.val(); const likeSpan = document.getElementById(`likes-${commentId}`); const dislikeSpan = document.getElementById(`dislikes-${commentId}`); if(likeSpan) likeSpan.innerText = data.likesCount || 0; if(dislikeSpan) dislikeSpan.innerText = data.dislikesCount || 0; const likeBtn = document.getElementById(`btn-like-${commentId}`); const dislikeBtn = document.getElementById(`btn-dislike-${commentId}`); if(likeBtn) likeBtn.classList.remove('active-like'); if(dislikeBtn) dislikeBtn.classList.remove('active-dislike'); const myVote = data.votes ? data.votes[myName] : null; if (myVote === 'like' && likeBtn) likeBtn.classList.add('active-like'); if (myVote === 'dislike' && dislikeBtn) dislikeBtn.classList.add('active-dislike'); } });
 }
-
 window.toggleReplyBox = function(postId, commentId) { const box = document.getElementById(`reply-box-${commentId}`); if(box) box.classList.toggle('active'); }
 window.prepareReplyToReply = function(postId, parentId, authorName) { const box = document.getElementById(`reply-box-${parentId}`); if(box) { box.classList.add('active'); const input = document.getElementById(`reply-input-${parentId}`); if(input) { input.value = `@${authorName} `; input.focus(); } } }
-
-window.sendReply = function(postId, commentId) {
-    const input = document.getElementById(`reply-input-${commentId}`);
-    const text = input.value;
-    if(!text) return;
-    const myName = localStorage.getItem('hobbyName');
-    const safeName = getSafeName(myName);
-    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
-        const currentXP = xpSnap.val() || 0;
-        addXP(myName, 5);
-        const replyData = { text: text, author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, authorXP: currentXP + 5, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
-        push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
-    });
-}
+window.sendReply = function(postId, commentId) { const input = document.getElementById(`reply-input-${commentId}`); const text = input.value; if(!text) return; const myName = localStorage.getItem('hobbyName'); const safeName = getSafeName(myName); get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => { const currentXP = xpSnap.val() || 0; addXP(myName, 5); const replyData = { text: text, author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, authorXP: currentXP + 5, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 }; push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); }); }); }
 
 function getPostHTML(post, postId) {
     const myName = localStorage.getItem('hobbyName');
@@ -383,8 +290,8 @@ function getPostHTML(post, postId) {
     return `
         <div class="post-card" id="post-card-${postId}">
             <div class="post-header">
-                <div class="avatar-wrapper ${levelClass}" data-author="${post.author}">
-                    <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
+                <div class="avatar-wrapper ${levelClass}" data-author="${post.author}" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
+                    <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy">
                 </div>
                 <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
                     <h4>${post.author}</h4>
@@ -468,8 +375,19 @@ let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
     if(window.innerWidth <= 768) { if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; }
-    document.getElementById('chatHeaderName').innerText = user.name;
-    document.getElementById('chatHeaderImg').src = user.img || DEFAULT_IMG;
+    
+    // 🔥 تفعيل الانتقال للبروفايل من هيدر المحادثة 🔥
+    const headerName = document.getElementById('chatHeaderName');
+    const headerImg = document.getElementById('chatHeaderImg');
+    
+    headerName.innerText = user.name;
+    headerImg.src = user.img || DEFAULT_IMG;
+    
+    // جعل الهيدر قابل للضغط
+    headerName.onclick = () => visitUserProfile(user.name, user.img || DEFAULT_IMG);
+    headerImg.onclick = () => visitUserProfile(user.name, user.img || DEFAULT_IMG);
+    headerName.style.cursor = 'pointer';
+    headerImg.style.cursor = 'pointer';
     
     // تفعيل الرتب في هيدر المحادثة
     const levelClass = getLevelClass(user.xp || 0);
@@ -517,62 +435,46 @@ window.saveProfileChanges = function() { update(ref(db, `users/${getSafeName(loc
 window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('hobbyName')), target = getSafeName(t); const ref1 = ref(db, `users/${m}/following/${target}`), ref2 = ref(db, `users/${target}/followers/${m}`); get(ref1).then(s => { if(s.exists()){ remove(ref1); remove(ref2); } else { set(ref1, true); set(ref2, true); } }); }
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 
-// 🔥 بروفايل فيو (Profile Logic) المستقر والشامل 🔥
+// 🔥 بروفايل فيو (Profile Logic) الشامل 🔥
 if(document.getElementById('profileContent')) { 
     const v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
     
     if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { 
         const u = s.val()||{}; 
-        // عرض البيانات
         document.getElementById('p-name').innerText = u.name || v.name; 
         document.getElementById('p-img').src = u.img || v.img || DEFAULT_IMG; 
         document.getElementById('p-bio').innerText = u.bio || "لا توجد نبذة"; 
 
-        // تطبيق الرتبة
         const levelClass = getLevelClass(u.xp || 0);
         const imgWrapper = document.getElementById('p-img-wrapper');
         if(imgWrapper) imgWrapper.className = `profile-avatar-large-wrapper ${levelClass}`;
 
-        // إعداد الأزرار والتحكم
-        const d = document.getElementById('profileActionsBtns'); 
-        d.innerHTML = ""; 
+        const d = document.getElementById('profileActionsBtns'); d.innerHTML = ""; 
 
         if(v.name === m) { 
-            // إظهار أزرار التعديل (الاسم، الصورة، النبذة)
             if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; 
             if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; 
             if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; 
-            
             d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; 
         } else { 
-            // إخفاء أزرار التعديل
             if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; 
             if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; 
             if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; 
-            
             d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; 
-            
-            onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { 
-                const b = document.getElementById('followBtn'); 
-                if(b) { 
-                    if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } 
-                    else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } 
-                } 
-            }); 
+            onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); 
         } 
         
         onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); 
         onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
 
-        // عرض المنشورات + العداد
+        // عرض المنشورات
         const postsContainer = document.getElementById('profilePostsContainer');
         if (postsContainer) {
             onValue(postsRef, (postSnap) => {
                 postsContainer.innerHTML = ""; 
                 let count = 0;
                 let userPosts = [];
-                
                 postSnap.forEach(childSnap => {
                     const p = childSnap.val();
                     if(p.author === v.name) { 
@@ -580,10 +482,8 @@ if(document.getElementById('profileContent')) {
                         userPosts.push({ id: childSnap.key, data: p });
                     }
                 });
-
                 const countElem = document.getElementById('p-posts-count');
                 if(countElem) countElem.innerText = count;
-
                 if (userPosts.length > 0) {
                     userPosts.reverse().forEach(item => {
                         postsContainer.innerHTML += getPostHTML(item.data, item.id);
