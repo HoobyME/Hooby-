@@ -1,4 +1,4 @@
-/* --- style.css: النسخة النهائية المصلحة (Fixed Version) --- */
+/* --- style.css: النسخة النهائية الشاملة --- */
 
 :root {
     --primary-color: #4CAF50;
@@ -122,48 +122,55 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 @keyframes fadeIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
 
 /* =========================================================
-   👑 نظام الإطارات (Gamification) - نسخة مصححة
+   👑 نظام الإطارات (Gamification) - نسخة مصححة ونهائية
    ======================================================== */
 
-/* الإطار الصغير (للمنشورات والتعليقات) */
+/* الإطار الصغير (Home Page, Comments, Chat) - دائري 100% */
 .avatar-wrapper {
-    width: 45px; height: 45px; 
-    min-width: 45px; /* يمنع الانضغاط */
-    border-radius: 50%;
-    position: relative; 
+    position: relative;
     display: inline-block;
-    box-sizing: border-box;
-    margin-left: 10px; /* مسافة بسيطة */
+    width: 50px !important;    /* عرض ثابت */
+    height: 50px !important;   /* ارتفاع ثابت */
+    min-width: 50px !important;
+    border-radius: 50% !important;
+    box-sizing: border-box !important;
+    margin-left: 8px;
+    z-index: 1;
 }
 
 .user-avatar-small, .comment-avatar { 
-    width: 100% !important; height: 100% !important; 
-    padding: 2px; background: var(--card-bg); border-radius: 50%; object-fit: cover;
+    width: 100% !important; 
+    height: 100% !important; 
+    padding: 3px !important; 
+    background: var(--card-bg) !important; 
+    border-radius: 50% !important; 
+    object-fit: cover !important;
+    display: block !important;
 }
 
 /* الرتب للإطارات الصغيرة */
-.lvl-bronze { border: 2px solid #cd7f32; }
-.lvl-copper { border: 2px solid #b87333; }
-.lvl-gold { border: 2px solid #ffd700; }
-.lvl-emerald { border: 2px solid #50c878; box-shadow: 0 0 5px #50c878; }
-.lvl-black-glow { border: 2px solid #000; box-shadow: 0 0 8px #000; }
-.lvl-black-green { border: 2px solid #000; box-shadow: 0 0 10px #0f0; }
-.lvl-red-chain { border: 2px dashed #f44336; box-shadow: 0 0 10px #f44336; }
-.lvl-crown-green { border: 2px solid #ffd700; box-shadow: 0 0 15px #0f0; }
-.lvl-max-phoenix { border: 2px solid #ffd700; box-shadow: 0 0 10px #ff5722; }
+.avatar-wrapper.lvl-bronze { border: 2px solid #cd7f32; }
+.avatar-wrapper.lvl-copper { border: 2px solid #b87333; }
+.avatar-wrapper.lvl-gold { border: 2px solid #ffd700; }
+.avatar-wrapper.lvl-emerald { border: 2px solid #50c878; box-shadow: 0 0 5px #50c878; }
+.avatar-wrapper.lvl-black-glow { border: 2px solid #000; box-shadow: 0 0 8px #000; }
+.avatar-wrapper.lvl-black-green { border: 2px solid #000; box-shadow: 0 0 10px #0f0; }
+.avatar-wrapper.lvl-red-chain { border: 2px dashed #f44336; box-shadow: 0 0 10px #f44336; }
+.avatar-wrapper.lvl-crown-green { border: 2px solid #ffd700; box-shadow: 0 0 15px #0f0; }
+.avatar-wrapper.lvl-max-phoenix { border: 2px solid #ffd700; box-shadow: 0 0 10px #ff5722; }
+
 
 /* 🚨 إصلاح البروفايل (Profile Fixes) 🚨 */
 
-/* خلفية الغلاف */
-/* --- تنسيقات الغلاف (Banner) --- */
+/* خلفية الغلاف (Banner) */
 .profile-header-bg {
-    height: 160px !important;
+    height: 150px !important;
     width: 100% !important;
-    background: linear-gradient(135deg, #009688, #2196F3); /* لون احتياطي */
+    background: linear-gradient(135deg, #009688, #2196F3) !important;
     border-bottom-left-radius: 30px;
     border-bottom-right-radius: 30px;
     position: relative;
-    overflow: hidden; /* مهم لقص الصورة الزائدة */
+    overflow: hidden; /* لقص الصورة الزائدة */
     z-index: 1;
     margin-bottom: 0 !important;
 }
@@ -172,21 +179,21 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .cover-img-element {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* لضمان ملء المساحة بشكل جميل */
-    display: none; /* مخفية افتراضياً حتى يتم تحميلها */
+    object-fit: cover;
+    display: none;
 }
 
 /* زر تعديل الغلاف */
 .edit-cover-btn {
     position: absolute;
     top: 15px;
-    left: 15px; /* وضعناها في اليسار */
+    left: 15px;
     background: rgba(0, 0, 0, 0.5);
     color: white;
     width: 35px;
     height: 35px;
     border-radius: 50%;
-    display: none; /* يظهر فقط لصاحب الحساب */
+    display: none;
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -194,26 +201,24 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     border: 1px solid rgba(255,255,255,0.3);
     z-index: 20;
 }
-.edit-cover-btn:hover {
-    background: rgba(0, 0, 0, 0.8);
-}
 
-/* حاوية المعلومات */
+/* حاوية المعلومات (لرفع الصورة فوق الغلاف) */
 .profile-info-container {
     position: relative;
     z-index: 5;
-    margin-top: -75px !important; /* لرفع الصورة للمنتصف */
+    margin-top: -75px !important;
     text-align: center;
     padding: 0 15px;
 }
 
-/* إطار الصورة الكبير في البروفايل */
+/* إطار الصورة الكبير في البروفايل (تصحيح الفوضى) */
 .profile-avatar-large-wrapper {
     width: 130px !important;
     height: 130px !important;
-    min-width: 130px !important; /* يمنع التمدد */
+    min-width: 130px !important;
+    max-width: 130px !important;
     border-radius: 50% !important;
-    margin: 0 auto 10px auto !important; /* توسيط */
+    margin: 0 auto 10px auto !important;
     background: var(--card-bg);
     display: flex !important;
     align-items: center;
@@ -239,7 +244,7 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .profile-avatar-large-wrapper.lvl-red-chain { border: 5px dashed #f44336; box-shadow: 0 0 20px #f44336; }
 .profile-avatar-large-wrapper.lvl-crown-green { border: 5px solid #ffd700; box-shadow: 0 0 25px #0f0; }
 
-/* رتبة الماكس (تعديل خاص لمنع الفوضى) */
+/* رتبة الماكس (تعديل خاص) */
 .profile-avatar-large-wrapper.lvl-max-phoenix {
     border: 5px solid #ffd700 !important;
     box-shadow: 0 0 25px #ff5722 !important;
@@ -267,3 +272,11 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     font-weight: bold;
 }
 
+/* أزرار التعديل الصغيرة */
+.edit-icon-btn {
+    cursor: pointer;
+    color: var(--primary-color);
+    margin-right: 5px;
+    font-size: 14px;
+    display: none;
+}
