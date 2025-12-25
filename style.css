@@ -1,4 +1,4 @@
-/* --- style.css: النسخة الكاملة (مع إطارات المستويات المتقدمة) --- */
+/* --- style.css: النسخة النهائية الكاملة --- */
 
 :root {
     --primary-color: #4CAF50;
@@ -27,6 +27,8 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .nav-item-add { background: var(--primary-color); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-top: -25px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 4px solid var(--bg-color); cursor: pointer; }
 .notification-badge { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; background-color: #f44336; border-radius: 50%; border: 2px solid var(--card-bg); display: none; }
 .notification-badge.active { display: block; }
+
+/* القائمة الجانبية */
 .sidebar { position: fixed; top: 0; right: -280px; width: 250px; height: 100%; background: var(--card-bg); box-shadow: -2px 0 10px rgba(0,0,0,0.1); z-index: 2000; transition: 0.3s ease; padding-top: 20px; display: flex; flex-direction: column; }
 .sidebar.active { right: 0; }
 .close-sidebar-btn { align-self: flex-end; margin: 0 20px 20px; font-size: 24px; cursor: pointer; color: var(--text-color); }
@@ -74,7 +76,13 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(0,0,0,0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* --- 🟢 تصميم التعليقات العصري --- */
+/* --- مؤشر الحالة --- */
+.user-status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+.status-online { background-color: #4CAF50; box-shadow: 0 0 5px #4CAF50; }
+.status-offline { background-color: #ccc; }
+.status-text { font-size: 11px; color: var(--text-sub); }
+
+/* --- تصميم التعليقات العصري --- */
 .comments-section { display: none; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
 .comments-section.active { display: block; }
 .comment-input-area { background: var(--input-bg); border-radius: 25px; padding: 5px 10px; display: flex; align-items: center; border: 1px solid transparent; transition: 0.3s; margin-top: 10px; }
@@ -105,103 +113,63 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
    👑 نظام الإطارات والمستويات (Gamification) 👑
    ======================================================== */
 
-/* --- تصحيح أحجام الصور (Fix Avatar Sizes) --- */
-.avatar-wrapper {
-    position: relative;
-    display: inline-block;
-    border-radius: 50%; /* مهم جداً لكي يكون الإطار دائرياً */
-}
+.avatar-wrapper { position: relative; display: inline-block; border-radius: 50%; }
 
-/* تصغير صورة المنشورات والتعليقات */
+/* تصحيح حجم الصورة داخل الإطار */
 .user-avatar-small, .comment-avatar { 
-    width: 40px !important; 
-    height: 40px !important; 
-    padding: 2px;
-    background: white;
-    border-radius: 50%;
-    object-fit: cover;
-    box-sizing: border-box; /* لضمان عدم زيادة الحجم */
+    width: 40px !important; height: 40px !important; 
+    padding: 2px; background: white; border-radius: 50%; object-fit: cover; box-sizing: border-box;
 }
 
-/* --- تخصيص الإطارات للصورة الكبيرة في البروفايل --- */
+/* الرتب للإطارات الصغيرة */
+.lvl-bronze { border: 2px solid #cd7f32; }
+.lvl-copper { border: 2px solid #b87333; }
+.lvl-gold { border: 2px solid #ffd700; }
+.lvl-emerald { border: 2px solid #50c878; box-shadow: 0 0 5px #50c878; }
+.lvl-black-glow { border: 2px solid #000; box-shadow: 0 0 8px #000; }
+.lvl-black-green { border: 2px solid #000; box-shadow: 0 0 10px #0f0; }
+.lvl-red-chain { border: 2px dashed #f44336; box-shadow: 0 0 10px #f44336; }
+.lvl-crown-green { border: 2px solid #ffd700; box-shadow: 0 0 15px #0f0; }
+.lvl-max-phoenix { border: 2px solid #ffd700; box-shadow: 0 0 20px #ff5722; }
+
+/* 👑 الإطار الكبير (للبروفايل) - دائرة مثالية 👑 */
 .profile-avatar-large-wrapper {
-    display: inline-block;
+    width: 120px; height: 120px; /* أبعاد ثابتة = دائرة */
     border-radius: 50%;
-    margin-top: -50px; /* لرفع الصورة فوق الغلاف */
+    margin: -60px auto 10px auto; 
     position: relative;
     background: var(--card-bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5; box-sizing: border-box;
 }
 
 .profile-avatar-large {
-    width: 100px !important;
-    height: 100px !important;
-    border-radius: 50%;
-    object-fit: cover;
-    padding: 3px; /* مسافة بين الصورة والإطار */
-    background: var(--card-bg);
+    width: 100% !important; height: 100% !important;
+    border-radius: 50%; object-fit: cover;
+    padding: 4px; background: var(--card-bg);
 }
 
-/* تطبيق ألوان الرتب على صورة البروفايل الكبيرة */
-.profile-avatar-large-wrapper.lvl-bronze { border: 5px solid #cd7f32; }
-.profile-avatar-large-wrapper.lvl-copper { border: 5px solid #b87333; }
-.profile-avatar-large-wrapper.lvl-gold { border: 5px solid #ffd700; }
-.profile-avatar-large-wrapper.lvl-emerald { border: 5px solid #50c878; box-shadow: 0 0 15px #50c878; }
-.profile-avatar-large-wrapper.lvl-black-glow { border: 5px solid #000; box-shadow: 0 0 15px #000; }
-.profile-avatar-large-wrapper.lvl-black-green { border: 5px solid #000; box-shadow: 0 0 20px #0f0; }
-.profile-avatar-large-wrapper.lvl-red-chain { border: 5px dashed #f44336; box-shadow: 0 0 20px #f44336; }
+/* الرتب للإطار الكبير */
+.profile-avatar-large-wrapper.lvl-bronze { border: 4px solid #cd7f32; }
+.profile-avatar-large-wrapper.lvl-copper { border: 4px solid #b87333; }
+.profile-avatar-large-wrapper.lvl-gold { border: 4px solid #ffd700; }
+.profile-avatar-large-wrapper.lvl-emerald { border: 4px solid #50c878; box-shadow: 0 0 15px #50c878; }
+.profile-avatar-large-wrapper.lvl-black-glow { border: 4px solid #000; box-shadow: 0 0 15px #000; }
+.profile-avatar-large-wrapper.lvl-black-green { border: 4px solid #000; box-shadow: 0 0 20px #0f0; }
+.profile-avatar-large-wrapper.lvl-red-chain { border: 4px dashed #f44336; box-shadow: 0 0 20px #f44336; }
+.profile-avatar-large-wrapper.lvl-crown-green { border: 4px solid #ffd700; box-shadow: 0 0 25px #0f0; }
+.profile-avatar-large-wrapper.lvl-max-phoenix { border: 4px solid #ffd700; box-shadow: 0 0 30px #ff5722; }
 
-/* التاج للصورة الكبيرة (يحتاج تعديل الموقع) */
-.profile-avatar-large-wrapper.lvl-crown-green { border: 5px solid #ffd700; box-shadow: 0 0 25px #0f0; }
-.profile-avatar-large-wrapper.lvl-crown-green::after { top: -30px; font-size: 30px; }
-
-.profile-avatar-large-wrapper.lvl-max-phoenix { border: 5px solid #ffd700; box-shadow: 0 0 30px #ff5722; }
-.profile-avatar-large-wrapper.lvl-max-phoenix::after { top: -35px; font-size: 35px; }
-
-
-/* 1. البرونزي (0 - 999) */
-.lvl-bronze { border: 3px solid #cd7f32; }
-
-/* 2. النحاسي (1000 - 2999) */
-.lvl-copper { border: 3px solid #b87333; }
-
-/* 3. الذهبي (3000 - 4999) */
-.lvl-gold { border: 3px solid #ffd700; }
-
-/* 4. الزمردي الأخضر (5000 - 7999) */
-.lvl-emerald { border: 3px solid #50c878; box-shadow: 0 0 5px #50c878; }
-
-/* 5. الأسود المتوهج (8000 - 9999) */
-.lvl-black-glow { border: 3px solid #000; box-shadow: 0 0 8px #000; }
-
-/* 6. الأسود مع وهج أخضر (10000 - 13999) */
-.lvl-black-green { border: 3px solid #000; box-shadow: 0 0 10px #0f0; }
-
-/* 7. سلسلة حمراء متوهجة (14000 - 16999) */
-.lvl-red-chain { border: 3px dashed #f44336; box-shadow: 0 0 10px #f44336; animation: pulseRed 2s infinite; }
-@keyframes pulseRed { 0% { box-shadow: 0 0 5px #f44336; } 50% { box-shadow: 0 0 15px #f44336; } 100% { box-shadow: 0 0 5px #f44336; } }
-
-/* 8. تاج ذهبي متوهج بالأخضر (17000 - 19999) */
-.lvl-crown-green { border: 3px solid #ffd700; box-shadow: 0 0 15px #0f0; position: relative; }
-/* إضافة التاج كأيقونة */
-.lvl-crown-green::after {
-    content: '👑'; position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
-    font-size: 16px; text-shadow: 0 0 5px #0f0; z-index: 10;
+/* التيجان والأجنحة */
+.profile-avatar-large-wrapper.lvl-crown-green::after {
+    content: '👑'; position: absolute; top: -35px; left: 50%; transform: translateX(-50%);
+    font-size: 30px; text-shadow: 0 0 5px #0f0; z-index: 10;
 }
-
-/* 9. ماكس - تاج وجناحي عنقاء (20000+) */
-.lvl-max-phoenix { 
-    border: 3px solid #ffd700; 
-    box-shadow: 0 0 20px #ff5722, 0 0 40px #ffc107; /* وهج ناري */
-    position: relative;
+.profile-avatar-large-wrapper.lvl-max-phoenix::after {
+    content: '👑'; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+    font-size: 35px; text-shadow: 0 0 10px #ff5722; z-index: 10;
 }
-.lvl-max-phoenix::after {
-    content: '👑'; position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
-    font-size: 20px; text-shadow: 0 0 10px #ff5722; z-index: 10;
+.profile-avatar-large-wrapper.lvl-max-phoenix::before {
+    content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+    border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 30px #ff9800; z-index: 1; pointer-events: none;
 }
-/* الجناحين (محاكاة بالظل والمحتوى) */
-.lvl-max-phoenix::before {
-    content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
-    border-radius: 50%; border: 2px solid transparent;
-    box-shadow: inset 0 0 20px #ff9800; z-index: 1; pointer-events: none;
-}
-
