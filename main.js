@@ -1,18 +1,18 @@
-/* --- main.js: النسخة الكاملة النهائية --- */
+/* --- main.js: النسخة الكاملة النهائية (رتب + عداد منشورات + إطارات دائرية) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Bunny
+// إعدادات Bunny CDN & Stream
 const BUNNY_STORAGE_NAME = "hooby"; 
 const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; 
 const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; 
 
-// إعدادات Bunny Stream
 const STREAM_LIB_ID = "569937";
 const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
 
+// إعدادات Firebase (مع المفتاح الجديد المقيد)
 const firebaseConfig = {
   apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -33,7 +33,9 @@ const usersRef = ref(db, 'users');
 const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
-// --- التحقق والأمان ---
+// =========================================================
+// 🔐 التحقق والأمان
+// =========================================================
 function checkAuth() {
     const path = window.location.href;
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
@@ -106,7 +108,7 @@ function addXP(userId, amount) {
 }
 
 // =========================================================
-// 🚀 وظائف الرفع
+// 🚀 وظائف الرفع المتقدمة
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -462,7 +464,7 @@ window.startChat = function(user) {
     document.getElementById('chatHeaderName').innerText = user.name;
     document.getElementById('chatHeaderImg').src = user.img || DEFAULT_IMG;
     
-    // 🔥 تفعيل الرتب في هيدر المحادثة 🔥
+    // تفعيل الرتب في هيدر المحادثة
     const levelClass = getLevelClass(user.xp || 0);
     const headerImgWrapper = document.getElementById('chatHeaderImgWrapper');
     if(headerImgWrapper) {
@@ -508,7 +510,7 @@ window.saveProfileChanges = function() { update(ref(db, `users/${getSafeName(loc
 window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('hobbyName')), target = getSafeName(t); const ref1 = ref(db, `users/${m}/following/${target}`), ref2 = ref(db, `users/${target}/followers/${m}`); get(ref1).then(s => { if(s.exists()){ remove(ref1); remove(ref2); } else { set(ref1, true); set(ref2, true); } }); }
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 
-// 🔥 هذا هو الجزء المهم الذي يبحث عنه الكود (profileContent Logic) 🔥
+// 🔥 بروفايل فيو (Profile Logic) مع عداد المنشورات 🔥
 if(document.getElementById('profileContent')) { 
     const v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
@@ -519,14 +521,24 @@ if(document.getElementById('profileContent')) {
         document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; 
         document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; 
         
-        // 🔥 تطبيق الرتبة على صورة البروفايل الكبيرة 🔥
+        // تطبيق الرتبة
         const levelClass = getLevelClass(u.xp || 0);
         const imgWrapper = document.getElementById('p-img-wrapper');
         if(imgWrapper) {
             imgWrapper.className = `profile-avatar-large-wrapper ${levelClass}`;
         }
 
-        const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
+        const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } 
+        onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); 
+        onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
+
+        // 🔥 عداد المنشورات (تمت إضافته هنا) 🔥
+        onValue(postsRef, (postSnap) => {
+            let count = 0;
+            postSnap.forEach(p => { if(p.val().author === v.name) count++; });
+            const countElem = document.getElementById('p-posts-count');
+            if(countElem) countElem.innerText = count;
+        });
     }); 
 }
 
