@@ -6,44 +6,6 @@
     <title>هوبي - الملف الشخصي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <style>
-       <div class="profile-header-bg">
-            <img id="profile-cover-img" src="" class="cover-img-element">
-            
-            <div id="edit-cover-icon" class="edit-cover-btn" onclick="triggerCoverUpload()">
-                <i class="fas fa-camera"></i>
-            </div>
-        </div>
-
-        <input type="file" id="coverImgInput" accept="image/*" style="display:none;" onchange="uploadNewCoverImg()">
-        .profile-info-container {
-            text-align: center;
-            padding: 0 20px;
-            position: relative;
-        }
-        .stats-row {
-            display: flex; justify-content: center; gap: 40px; margin: 20px 0; color: var(--text-sub);
-        }
-        .stat-value { font-weight: bold; font-size: 20px; color: var(--text-color); display: block; }
-        .stat-label { font-size: 13px; }
-        .posts-header-title {
-            padding: 15px 20px;
-            margin: 0;
-            font-size: 18px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--card-bg);
-            color: var(--text-color);
-            font-weight: bold;
-        }
-        /* تنسيق أزرار التعديل */
-        .edit-icon-btn {
-            cursor: pointer;
-            color: var(--primary-color);
-            margin-right: 5px;
-            font-size: 14px;
-            display: none; /* مخفي افتراضياً ويظهر بالكود */
-        }
-    </style>
 </head>
 <body>
 
@@ -79,7 +41,7 @@
                 <i id="edit-bio-icon" class="fas fa-pen edit-icon-btn" onclick="openEditModal('bio')"></i>
             </p>
 
-            <div class="stats-row">
+            <div class="stats-row" style="display: flex; justify-content: center; gap: 40px; margin: 20px 0; color: var(--text-sub);">
                 <div class="stat-item"><span class="stat-value" id="p-posts-count">0</span><span class="stat-label">منشورات</span></div>
                 <div class="stat-item"><span class="stat-value" id="p-followers-count">0</span><span class="stat-label">متابعون</span></div>
                 <div class="stat-item"><span class="stat-value" id="p-following-count">0</span><span class="stat-label">يتابع</span></div>
@@ -126,4 +88,3 @@
     <script type="module" src="main.js"></script>
 </body>
 </html>
-
