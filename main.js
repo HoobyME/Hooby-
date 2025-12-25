@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الشاملة (مع إصلاح البروفايل والرتب) --- */
+/* --- main.js: النسخة الكاملة النهائية --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
