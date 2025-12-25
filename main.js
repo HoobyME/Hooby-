@@ -492,10 +492,27 @@ if (document.getElementById('usersList')) {
 let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
-    if(window.innerWidth <= 768) { if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; }
+    // التحويل للشاشة الصغيرة
+    if(window.innerWidth <= 768) { 
+        if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; 
+        if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; 
+    }
+    
     document.getElementById('chatHeaderName').innerText = user.name;
     document.getElementById('chatHeaderImg').src = user.img || DEFAULT_IMG;
+
+    // 🔥 تطبيق الرتبة على صورة الهيدر في المحادثة 🔥
+    const levelClass = getLevelClass(user.xp || 0);
+    const headerImgWrapper = document.getElementById('chatHeaderImgWrapper');
+    if(headerImgWrapper) {
+        headerImgWrapper.className = `avatar-wrapper ${levelClass}`;
+        // تصحيح بسيط لحجم الصورة في الهيدر
+        document.getElementById('chatHeaderImg').classList.add('user-avatar-small');
+    }
+
     if(document.getElementById('inputArea')) document.getElementById('inputArea').style.display = 'flex';
+    
+    // تحميل الرسائل... (باقي الكود كما هو)
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
     const msgContainer = document.getElementById('chatMessages'); msgContainer.innerHTML = "";
     onChildAdded(query(ref(db, 'chats/' + chatId), limitToLast(50)), (s) => {
@@ -556,3 +573,4 @@ window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 if(document.getElementById('profileContent')) { const v = JSON.parse(localStorage.getItem('viewingProfile')), m = localStorage.getItem('hobbyName'); if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { const u = s.val()||{}; document.getElementById('p-name').innerText = u.name||v.name; document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); }); }
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
