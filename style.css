@@ -155,15 +155,47 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 /* 🚨 إصلاح البروفايل (Profile Fixes) 🚨 */
 
 /* خلفية الغلاف */
+/* --- تنسيقات الغلاف (Banner) --- */
 .profile-header-bg {
-    height: 150px !important;
+    height: 160px !important;
     width: 100% !important;
-    background: linear-gradient(135deg, #009688, #2196F3) !important;
+    background: linear-gradient(135deg, #009688, #2196F3); /* لون احتياطي */
     border-bottom-left-radius: 30px;
     border-bottom-right-radius: 30px;
     position: relative;
+    overflow: hidden; /* مهم لقص الصورة الزائدة */
     z-index: 1;
     margin-bottom: 0 !important;
+}
+
+/* صورة الغلاف */
+.cover-img-element {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* لضمان ملء المساحة بشكل جميل */
+    display: none; /* مخفية افتراضياً حتى يتم تحميلها */
+}
+
+/* زر تعديل الغلاف */
+.edit-cover-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px; /* وضعناها في اليسار */
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: none; /* يظهر فقط لصاحب الحساب */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.3);
+    z-index: 20;
+}
+.edit-cover-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
 }
 
 /* حاوية المعلومات */
@@ -234,3 +266,4 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     color: var(--text-color);
     font-weight: bold;
 }
+
