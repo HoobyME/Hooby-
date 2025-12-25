@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الشاملة النهائية --- */
+/* --- main.js: النسخة الشاملة (مع نظام الإطارات والمستويات) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -14,7 +14,7 @@ const STREAM_LIB_ID = "569937";
 const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBZXpf8Io3bNdCUypuUXO2yeNNAuBm7cQQ",
+  apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ", // المفتاح الجديد المقيد
   authDomain: "hooby-7d945.firebaseapp.com",
   databaseURL: "https://hooby-7d945-default-rtdb.firebaseio.com",
   projectId: "hooby-7d945",
@@ -80,6 +80,32 @@ function timeAgo(timestamp) {
     if (days < 7) return `منذ ${days} أيام`;
     const date = new Date(timestamp);
     return date.toLocaleDateString('ar-EG');
+}
+
+// =========================================================
+// 🏆 نظام المستويات (XP System) 🏆
+// =========================================================
+
+// دالة لحساب الكلاس (الستايل) بناءً على النقاط
+function getLevelClass(xp) {
+    xp = xp || 0;
+    if (xp >= 20000) return "lvl-max-phoenix";     // تاج + عنقاء
+    if (xp >= 17000) return "lvl-crown-green";     // تاج ذهبي + وهج أخضر
+    if (xp >= 14000) return "lvl-red-chain";       // سلسلة حمراء متوهجة
+    if (xp >= 10000) return "lvl-black-green";     // أسود + وهج أخضر
+    if (xp >= 8000)  return "lvl-black-glow";      // أسود متوهج
+    if (xp >= 5000)  return "lvl-emerald";         // زمردي أخضر
+    if (xp >= 3000)  return "lvl-gold";            // ذهبي
+    if (xp >= 1000)  return "lvl-copper";          // نحاسي
+    return "lvl-bronze";                           // برونزي (الافتراضي)
+}
+
+// دالة لزيادة النقاط
+function addXP(userId, amount) {
+    const userRef = ref(db, 'users/' + getSafeName(userId) + '/xp');
+    runTransaction(userRef, (currentXP) => {
+        return (currentXP || 0) + amount;
+    });
 }
 
 // =========================================================
@@ -149,37 +175,30 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات العصري (Bubble Style + Side Actions)
+// 💬 نظام التعليقات والمنشورات (مع الإطارات)
 // =========================================================
+
 function createCommentHTML(c, commentId, postId, isReply = false) {
     const cSafe = c.author ? c.author.replace(/'/g, "\\'") : "مجهول";
     const cImg = c.authorImg || DEFAULT_IMG;
     const myName = localStorage.getItem('hobbyName');
     
-    // حساب حالة التصويت
     const myVote = (c.votes && c.votes[getSafeName(myName)]) ? c.votes[getSafeName(myName)] : null;
     const likeActive = (myVote === 'like') ? 'active-like' : '';
     const dislikeActive = (myVote === 'dislike') ? 'active-dislike' : '';
-    
-    // تحديد المتغيرات للتصويت بشكل صحيح (للتعليق الأم والرد)
-    // إذا كان رداً، نرسل معرف الأب. إذا كان تعليقاً أصلياً، نرسل null كنص ليتم تجاهله
     const parentIdParam = isReply ? `'${c.parentId}'` : 'null';
 
-    // زر الرد (فقط للتعليق الرئيسي)
-   let replyAction = "";
-    if (!isReply) {
-        // إذا كان تعليق رئيسي -> نفتح الصندوق الخاص به
-        replyAction = `toggleReplyBox('${postId}', '${commentId}')`;
-    } else {
-        // إذا كان رداً فرعياً -> نفتح صندوق الأب ونعمل منشن للشخص
-        replyAction = `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
-    }
-
-    // الزر يظهر الآن دائماً (سواء كان تعليقاً رئيسياً أو فرعياً)
+    let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
+
+    // 🏆 حساب إطار المستوى للتعليق
+    const levelClass = getLevelClass(c.authorXP || 0);
+
     return `
         <div class="comment-item" id="comment-${commentId}">
-            <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
+            <div class="avatar-wrapper ${levelClass}">
+                <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
+            </div>
             
             <div style="flex:1; max-width: 100%;">
                 <div class="comment-bubble">
@@ -189,28 +208,25 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
 
                 <div class="comment-actions-side">
                     <span style="font-size:11px; margin-left:5px;">${timeAgo(c.timestamp)}</span>
-                    
                     <div id="btn-like-${commentId}" class="action-icon-btn ${likeActive}" onclick="voteComment('${postId}', '${commentId}', 'like', ${isReply}, ${parentIdParam})">
                         <i class="far fa-thumbs-up"></i> <span id="likes-${commentId}" style="font-size:11px;">${c.likesCount || 0}</span>
                     </div>
-                    
                     <div id="btn-dislike-${commentId}" class="action-icon-btn ${dislikeActive}" onclick="voteComment('${postId}', '${commentId}', 'dislike', ${isReply}, ${parentIdParam})">
                         <i class="far fa-thumbs-down"></i> <span id="dislikes-${commentId}" style="font-size:11px;">${c.dislikesCount || 0}</span>
                     </div>
-                    
                     ${replyBtn}
                 </div>
 
+                ${!isReply ? `
                 <div id="reply-box-${commentId}" class="reply-input-box">
                     <input type="text" id="reply-input-${commentId}" class="reply-field" placeholder="اكتب رداً...">
                     <button onclick="sendReply('${postId}', '${commentId}')" class="send-comment-btn" style="width:30px; height:30px;"><i class="fas fa-paper-plane"></i></button>
                 </div>
-
                 <div id="show-replies-btn-${commentId}" class="show-replies-btn" style="display:none;" onclick="toggleReplies('${commentId}')">
                     <span>عرض الردود</span> <i class="fas fa-chevron-down"></i>
                 </div>
-
                 <div id="replies-wrapper-${commentId}" class="replies-wrapper"></div>
+                ` : ''}
             </div>
         </div>
     `;
@@ -218,90 +234,64 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
 
 function loadCommentsForPost(postId) {
     const commentsRef = ref(db, `posts/${postId}/comments`);
-    
     onChildAdded(commentsRef, (snap) => {
         const c = snap.val();
-        const commentId = snap.key;
         const list = document.getElementById(`comments-list-${postId}`);
-        
         if(list) {
-            list.insertAdjacentHTML('beforeend', createCommentHTML(c, commentId, postId));
-            
-            // الاستماع للردود وتحديث الزر
-            const repliesRef = ref(db, `posts/${postId}/comments/${commentId}/replies`);
+            list.insertAdjacentHTML('beforeend', createCommentHTML(c, snap.key, postId));
+            const repliesRef = ref(db, `posts/${postId}/comments/${snap.key}/replies`);
             onValue(repliesRef, (rSnap) => {
                 const repliesCount = rSnap.size;
-                const btn = document.getElementById(`show-replies-btn-${commentId}`);
-                const wrapper = document.getElementById(`replies-wrapper-${commentId}`);
-                
+                const btn = document.getElementById(`show-replies-btn-${snap.key}`);
+                const wrapper = document.getElementById(`replies-wrapper-${snap.key}`);
                 if (btn && repliesCount > 0) {
                     btn.style.display = 'flex';
                     btn.querySelector('span').innerText = `عرض ${repliesCount} ردود`;
                     wrapper.innerHTML = "";
                     rSnap.forEach((childSnap) => {
                         const r = childSnap.val();
-                        r.parentId = commentId;
+                        r.parentId = snap.key;
                         wrapper.insertAdjacentHTML('beforeend', createCommentHTML(r, childSnap.key, postId, true));
                     });
-                } else if (btn) {
-                    btn.style.display = 'none';
-                }
+                } else if (btn) { btn.style.display = 'none'; }
             });
         }
     });
 }
+
 window.voteComment = function(postId, commentId, type, isReply, parentId) {
     const myName = getSafeName(localStorage.getItem('hobbyName'));
-    
-    // تحديد المسار الصحيح سواء كان تعليق أم أو رد
     let path = `posts/${postId}/comments/${commentId}`;
-    if(isReply && parentId) {
-        path = `posts/${postId}/comments/${parentId}/replies/${commentId}`;
-    }
+    if(isReply && parentId) path = `posts/${postId}/comments/${parentId}/replies/${commentId}`;
 
     runTransaction(ref(db, path), (comment) => {
         if (comment) {
             if (!comment.votes) comment.votes = {};
             if (!comment.likesCount) comment.likesCount = 0;
             if (!comment.dislikesCount) comment.dislikesCount = 0;
-
             const currentVote = comment.votes[myName];
-
             if (currentVote === type) {
-                // إزالة التصويت
-                if(type === 'like') comment.likesCount--;
-                else comment.dislikesCount--;
+                if(type === 'like') comment.likesCount--; else comment.dislikesCount--;
                 comment.votes[myName] = null;
             } else {
-                // تغيير التصويت
                 if (currentVote === 'like') comment.likesCount--;
                 if (currentVote === 'dislike') comment.dislikesCount--;
-
-                if (type === 'like') comment.likesCount++;
-                else comment.dislikesCount++;
+                if (type === 'like') comment.likesCount++; else comment.dislikesCount++;
                 comment.votes[myName] = type;
             }
         }
         return comment;
     }).then((result) => {
-        // تحديث الواجهة فوراً (Optimistic UI Update)
         if (result.snapshot.exists()) {
             const data = result.snapshot.val();
-            // تحديث الأرقام
             const likeSpan = document.getElementById(`likes-${commentId}`);
             const dislikeSpan = document.getElementById(`dislikes-${commentId}`);
             if(likeSpan) likeSpan.innerText = data.likesCount || 0;
             if(dislikeSpan) dislikeSpan.innerText = data.dislikesCount || 0;
-
-            // تحديث الألوان
             const likeBtn = document.getElementById(`btn-like-${commentId}`);
             const dislikeBtn = document.getElementById(`btn-dislike-${commentId}`);
-            
-            // تصفير الألوان
             if(likeBtn) likeBtn.classList.remove('active-like');
             if(dislikeBtn) dislikeBtn.classList.remove('active-dislike');
-
-            // تلوين الزر المختار
             const myVote = data.votes ? data.votes[myName] : null;
             if (myVote === 'like' && likeBtn) likeBtn.classList.add('active-like');
             if (myVote === 'dislike' && dislikeBtn) dislikeBtn.classList.add('active-dislike');
@@ -309,39 +299,35 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
     });
 }
 
-window.toggleReplyBox = function(postId, commentId) {
-    const box = document.getElementById(`reply-box-${commentId}`);
-    if(box) box.classList.toggle('active');
-}
-// دالة الرد على الرد (المنشن)
-window.prepareReplyToReply = function(postId, parentId, authorName) {
-    // 1. فتح صندوق الرد الخاص بالتعليق الأب
-    const box = document.getElementById(`reply-box-${parentId}`);
-    if(box) {
-        box.classList.add('active'); // إجبار الصندوق على الفتح
-        
-        // 2. وضع اسم الشخص في الحقل (منشن)
-        const input = document.getElementById(`reply-input-${parentId}`);
-        if(input) {
-            input.value = `@${authorName} `; // إضافة الاسم مع مسافة
-            input.focus(); // وضع المؤشر للكتابة فوراً
-        }
-    }
-}
+window.toggleReplyBox = function(postId, commentId) { const box = document.getElementById(`reply-box-${commentId}`); if(box) box.classList.toggle('active'); }
+window.prepareReplyToReply = function(postId, parentId, authorName) { const box = document.getElementById(`reply-box-${parentId}`); if(box) { box.classList.add('active'); const input = document.getElementById(`reply-input-${parentId}`); if(input) { input.value = `@${authorName} `; input.focus(); } } }
+
+// ✅ تحديث دالة إرسال الرد لتشمل الـ XP
 window.sendReply = function(postId, commentId) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
     if(!text) return;
-    const replyData = { text: text, author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
-    push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
-}
+    
+    // جلب الـ XP الحالي للمستخدم من قاعدة البيانات (لتخزينه مع الرد)
+    const myName = localStorage.getItem('hobbyName');
+    const safeName = getSafeName(myName);
+    
+    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
+        const currentXP = xpSnap.val() || 0;
+        
+        // زيادة نقاطي +5
+        addXP(myName, 5);
 
-window.toggleReplies = function(commentId) {
-    const wrapper = document.getElementById(`replies-wrapper-${commentId}`);
-    const btn = document.getElementById(`show-replies-btn-${commentId}`);
-    const icon = btn.querySelector('i');
-    if (wrapper.classList.contains('open')) { wrapper.classList.remove('open'); icon.className = "fas fa-chevron-down"; } 
-    else { wrapper.classList.add('open'); icon.className = "fas fa-chevron-up"; }
+        const replyData = { 
+            text: text, 
+            author: myName, 
+            authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, 
+            authorXP: currentXP + 5, // نحفظ النقاط الجديدة
+            timestamp: serverTimestamp(), 
+            likesCount: 0, dislikesCount: 0 
+        };
+        push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
+    });
 }
 
 // =========================================================
@@ -370,10 +356,15 @@ function getPostHTML(post, postId) {
     }
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
 
+    // 🏆 حساب إطار المستوى للمنشور
+    const levelClass = getLevelClass(post.authorXP || 0);
+
     return `
         <div class="post-card" id="post-card-${postId}">
             <div class="post-header">
-                <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
+                <div class="avatar-wrapper ${levelClass}">
+                    <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
+                </div>
                 <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
                     <h4>${post.author}</h4>
                     <span>${timeString}</span>
@@ -435,7 +426,7 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- الوظائف العامة ---
+// --- ✅ تعديل دالة النشر لتشمل الـ XP ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -450,14 +441,27 @@ window.saveNewPost = async function() {
         else { alert("نوع الملف غير مدعوم"); hideProgressBar(); if(btn) btn.disabled=false; return; }
         if (!fileUrl) { alert("فشل الرفع"); hideProgressBar(); if(btn) btn.disabled=false; return; }
     }
-    push(postsRef, {
-        title: title || "بدون عنوان", content: content || "", postImg: fileUrl,
-        author: localStorage.getItem('hobbyName'), authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
-        timestamp: serverTimestamp(), likes: 0
-    }).then(() => { hideProgressBar(); alert("✅ تم النشر!"); window.closeAddPost(); location.reload(); });
+    
+    const myName = localStorage.getItem('hobbyName');
+    const safeName = getSafeName(myName);
+    
+    // جلب نقاطي الحالية
+    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
+        const currentXP = xpSnap.val() || 0;
+        addXP(myName, 10); // زيادة +10
+        
+        push(postsRef, {
+            title: title || "بدون عنوان", content: content || "", postImg: fileUrl,
+            author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+            authorXP: currentXP + 10, // تخزين النقاط الجديدة
+            timestamp: serverTimestamp(), likes: 0
+        }).then(() => { hideProgressBar(); alert("✅ تم النشر! (+10 نقاط)"); window.closeAddPost(); location.reload(); });
+    });
 }
 
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
+
+// --- ✅ تعديل قائمة المستخدمين لتشمل الإطارات ---
 if (document.getElementById('usersList')) {
     const userListContainer = document.getElementById('usersList');
     userListContainer.innerHTML = ""; 
@@ -468,9 +472,13 @@ if (document.getElementById('usersList')) {
         Object.values(users).forEach(user => {
             if (user.name === myName) return; 
             const isOnline = (Date.now() - (user.lastActive || 0)) < 180000;
+            const levelClass = getLevelClass(user.xp || 0);
+
             userListContainer.innerHTML += `
                 <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                    <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                    <div class="avatar-wrapper ${levelClass}">
+                         <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                    </div>
                     <div class="user-item-info">
                         <h4 style="margin:0;">${user.name}</h4>
                         <div style="display:flex; align-items:center; margin-top:2px;"><span class="user-status-indicator ${isOnline ? "status-online" : "status-offline"}"></span><span class="status-text">${isOnline ? "متصل" : "غير متصل"}</span></div>
@@ -480,6 +488,7 @@ if (document.getElementById('usersList')) {
         });
     });
 }
+
 let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
@@ -510,7 +519,27 @@ window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).cla
 window.hidePost = function(id) { document.getElementById(`post-card-${id}`).style.display='none'; }
 window.deletePost = function(id) { if(confirm("حذف؟")) remove(ref(db, `posts/${id}`)); }
 window.toggleComments = function(id) { document.getElementById(`comments-section-${id}`).classList.toggle('active'); }
-window.sendComment = function(postId, postAuthor) { const t = document.getElementById(`comment-input-${postId}`).value; if(!t) return; push(ref(db, `posts/${postId}/comments`), {text:t, author:localStorage.getItem('hobbyName'), authorImg:localStorage.getItem('hobbyImage')||DEFAULT_IMG, timestamp:serverTimestamp()}); }
+
+// ✅ تحديث دالة التعليق لتشمل XP
+window.sendComment = function(postId, postAuthor) { 
+    const t = document.getElementById(`comment-input-${postId}`).value; 
+    if(!t) return; 
+    
+    const myName = localStorage.getItem('hobbyName');
+    const safeName = getSafeName(myName);
+
+    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
+        const currentXP = xpSnap.val() || 0;
+        addXP(myName, 5); // زيادة +5
+        push(ref(db, `posts/${postId}/comments`), {
+            text:t, 
+            author:myName, 
+            authorImg:localStorage.getItem('hobbyImage')||DEFAULT_IMG, 
+            authorXP: currentXP + 5,
+            timestamp:serverTimestamp()
+        }); 
+    });
+}
 window.toggleMenu = function() { document.getElementById('sidebar').classList.toggle('active'); }
 window.toggleDarkMode = function() { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }
 window.openAddPost = function() { document.getElementById('addPostOverlay').style.display = 'flex'; }
@@ -527,6 +556,3 @@ window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 if(document.getElementById('profileContent')) { const v = JSON.parse(localStorage.getItem('viewingProfile')), m = localStorage.getItem('hobbyName'); if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { const u = s.val()||{}; document.getElementById('p-name').innerText = u.name||v.name; document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); }); }
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
-
-
-
