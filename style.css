@@ -105,14 +105,58 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
    👑 نظام الإطارات والمستويات (Gamification) 👑
    ======================================================== */
 
-.avatar-wrapper { position: relative; display: inline-block; }
+/* --- تصحيح أحجام الصور (Fix Avatar Sizes) --- */
+.avatar-wrapper {
+    position: relative;
+    display: inline-block;
+    border-radius: 50%; /* مهم جداً لكي يكون الإطار دائرياً */
+}
 
-/* الفئات الأساسية للصور */
+/* تصغير صورة المنشورات والتعليقات */
 .user-avatar-small, .comment-avatar { 
-    box-sizing: content-box; /* لضمان ظهور البوردر للخارج */
+    width: 40px !important; 
+    height: 40px !important; 
     padding: 2px;
     background: white;
+    border-radius: 50%;
+    object-fit: cover;
+    box-sizing: border-box; /* لضمان عدم زيادة الحجم */
 }
+
+/* --- تخصيص الإطارات للصورة الكبيرة في البروفايل --- */
+.profile-avatar-large-wrapper {
+    display: inline-block;
+    border-radius: 50%;
+    margin-top: -50px; /* لرفع الصورة فوق الغلاف */
+    position: relative;
+    background: var(--card-bg);
+}
+
+.profile-avatar-large {
+    width: 100px !important;
+    height: 100px !important;
+    border-radius: 50%;
+    object-fit: cover;
+    padding: 3px; /* مسافة بين الصورة والإطار */
+    background: var(--card-bg);
+}
+
+/* تطبيق ألوان الرتب على صورة البروفايل الكبيرة */
+.profile-avatar-large-wrapper.lvl-bronze { border: 5px solid #cd7f32; }
+.profile-avatar-large-wrapper.lvl-copper { border: 5px solid #b87333; }
+.profile-avatar-large-wrapper.lvl-gold { border: 5px solid #ffd700; }
+.profile-avatar-large-wrapper.lvl-emerald { border: 5px solid #50c878; box-shadow: 0 0 15px #50c878; }
+.profile-avatar-large-wrapper.lvl-black-glow { border: 5px solid #000; box-shadow: 0 0 15px #000; }
+.profile-avatar-large-wrapper.lvl-black-green { border: 5px solid #000; box-shadow: 0 0 20px #0f0; }
+.profile-avatar-large-wrapper.lvl-red-chain { border: 5px dashed #f44336; box-shadow: 0 0 20px #f44336; }
+
+/* التاج للصورة الكبيرة (يحتاج تعديل الموقع) */
+.profile-avatar-large-wrapper.lvl-crown-green { border: 5px solid #ffd700; box-shadow: 0 0 25px #0f0; }
+.profile-avatar-large-wrapper.lvl-crown-green::after { top: -30px; font-size: 30px; }
+
+.profile-avatar-large-wrapper.lvl-max-phoenix { border: 5px solid #ffd700; box-shadow: 0 0 30px #ff5722; }
+.profile-avatar-large-wrapper.lvl-max-phoenix::after { top: -35px; font-size: 35px; }
+
 
 /* 1. البرونزي (0 - 999) */
 .lvl-bronze { border: 3px solid #cd7f32; }
@@ -160,3 +204,4 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     border-radius: 50%; border: 2px solid transparent;
     box-shadow: inset 0 0 20px #ff9800; z-index: 1; pointer-events: none;
 }
+
