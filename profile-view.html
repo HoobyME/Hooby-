@@ -3,115 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الملف الشخصي</title>
+    <title>هوبي - الملف الشخصي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        .profile-header { background: var(--card-bg); padding: 30px 20px; text-align: center; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; position: relative; }
-        .avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto 10px auto; }
-        .profile-avatar { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--primary-color); object-fit: cover; }
-        
-        /* أيقونة تعديل الصورة */
-        .edit-icon-img { position: absolute; bottom: 0; left: 0; background: var(--primary-color); color: white; width: 30px; height: 30px; border-radius: 50%; display: none; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); }
-        
-        /* حاويات الاسم والبايو */
-        .profile-name-container, .profile-bio-container { display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .profile-name { font-size: 22px; font-weight: bold; margin: 0; }
-        
-        /* 🔥 أيقونة القلم (للاسم والبايو) 🔥 */
-        .edit-icon-text { color: var(--primary-color); cursor: pointer; font-size: 16px; display: none; /* مخفية افتراضياً وتظهر بالجافاسكربت */ }
-        
-        .profile-bio { color: var(--text-sub); font-size: 14px; margin: 10px auto; max-width: 80%; }
-        .profile-stats { display: flex; justify-content: center; gap: 20px; margin: 15px 0; color: var(--text-sub); font-size: 14px; }
-        .profile-stats span { font-weight: bold; color: var(--text-color); display: block; font-size: 16px; }
-        
-        .profile-actions { display: flex; justify-content: center; gap: 15px; margin-top: 15px; }
-        .action-btn-profile { padding: 8px 25px; border-radius: 20px; border: none; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .btn-follow { background: var(--primary-color); color: white; }
-        .btn-message { background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); }
-
-        /* نافذة تعديل النصوص */
-        .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
-        .edit-modal-content { background: var(--card-bg); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
+        /* تنسيقات خاصة بصفحة البروفايل فقط */
+        .profile-header-bg {
+            height: 150px;
+            background: linear-gradient(45deg, var(--primary-color), #2196F3);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            position: relative;
+        }
+        .profile-info-container {
+            text-align: center;
+            margin-top: -50px; /* لرفع الصورة للأعلى */
+            padding: 0 20px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 15px 0;
+            color: var(--text-sub);
+        }
+        .stat-item { text-align: center; }
+        .stat-value { font-weight: bold; font-size: 18px; color: var(--text-color); display: block; }
+        .stat-label { font-size: 12px; }
+        .bio-text { margin: 10px 0; color: var(--text-sub); font-size: 14px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="brand-area">
-            <a href="home.html" class="icon-btn"><i class="fas fa-arrow-right"></i></a>
-            <span style="margin-right: 10px;">الملف الشخصي</span>
+            <i class="fas fa-arrow-right icon-btn" onclick="history.back()"></i>
+            <span style="margin-right:10px;">الملف الشخصي</span>
         </div>
+        <div onclick="toggleDarkMode()" class="icon-btn"><i class="fas fa-moon"></i></div>
     </div>
 
     <div id="profileContent">
-        <div class="profile-header">
-            <div class="avatar-container">
-             <img src="default.jpg" id="p-img" class="profile-avatar">
-                <div id="edit-img-icon" class="edit-icon-img" onclick="triggerImgUpload()"><i class="fas fa-pen"></i></div>
-            </div>
+        
+        <div class="profile-header-bg"></div>
 
-            <div class="profile-name-container">
-                <h2 id="p-name" class="profile-name">...</h2>
-                <i id="edit-name-icon" class="fas fa-pen edit-icon-text" onclick="editProfileName()"></i>
-            </div>
-
-            <div class="profile-bio-container">
-                <p id="p-bio" class="profile-bio"></p>
-                <i id="edit-bio-icon" class="fas fa-pen edit-icon-text" onclick="openEditModal('bio')"></i>
-            </div>
-
-            <div class="profile-stats">
-                <div><span id="p-posts-count">0</span> منشورات</div>
-                <div><span id="p-followers-count">0</span> متابعين</div>
-                <div><span id="p-following-count">0</span> يتابع</div>
-            </div>
-
-            <div class="profile-actions" id="profileActionsBtns"></div>
-        </div>
-    </div>
-
-    <div id="profilePostsContainer" class="posts-container" style="padding-bottom: 70px;"></div>
-
-    <div id="editProfileModal" class="edit-modal">
-        <div class="edit-modal-content">
-            <h3>تعديل النبذة</h3>
-            <textarea id="editBioInput" class="modal-input" rows="3" style="width:100%; margin:10px 0;"></textarea>
-            <button onclick="saveProfileChanges()" class="action-btn-profile btn-follow">حفظ</button>
-            <button onclick="closeEditModal()" class="action-btn-profile btn-message">إلغاء</button>
-        </div>
-    </div>
-
-    <div id="addPostOverlay" class="overlay">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>منشور جديد</h3>
-                <span class="close-btn" onclick="closeAddPost()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="postTitle" placeholder="عنوان المنشور" class="modal-input">
-                <textarea id="postContent" placeholder="بماذا تفكر؟" class="modal-input" rows="4"></textarea>
-                <img id="imagePreview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin:10px 0;">
-                <div class="modal-actions">
-                    <button class="action-btn" onclick="triggerFileUpload()" style="border:1px solid var(--border-color);"><i class="fas fa-image"></i> صورة</button>
-                 <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
+        <div class="profile-info-container">
+            <div id="p-img-wrapper" class="profile-avatar-large-wrapper">
+                <img id="p-img" src="default.jpg" class="profile-avatar-large">
+                
+                <div id="edit-img-icon" class="edit-icon" onclick="triggerImgUpload()" 
+                     style="position:absolute; bottom:5px; left:5px; background:rgba(0,0,0,0.6); color:white; width:30px; height:30px; border-radius:50%; display:none; align-items:center; justify-content:center; cursor:pointer;">
+                    <i class="fas fa-camera" style="font-size:14px;"></i>
                 </div>
-                <button class="btn-publish" onclick="saveNewPost()">نشر</button>
             </div>
+
+            <div style="margin-top: 10px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                <h2 id="p-name" style="margin:0;">تحميل...</h2>
+                <i id="edit-name-icon" class="fas fa-pen" onclick="editProfileName()" style="font-size:14px; color:var(--text-sub); cursor:pointer; display:none;"></i>
+            </div>
+
+            <p class="bio-text">
+                <span id="p-bio">...</span>
+                <i id="edit-bio-icon" class="fas fa-pen" onclick="openEditModal('bio')" style="font-size:12px; color:var(--primary-color); cursor:pointer; margin-right:5px; display:none;"></i>
+            </p>
+
+            <div class="stats-row">
+                <div class="stat-item"><span class="stat-value" id="p-followers-count">0</span><span class="stat-label">متابعون</span></div>
+                <div class="stat-item"><span class="stat-value" id="p-following-count">0</span><span class="stat-label">يتابع</span></div>
+                </div>
+
+            <div id="profileActionsBtns" class="profile-actions"></div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
+        
+        <h3 style="padding-right:20px; margin-bottom:10px;">المنشورات</h3>
+        <div id="profilePostsContainer" class="posts-container">
+            <p style="text-align:center; color:gray;">جاري تحميل المنشورات...</p>
         </div>
     </div>
+
     <input type="file" id="profileImgInput" accept="image/*" style="display:none;" onchange="uploadNewProfileImg()">
+
+    <div id="editProfileModal" class="overlay">
+        <div class="modal">
+            <div class="modal-header"><h3>تعديل النبذة</h3><span class="close-btn" onclick="closeEditModal()">&times;</span></div>
+            <textarea id="editBioInput" class="modal-input" rows="3"></textarea>
+            <button onclick="saveProfileChanges()" class="btn-publish">حفظ</button>
+        </div>
+    </div>
+    
+    <div id="uploadProgressOverlay" class="progress-overlay">
+        <div class="progress-box">
+            <span class="progress-text" id="progressText">جاري الرفع...</span>
+            <div class="progress-bar-container"><div id="progressBarFill" class="progress-bar-fill"></div></div>
+        </div>
+    </div>
 
     <div class="bottom-nav">
         <a href="home.html" class="nav-item"><i class="fas fa-home"></i></a>
         <a href="notifications.html" class="nav-item"><i class="far fa-bell"></i></a>
-        <div class="nav-item-add" onclick="openAddPost()"><i class="fas fa-plus"></i></div>
-        <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
-        <div class="nav-item active" style="cursor:pointer;" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
+        <div class="nav-item-add" onclick="location.href='home.html'"><i class="fas fa-plus"></i></div> <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
+        <a href="#" class="nav-item active"><i class="fas fa-user"></i></a>
     </div>
 
     <script type="module" src="main.js"></script>
 </body>
 </html>
-
-
