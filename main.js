@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الكاملة النهائية (شاملة الغلاف والرتب والمنشورات) --- */
+/* --- main.js: النسخة المستقرة (بدون بنر، مع جميع الميزات الأخرى) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -33,7 +33,6 @@ const usersRef = ref(db, 'users');
 const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
-// كاش للنقاط (للأداء)
 let userXPCache = {};
 
 // =========================================================
@@ -88,7 +87,7 @@ function timeAgo(timestamp) {
 }
 
 // =========================================================
-// 🏆 نظام المستويات (XP System) 🏆
+// 🏆 نظام المستويات (XP System)
 // =========================================================
 function getLevelClass(xp) {
     xp = xp || 0;
@@ -111,13 +110,13 @@ function addXP(userId, amount) {
 }
 
 // =========================================================
-// 🔄 المزامنة الحية (Live Sync Engine) 🔄
+// 🔄 المزامنة الحية (Live Sync)
 // =========================================================
 onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
 
-    // 1. تحديث قائمة المستخدمين
+    // تحديث قائمة المستخدمين
     const userListContainer = document.getElementById('usersList');
     if (userListContainer) {
         userListContainer.innerHTML = ""; 
@@ -140,7 +139,7 @@ onValue(usersRef, (snapshot) => {
         });
     }
 
-    // 2. تحديث الإطارات في الصفحة الرئيسية فوراً
+    // تحديث الإطارات في الصفحة الرئيسية
     Object.values(users).forEach(user => {
         userXPCache[user.name] = user.xp || 0;
         const newLevelClass = getLevelClass(user.xp || 0);
@@ -152,7 +151,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (شاملة الغلاف)
+// 🚀 وظائف الرفع
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -192,39 +191,6 @@ async function uploadVideoToBunnyStream(file) {
         await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
     } catch (e) { console.error(e); return null; }
-}
-
-// 🔥 دوال رفع الغلاف (Banner)
-window.triggerCoverUpload = function() {
-    document.getElementById('coverImgInput').click();
-}
-
-window.uploadNewCoverImg = async function() {
-    const file = document.getElementById('coverImgInput').files[0];
-    if (file) {
-        const overlay = document.getElementById('uploadProgressOverlay');
-        if(overlay) overlay.style.display = 'flex';
-        try {
-            const url = await uploadToBunny(file);
-            if (url) {
-                const myName = localStorage.getItem('hobbyName');
-                await update(ref(db, `users/${getSafeName(myName)}`), { coverImg: url });
-                const coverImg = document.getElementById('profile-cover-img');
-                if(coverImg) {
-                    coverImg.src = url;
-                    coverImg.style.display = 'block';
-                }
-                alert("تم تحديث الغلاف بنجاح! 🎨");
-            } else {
-                alert("فشل الرفع.");
-            }
-        } catch (error) {
-            console.error(error);
-            alert("حدث خطأ.");
-        } finally {
-            if(overlay) overlay.style.display = 'none';
-        }
-    }
 }
 
 // =========================================================
@@ -267,7 +233,6 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
     
-    // استخدام الكاش للنقاط الحالية
     const currentXP = userXPCache[c.author] !== undefined ? userXPCache[c.author] : (c.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
@@ -412,7 +377,6 @@ function getPostHTML(post, postId) {
     }
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
     
-    // استخدام الكاش للنقاط
     const currentXP = userXPCache[post.author] !== undefined ? userXPCache[post.author] : (post.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
@@ -468,9 +432,7 @@ if (document.getElementById('postsContainer')) {
         if(likeBtn) { if(isLiked) likeBtn.classList.add('active'); else likeBtn.classList.remove('active'); }
     });
 }
-if (document.getElementById('profilePostsContainer')) {
-    // تم نقل المنطق بالكامل للأسفل في دالة profileContent
-}
+if (document.getElementById('profilePostsContainer')) { }
 
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -555,7 +517,7 @@ window.saveProfileChanges = function() { update(ref(db, `users/${getSafeName(loc
 window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('hobbyName')), target = getSafeName(t); const ref1 = ref(db, `users/${m}/following/${target}`), ref2 = ref(db, `users/${target}/followers/${m}`); get(ref1).then(s => { if(s.exists()){ remove(ref1); remove(ref2); } else { set(ref1, true); set(ref2, true); } }); }
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
 
-// 🔥 بروفايل فيو (Profile Logic) الشامل 🔥
+// 🔥 بروفايل فيو (Profile Logic) المستقر والشامل 🔥
 if(document.getElementById('profileContent')) { 
     const v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
@@ -566,15 +528,6 @@ if(document.getElementById('profileContent')) {
         document.getElementById('p-name').innerText = u.name || v.name; 
         document.getElementById('p-img').src = u.img || v.img || DEFAULT_IMG; 
         document.getElementById('p-bio').innerText = u.bio || "لا توجد نبذة"; 
-        
-        // عرض الغلاف (Banner)
-        const coverImgElem = document.getElementById('profile-cover-img');
-        if (u.coverImg) {
-            coverImgElem.src = u.coverImg;
-            coverImgElem.style.display = 'block'; 
-        } else {
-            coverImgElem.style.display = 'none'; 
-        }
 
         // تطبيق الرتبة
         const levelClass = getLevelClass(u.xp || 0);
@@ -586,11 +539,10 @@ if(document.getElementById('profileContent')) {
         d.innerHTML = ""; 
 
         if(v.name === m) { 
-            // إظهار أزرار التعديل
+            // إظهار أزرار التعديل (الاسم، الصورة، النبذة)
             if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; 
             if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; 
             if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; 
-            if(document.getElementById('edit-cover-icon')) document.getElementById('edit-cover-icon').style.display = 'flex'; // زر الغلاف
             
             d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; 
         } else { 
@@ -598,7 +550,6 @@ if(document.getElementById('profileContent')) {
             if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; 
             if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; 
             if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; 
-            if(document.getElementById('edit-cover-icon')) document.getElementById('edit-cover-icon').style.display = 'none'; // زر الغلاف
             
             d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; 
             
