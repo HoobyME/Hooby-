@@ -1,18 +1,17 @@
-/* --- main.js: النسخة الكاملة النهائية (رتب + عداد منشورات + إطارات دائرية) --- */
+/* --- main.js: النسخة المتزامنة (Live Rank Sync) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Bunny CDN & Stream
+// إعدادات Bunny
 const BUNNY_STORAGE_NAME = "hooby"; 
 const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; 
 const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; 
-
 const STREAM_LIB_ID = "569937";
 const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
 
-// إعدادات Firebase (مع المفتاح الجديد المقيد)
+// إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -33,9 +32,10 @@ const usersRef = ref(db, 'users');
 const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
-// =========================================================
-// 🔐 التحقق والأمان
-// =========================================================
+// خريطة لتخزين أحدث النقاط لكل مستخدم (للأداء السريع)
+let userXPCache = {};
+
+// --- التحقق والأمان ---
 function checkAuth() {
     const path = window.location.href;
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
@@ -108,7 +108,55 @@ function addXP(userId, amount) {
 }
 
 // =========================================================
-// 🚀 وظائف الرفع المتقدمة
+// 🔄 المزامنة الحية (Live Sync Engine) 🔄
+// هذا الكود هو المسؤول عن تحديث الإطارات في الصفحة الرئيسية فوراً
+// =========================================================
+onValue(usersRef, (snapshot) => {
+    const users = snapshot.val();
+    if (!users) return;
+
+    // 1. تحديث قائمة المستخدمين (للشات)
+    const userListContainer = document.getElementById('usersList');
+    if (userListContainer) {
+        userListContainer.innerHTML = ""; 
+        const myName = localStorage.getItem('hobbyName');
+        Object.values(users).forEach(user => {
+            if (user.name === myName) return; 
+            const isOnline = (Date.now() - (user.lastActive || 0)) < 180000;
+            const levelClass = getLevelClass(user.xp || 0);
+            userListContainer.innerHTML += `
+                <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                    <div class="avatar-wrapper ${levelClass}">
+                         <img src="${user.img || DEFAULT_IMG}" class="user-avatar-small" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                    </div>
+                    <div class="user-item-info">
+                        <h4 style="margin:0;">${user.name}</h4>
+                        <div style="display:flex; align-items:center; margin-top:2px;"><span class="user-status-indicator ${isOnline ? "status-online" : "status-offline"}"></span><span class="status-text">${isOnline ? "متصل" : "غير متصل"}</span></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // 2. 🔥 التحديث السحري: البحث عن كل الصور في المنشورات وتحديث إطاراتها 🔥
+    Object.values(users).forEach(user => {
+        // نخزن النقاط في الكاش
+        userXPCache[user.name] = user.xp || 0;
+        
+        // نبحث عن كل صورة في الصفحة تخص هذا المستخدم
+        const newLevelClass = getLevelClass(user.xp || 0);
+        
+        // نحدث أي عنصر يحمل السمة data-author="اسم_المستخدم"
+        const elementsToUpdate = document.querySelectorAll(`.avatar-wrapper[data-author="${user.name}"]`);
+        elementsToUpdate.forEach(el => {
+            // نغير الكلاس (الإطار) فوراً
+            el.className = `avatar-wrapper ${newLevelClass}`;
+        });
+    });
+});
+
+// =========================================================
+// 🚀 وظائف الرفع
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -174,7 +222,7 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات
+// 💬 نظام التعليقات والمنشورات (المحدث)
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -189,11 +237,14 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
 
     let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
-    const levelClass = getLevelClass(c.authorXP || 0);
+    
+    // استخدام الكاش إذا توفر، أو القيمة القديمة
+    const currentXP = userXPCache[c.author] !== undefined ? userXPCache[c.author] : (c.authorXP || 0);
+    const levelClass = getLevelClass(currentXP);
 
     return `
         <div class="comment-item" id="comment-${commentId}">
-            <div class="avatar-wrapper ${levelClass}">
+            <div class="avatar-wrapper ${levelClass}" data-author="${c.author}">
                 <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
             </div>
             <div style="flex:1; max-width: 100%;">
@@ -331,12 +382,15 @@ function getPostHTML(post, postId) {
         if (match && match[1]) mediaHTML += `<iframe loading="lazy" style="width:100%; height:250px; border-radius:10px; margin-top:10px;" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
     }
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
-    const levelClass = getLevelClass(post.authorXP || 0);
+    
+    // استخدام الكاش للنقاط الحالية
+    const currentXP = userXPCache[post.author] !== undefined ? userXPCache[post.author] : (post.authorXP || 0);
+    const levelClass = getLevelClass(currentXP);
 
     return `
         <div class="post-card" id="post-card-${postId}">
             <div class="post-header">
-                <div class="avatar-wrapper ${levelClass}">
+                <div class="avatar-wrapper ${levelClass}" data-author="${post.author}">
                     <img src="${post.authorImg || DEFAULT_IMG}" class="user-avatar-small" loading="lazy" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
                 </div>
                 <div class="user-info-text" onclick="visitUserProfile('${safeAuthor}', '${post.authorImg || DEFAULT_IMG}')" style="cursor:pointer">
@@ -430,33 +484,6 @@ window.saveNewPost = async function() {
 
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
 
-if (document.getElementById('usersList')) {
-    const userListContainer = document.getElementById('usersList');
-    userListContainer.innerHTML = ""; 
-    onValue(usersRef, (snapshot) => {
-        userListContainer.innerHTML = ""; 
-        const users = snapshot.val();
-        const myName = localStorage.getItem('hobbyName');
-        Object.values(users).forEach(user => {
-            if (user.name === myName) return; 
-            const isOnline = (Date.now() - (user.lastActive || 0)) < 180000;
-            const levelClass = getLevelClass(user.xp || 0);
-
-            userListContainer.innerHTML += `
-                <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                    <div class="avatar-wrapper ${levelClass}">
-                         <img src="${user.img || DEFAULT_IMG}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
-                    </div>
-                    <div class="user-item-info">
-                        <h4 style="margin:0;">${user.name}</h4>
-                        <div style="display:flex; align-items:center; margin-top:2px;"><span class="user-status-indicator ${isOnline ? "status-online" : "status-offline"}"></span><span class="status-text">${isOnline ? "متصل" : "غير متصل"}</span></div>
-                    </div>
-                </div>
-            `;
-        });
-    });
-}
-
 let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
@@ -532,7 +559,7 @@ if(document.getElementById('profileContent')) {
         onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); 
         onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
 
-        // 🔥 عداد المنشورات (تمت إضافته هنا) 🔥
+        // عداد المنشورات
         onValue(postsRef, (postSnap) => {
             let count = 0;
             postSnap.forEach(p => { if(p.val().author === v.name) count++; });
@@ -543,15 +570,3 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
-
-// 🔥 كود المطورين فقط (احذفه عند النشر النهائي) 🔥
-window.setMyXP = function(amount) {
-    const myName = localStorage.getItem('hobbyName');
-    if (!myName) return alert("سجل الدخول أولاً");
-    
-    update(ref(db, 'users/' + getSafeName(myName)), { xp: amount })
-    .then(() => {
-        alert(`تم تعديل نقاطك إلى ${amount}! 🎉\nقم بتحديث الصفحة لترى الرتبة الجديدة.`);
-        location.reload();
-    });
-}
