@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الشاملة (مع نظام الإطارات والمستويات) --- */
+/* --- main.js: النسخة الشاملة (مع إصلاح البروفايل والرتب) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -14,7 +14,7 @@ const STREAM_LIB_ID = "569937";
 const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ", // المفتاح الجديد المقيد
+  apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ",
   authDomain: "hooby-7d945.firebaseapp.com",
   databaseURL: "https://hooby-7d945-default-rtdb.firebaseio.com",
   projectId: "hooby-7d945",
@@ -85,22 +85,19 @@ function timeAgo(timestamp) {
 // =========================================================
 // 🏆 نظام المستويات (XP System) 🏆
 // =========================================================
-
-// دالة لحساب الكلاس (الستايل) بناءً على النقاط
 function getLevelClass(xp) {
     xp = xp || 0;
-    if (xp >= 20000) return "lvl-max-phoenix";     // تاج + عنقاء
-    if (xp >= 17000) return "lvl-crown-green";     // تاج ذهبي + وهج أخضر
-    if (xp >= 14000) return "lvl-red-chain";       // سلسلة حمراء متوهجة
-    if (xp >= 10000) return "lvl-black-green";     // أسود + وهج أخضر
-    if (xp >= 8000)  return "lvl-black-glow";      // أسود متوهج
-    if (xp >= 5000)  return "lvl-emerald";         // زمردي أخضر
-    if (xp >= 3000)  return "lvl-gold";            // ذهبي
-    if (xp >= 1000)  return "lvl-copper";          // نحاسي
-    return "lvl-bronze";                           // برونزي (الافتراضي)
+    if (xp >= 20000) return "lvl-max-phoenix";     
+    if (xp >= 17000) return "lvl-crown-green";     
+    if (xp >= 14000) return "lvl-red-chain";       
+    if (xp >= 10000) return "lvl-black-green";     
+    if (xp >= 8000)  return "lvl-black-glow";      
+    if (xp >= 5000)  return "lvl-emerald";         
+    if (xp >= 3000)  return "lvl-gold";            
+    if (xp >= 1000)  return "lvl-copper";          
+    return "lvl-bronze";                           
 }
 
-// دالة لزيادة النقاط
 function addXP(userId, amount) {
     const userRef = ref(db, 'users/' + getSafeName(userId) + '/xp');
     runTransaction(userRef, (currentXP) => {
@@ -109,7 +106,7 @@ function addXP(userId, amount) {
 }
 
 // =========================================================
-// 🚀 وظائف الرفع المتقدمة
+// 🚀 وظائف الرفع
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -175,7 +172,7 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات (مع الإطارات)
+// 💬 نظام التعليقات والمنشورات
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -190,8 +187,6 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
 
     let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
-
-    // 🏆 حساب إطار المستوى للتعليق
     const levelClass = getLevelClass(c.authorXP || 0);
 
     return `
@@ -199,13 +194,11 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
             <div class="avatar-wrapper ${levelClass}">
                 <img src="${cImg}" class="comment-avatar" loading="lazy" onclick="visitUserProfile('${cSafe}','${cImg}')">
             </div>
-            
             <div style="flex:1; max-width: 100%;">
                 <div class="comment-bubble">
                     <div class="comment-author" onclick="visitUserProfile('${cSafe}','${cImg}')">${c.author}</div>
                     <div class="comment-text-content">${c.text}</div>
                 </div>
-
                 <div class="comment-actions-side">
                     <span style="font-size:11px; margin-left:5px;">${timeAgo(c.timestamp)}</span>
                     <div id="btn-like-${commentId}" class="action-icon-btn ${likeActive}" onclick="voteComment('${postId}', '${commentId}', 'like', ${isReply}, ${parentIdParam})">
@@ -216,7 +209,6 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
                     </div>
                     ${replyBtn}
                 </div>
-
                 ${!isReply ? `
                 <div id="reply-box-${commentId}" class="reply-input-box">
                     <input type="text" id="reply-input-${commentId}" class="reply-field" placeholder="اكتب رداً...">
@@ -302,37 +294,19 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
 window.toggleReplyBox = function(postId, commentId) { const box = document.getElementById(`reply-box-${commentId}`); if(box) box.classList.toggle('active'); }
 window.prepareReplyToReply = function(postId, parentId, authorName) { const box = document.getElementById(`reply-box-${parentId}`); if(box) { box.classList.add('active'); const input = document.getElementById(`reply-input-${parentId}`); if(input) { input.value = `@${authorName} `; input.focus(); } } }
 
-// ✅ تحديث دالة إرسال الرد لتشمل الـ XP
 window.sendReply = function(postId, commentId) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
     if(!text) return;
-    
-    // جلب الـ XP الحالي للمستخدم من قاعدة البيانات (لتخزينه مع الرد)
     const myName = localStorage.getItem('hobbyName');
     const safeName = getSafeName(myName);
-    
     get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
         const currentXP = xpSnap.val() || 0;
-        
-        // زيادة نقاطي +5
         addXP(myName, 5);
-
-        const replyData = { 
-            text: text, 
-            author: myName, 
-            authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, 
-            authorXP: currentXP + 5, // نحفظ النقاط الجديدة
-            timestamp: serverTimestamp(), 
-            likesCount: 0, dislikesCount: 0 
-        };
+        const replyData = { text: text, author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, authorXP: currentXP + 5, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
         push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
     });
 }
-
-// =========================================================
-// 📱 عرض المنشورات
-// =========================================================
 
 function getPostHTML(post, postId) {
     const myName = localStorage.getItem('hobbyName');
@@ -355,8 +329,6 @@ function getPostHTML(post, postId) {
         if (match && match[1]) mediaHTML += `<iframe loading="lazy" style="width:100%; height:250px; border-radius:10px; margin-top:10px;" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
     }
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
-
-    // 🏆 حساب إطار المستوى للمنشور
     const levelClass = getLevelClass(post.authorXP || 0);
 
     return `
@@ -426,7 +398,6 @@ if (document.getElementById('profilePostsContainer')) {
     });
 }
 
-// --- ✅ تعديل دالة النشر لتشمل الـ XP ---
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -441,19 +412,15 @@ window.saveNewPost = async function() {
         else { alert("نوع الملف غير مدعوم"); hideProgressBar(); if(btn) btn.disabled=false; return; }
         if (!fileUrl) { alert("فشل الرفع"); hideProgressBar(); if(btn) btn.disabled=false; return; }
     }
-    
     const myName = localStorage.getItem('hobbyName');
     const safeName = getSafeName(myName);
-    
-    // جلب نقاطي الحالية
     get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
         const currentXP = xpSnap.val() || 0;
-        addXP(myName, 10); // زيادة +10
-        
+        addXP(myName, 10); 
         push(postsRef, {
             title: title || "بدون عنوان", content: content || "", postImg: fileUrl,
             author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
-            authorXP: currentXP + 10, // تخزين النقاط الجديدة
+            authorXP: currentXP + 10,
             timestamp: serverTimestamp(), likes: 0
         }).then(() => { hideProgressBar(); alert("✅ تم النشر! (+10 نقاط)"); window.closeAddPost(); location.reload(); });
     });
@@ -461,7 +428,6 @@ window.saveNewPost = async function() {
 
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
 
-// --- ✅ تعديل قائمة المستخدمين لتشمل الإطارات ---
 if (document.getElementById('usersList')) {
     const userListContainer = document.getElementById('usersList');
     userListContainer.innerHTML = ""; 
@@ -492,27 +458,18 @@ if (document.getElementById('usersList')) {
 let currentChatPartner = null;
 window.startChat = function(user) {
     currentChatPartner = user.name;
-    // التحويل للشاشة الصغيرة
-    if(window.innerWidth <= 768) { 
-        if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; 
-        if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; 
-    }
-    
+    if(window.innerWidth <= 768) { if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; }
     document.getElementById('chatHeaderName').innerText = user.name;
     document.getElementById('chatHeaderImg').src = user.img || DEFAULT_IMG;
-
-    // 🔥 تطبيق الرتبة على صورة الهيدر في المحادثة 🔥
+    
+    // 🔥 تفعيل الرتب في هيدر المحادثة 🔥
     const levelClass = getLevelClass(user.xp || 0);
     const headerImgWrapper = document.getElementById('chatHeaderImgWrapper');
     if(headerImgWrapper) {
         headerImgWrapper.className = `avatar-wrapper ${levelClass}`;
-        // تصحيح بسيط لحجم الصورة في الهيدر
-        document.getElementById('chatHeaderImg').classList.add('user-avatar-small');
     }
 
     if(document.getElementById('inputArea')) document.getElementById('inputArea').style.display = 'flex';
-    
-    // تحميل الرسائل... (باقي الكود كما هو)
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
     const msgContainer = document.getElementById('chatMessages'); msgContainer.innerHTML = "";
     onChildAdded(query(ref(db, 'chats/' + chatId), limitToLast(50)), (s) => {
@@ -536,27 +493,6 @@ window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).cla
 window.hidePost = function(id) { document.getElementById(`post-card-${id}`).style.display='none'; }
 window.deletePost = function(id) { if(confirm("حذف؟")) remove(ref(db, `posts/${id}`)); }
 window.toggleComments = function(id) { document.getElementById(`comments-section-${id}`).classList.toggle('active'); }
-
-// ✅ تحديث دالة التعليق لتشمل XP
-window.sendComment = function(postId, postAuthor) { 
-    const t = document.getElementById(`comment-input-${postId}`).value; 
-    if(!t) return; 
-    
-    const myName = localStorage.getItem('hobbyName');
-    const safeName = getSafeName(myName);
-
-    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
-        const currentXP = xpSnap.val() || 0;
-        addXP(myName, 5); // زيادة +5
-        push(ref(db, `posts/${postId}/comments`), {
-            text:t, 
-            author:myName, 
-            authorImg:localStorage.getItem('hobbyImage')||DEFAULT_IMG, 
-            authorXP: currentXP + 5,
-            timestamp:serverTimestamp()
-        }); 
-    });
-}
 window.toggleMenu = function() { document.getElementById('sidebar').classList.toggle('active'); }
 window.toggleDarkMode = function() { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); }
 window.openAddPost = function() { document.getElementById('addPostOverlay').style.display = 'flex'; }
@@ -571,6 +507,27 @@ window.closeEditModal = function() { document.getElementById('editProfileModal')
 window.saveProfileChanges = function() { update(ref(db, `users/${getSafeName(localStorage.getItem('hobbyName'))}`), {bio:document.getElementById('editBioInput').value}).then(()=>window.closeEditModal()); }
 window.toggleFollow = function(t) { const m = getSafeName(localStorage.getItem('hobbyName')), target = getSafeName(t); const ref1 = ref(db, `users/${m}/following/${target}`), ref2 = ref(db, `users/${target}/followers/${m}`); get(ref1).then(s => { if(s.exists()){ remove(ref1); remove(ref2); } else { set(ref1, true); set(ref2, true); } }); }
 window.messageFromProfile = function(n, i) { localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); location.href='messages.html'; }
-if(document.getElementById('profileContent')) { const v = JSON.parse(localStorage.getItem('viewingProfile')), m = localStorage.getItem('hobbyName'); if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { const u = s.val()||{}; document.getElementById('p-name').innerText = u.name||v.name; document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); }); }
-window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
 
+// 🔥 هذا هو الجزء المهم الذي يبحث عنه الكود (profileContent Logic) 🔥
+if(document.getElementById('profileContent')) { 
+    const v = JSON.parse(localStorage.getItem('viewingProfile'));
+    const m = localStorage.getItem('hobbyName'); 
+    
+    if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { 
+        const u = s.val()||{}; 
+        document.getElementById('p-name').innerText = u.name||v.name; 
+        document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; 
+        document.getElementById('p-bio').innerText = u.bio||"لا توجد نبذة"; 
+        
+        // 🔥 تطبيق الرتبة على صورة البروفايل الكبيرة 🔥
+        const levelClass = getLevelClass(u.xp || 0);
+        const imgWrapper = document.getElementById('p-img-wrapper');
+        if(imgWrapper) {
+            imgWrapper.className = `profile-avatar-large-wrapper ${levelClass}`;
+        }
+
+        const d = document.getElementById('profileActionsBtns'); d.innerHTML=""; if(v.name===m) { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'flex'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'inline-block'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'inline-block'; d.innerHTML = `<button class="action-btn-profile btn-message" onclick="location.href='settings.html'"><i class="fas fa-cog"></i> الإعدادات</button>`; } else { if(document.getElementById('edit-img-icon')) document.getElementById('edit-img-icon').style.display = 'none'; if(document.getElementById('edit-bio-icon')) document.getElementById('edit-bio-icon').style.display = 'none'; if(document.getElementById('edit-name-icon')) document.getElementById('edit-name-icon').style.display = 'none'; d.innerHTML = `<button id="followBtn" class="action-btn-profile btn-follow" onclick="toggleFollow('${v.name}')">متابعة</button><button class="action-btn-profile btn-message" onclick="messageFromProfile('${v.name}','${u.img||DEFAULT_IMG}')">مراسلة</button>`; onValue(ref(db, `users/${getSafeName(m)}/following/${getSafeName(v.name)}`), s => { const b = document.getElementById('followBtn'); if(b) { if(s.exists()){ b.innerHTML='<i class="fas fa-check"></i> أتابعه'; b.classList.add('following'); } else { b.innerHTML='<i class="fas fa-user-plus"></i> متابعة'; b.classList.remove('following'); } } }); } onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
+    }); 
+}
+
+window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
