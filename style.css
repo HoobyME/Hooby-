@@ -252,3 +252,33 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     font-size: 14px;
     display: none;
 }
+
+/* تنسيق شريط الإحصائيات */
+.stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px; /* مسافة بين كل عمود والآخر */
+    margin: 20px 0;
+    color: var(--text-sub);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column; /* 🔥 هذا السطر يجبر العناصر أن تكون فوق بعضها */
+    align-items: center;    /* توسيط الرقم والكلمة */
+    justify-content: center;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 22px;       /* تكبير الرقم قليلاً ليكون بارزاً */
+    color: var(--text-color);
+    margin-bottom: 5px;    /* مسافة صغيرة بين الرقم والكلمة تحته */
+    order: 1;              /* 🔥 الرقم دائماً هو الأول (في الأعلى) */
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-sub);
+    order: 2;              /* 🔥 الكلمة دائماً هي الثانية (في الأسفل) */
+}
