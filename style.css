@@ -1,4 +1,4 @@
-/* --- style.css: النسخة النهائية الكاملة --- */
+/* --- style.css: النسخة النهائية المصلحة (Fixed Version) --- */
 
 :root {
     --primary-color: #4CAF50;
@@ -10,10 +10,22 @@
     --input-bg: #f0f2f5;
     --nav-height: 60px;
 }
+
 body.dark-mode {
-    --bg-color: #18191a; --card-bg: #242526; --text-color: #e4e6eb; --text-sub: #b0b3b8; --border-color: #3e4042; --input-bg: #3a3b3c;
+    --bg-color: #18191a; 
+    --card-bg: #242526; 
+    --text-color: #e4e6eb; 
+    --text-sub: #b0b3b8; 
+    --border-color: #3e4042; 
+    --input-bg: #3a3b3c;
 }
-* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+* { 
+    box-sizing: border-box; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    -webkit-tap-highlight-color: transparent; 
+}
+
 img, video { max-width: 100%; height: auto; }
 body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; padding-top: 60px; overflow-x: hidden; }
 
@@ -82,7 +94,7 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .status-offline { background-color: #ccc; }
 .status-text { font-size: 11px; color: var(--text-sub); }
 
-/* --- تصميم التعليقات العصري --- */
+/* --- تصميم التعليقات --- */
 .comments-section { display: none; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
 .comments-section.active { display: block; }
 .comment-input-area { background: var(--input-bg); border-radius: 25px; padding: 5px 10px; display: flex; align-items: center; border: 1px solid transparent; transition: 0.3s; margin-top: 10px; }
@@ -110,30 +122,25 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 @keyframes fadeIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
 
 /* =========================================================
-   👑 نظام الإطارات والمستويات (Gamification) 👑
+   👑 نظام الإطارات (Gamification) - نسخة مصححة
    ======================================================== */
+
+/* الإطار الصغير (للمنشورات والتعليقات) */
 .avatar-wrapper {
-    position: relative;
-    display: flex;             /* لضمان توسيط الصورة */
-    align-items: center;
-    justify-content: center;
+    width: 45px; height: 45px; 
+    min-width: 45px; /* يمنع الانضغاط */
     border-radius: 50%;
-/* أبعاد ثابتة للصورة الصغيرة لمنع الشكل البيضوي */
-    width: 48px; 
-    height: 48px;
-    min-width: 48px; /* يمنع الانضغاط */
-    min-height: 48px;
-    box-sizing: border-box; /* لضمان احتساب الإطار داخل الحجم */
+    position: relative; 
+    display: inline-block;
+    box-sizing: border-box;
+    margin-left: 10px; /* مسافة بسيطة */
 }
-/* تصحيح الصورة داخل الإطار */
+
 .user-avatar-small, .comment-avatar { 
-    width: 100% !important; 
-    height: 100% !important; 
-    padding: 2px; /* مسافة بين الصورة والإطار */
-    background: var(--card-bg); 
-    border-radius: 50%; 
-    object-fit: cover; 
+    width: 100% !important; height: 100% !important; 
+    padding: 2px; background: var(--card-bg); border-radius: 50%; object-fit: cover;
 }
+
 /* الرتب للإطارات الصغيرة */
 .lvl-bronze { border: 2px solid #cd7f32; }
 .lvl-copper { border: 2px solid #b87333; }
@@ -143,44 +150,87 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
 .lvl-black-green { border: 2px solid #000; box-shadow: 0 0 10px #0f0; }
 .lvl-red-chain { border: 2px dashed #f44336; box-shadow: 0 0 10px #f44336; }
 .lvl-crown-green { border: 2px solid #ffd700; box-shadow: 0 0 15px #0f0; }
-.lvl-max-phoenix { border: 2px solid #ffd700; box-shadow: 0 0 20px #ff5722; }
+.lvl-max-phoenix { border: 2px solid #ffd700; box-shadow: 0 0 10px #ff5722; }
 
-/* 👑 الإطار الكبير (للبروفايل) - دائرة مثالية 👑 *//* --- تعديل بسيط للإطار الكبير في البروفايل (للحفاظ عليه) --- */
-.profile-avatar-large-wrapper {
-    width: 120px; 
-    height: 120px;
-    min-width: 120px; /* يمنع الانضغاط */
-    margin: -60px auto 10px auto; 
-    /* ... باقي الخصائص كما هي ... */
+/* 🚨 إصلاح البروفايل (Profile Fixes) 🚨 */
+
+/* خلفية الغلاف */
+.profile-header-bg {
+    height: 150px !important;
+    width: 100% !important;
+    background: linear-gradient(135deg, #009688, #2196F3) !important;
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 0 !important;
 }
+
+/* حاوية المعلومات */
+.profile-info-container {
+    position: relative;
+    z-index: 5;
+    margin-top: -75px !important; /* لرفع الصورة للمنتصف */
+    text-align: center;
+    padding: 0 15px;
+}
+
+/* إطار الصورة الكبير في البروفايل */
+.profile-avatar-large-wrapper {
+    width: 130px !important;
+    height: 130px !important;
+    min-width: 130px !important; /* يمنع التمدد */
+    border-radius: 50% !important;
+    margin: 0 auto 10px auto !important; /* توسيط */
+    background: var(--card-bg);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-sizing: border-box !important;
+    z-index: 10;
+}
+
 .profile-avatar-large {
     width: 100% !important; height: 100% !important;
-    border-radius: 50%; object-fit: cover;
-    padding: 4px; background: var(--card-bg);
+    border-radius: 50% !important; object-fit: cover !important;
+    padding: 4px !important; background: var(--card-bg) !important;
 }
 
 /* الرتب للإطار الكبير */
-.profile-avatar-large-wrapper.lvl-bronze { border: 4px solid #cd7f32; }
-.profile-avatar-large-wrapper.lvl-copper { border: 4px solid #b87333; }
-.profile-avatar-large-wrapper.lvl-gold { border: 4px solid #ffd700; }
-.profile-avatar-large-wrapper.lvl-emerald { border: 4px solid #50c878; box-shadow: 0 0 15px #50c878; }
-.profile-avatar-large-wrapper.lvl-black-glow { border: 4px solid #000; box-shadow: 0 0 15px #000; }
-.profile-avatar-large-wrapper.lvl-black-green { border: 4px solid #000; box-shadow: 0 0 20px #0f0; }
-.profile-avatar-large-wrapper.lvl-red-chain { border: 4px dashed #f44336; box-shadow: 0 0 20px #f44336; }
-.profile-avatar-large-wrapper.lvl-crown-green { border: 4px solid #ffd700; box-shadow: 0 0 25px #0f0; }
-.profile-avatar-large-wrapper.lvl-max-phoenix { border: 4px solid #ffd700; box-shadow: 0 0 30px #ff5722; }
+.profile-avatar-large-wrapper.lvl-bronze { border: 5px solid #cd7f32; }
+.profile-avatar-large-wrapper.lvl-copper { border: 5px solid #b87333; }
+.profile-avatar-large-wrapper.lvl-gold { border: 5px solid #ffd700; }
+.profile-avatar-large-wrapper.lvl-emerald { border: 5px solid #50c878; box-shadow: 0 0 15px #50c878; }
+.profile-avatar-large-wrapper.lvl-black-glow { border: 5px solid #000; box-shadow: 0 0 15px #000; }
+.profile-avatar-large-wrapper.lvl-black-green { border: 5px solid #000; box-shadow: 0 0 20px #0f0; }
+.profile-avatar-large-wrapper.lvl-red-chain { border: 5px dashed #f44336; box-shadow: 0 0 20px #f44336; }
+.profile-avatar-large-wrapper.lvl-crown-green { border: 5px solid #ffd700; box-shadow: 0 0 25px #0f0; }
+
+/* رتبة الماكس (تعديل خاص لمنع الفوضى) */
+.profile-avatar-large-wrapper.lvl-max-phoenix {
+    border: 5px solid #ffd700 !important;
+    box-shadow: 0 0 25px #ff5722 !important;
+}
 
 /* التيجان والأجنحة */
 .profile-avatar-large-wrapper.lvl-crown-green::after {
-    content: '👑'; position: absolute; top: -35px; left: 50%; transform: translateX(-50%);
-    font-size: 30px; text-shadow: 0 0 5px #0f0; z-index: 10;
-}
-.profile-avatar-large-wrapper.lvl-max-phoenix::after {
     content: '👑'; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
-    font-size: 35px; text-shadow: 0 0 10px #ff5722; z-index: 10;
-}
-.profile-avatar-large-wrapper.lvl-max-phoenix::before {
-    content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
-    border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 30px #ff9800; z-index: 1; pointer-events: none;
+    font-size: 35px; text-shadow: 0 0 5px #0f0; z-index: 10;
 }
 
+.profile-avatar-large-wrapper.lvl-max-phoenix::after {
+    content: '👑'; position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
+    font-size: 40px; text-shadow: 0 0 10px #ff5722; z-index: 10;
+}
+
+/* عنوان المنشورات */
+.posts-header-title {
+    padding: 15px 20px;
+    margin: 0;
+    font-size: 18px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-weight: bold;
+}
