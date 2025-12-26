@@ -5,12 +5,12 @@ import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTrans
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // إعدادات Bunny CDN & Stream
-const BUNNY_STORAGE_NAME = "hooby"; 
-const BUNNY_API_KEY = "ce4c08e4-41a1-477f-a163d4a0cfcc-315f-4508"; 
-const BUNNY_CDN_URL = "https://hooby.b-cdn.net"; 
+const BUNNY_STORAGE_NAME = "hoooby"; 
+const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
+const BUNNY_CDN_URL = "https://hoooby.b-cdn.net"; 
 
-const STREAM_LIB_ID = "569937";
-const STREAM_API_KEY = "670a82d3-2783-45cb-a97fe91e960a-c972-4f1a";
+const STREAM_LIB_ID = "570600";
+const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c";
 
 // إعدادات Firebase
 const firebaseConfig = {
@@ -613,3 +613,4 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });س
+
