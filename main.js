@@ -1,11 +1,11 @@
-/* --- main.js: النسخة الكاملة الأصلية (بدون اختصارات) --- */
+/* --- main.js: النسخة المستقرة (بالمفاتيح الجديدة + إصلاح النشر) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Bunny CDN & Stream
-const BUNNY_STORAGE_NAME = "hoooby"; 
+// إعدادات Bunny CDN & Stream (المفاتيح الجديدة)
+const BUNNY_STORAGE_NAME = "hoooby";  // تأكد أن الاسم في الموقع هو hoooby فعلاً
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
 const BUNNY_CDN_URL = "https://hoooby.b-cdn.net"; 
 
@@ -33,7 +33,6 @@ const usersRef = ref(db, 'users');
 const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
-// كاش للنقاط لتحسين الأداء
 let userXPCache = {};
 
 // =========================================================
@@ -111,13 +110,12 @@ function addXP(userId, amount) {
 }
 
 // =========================================================
-// 🔄 المزامنة الحية (Live Sync Engine)
+// 🔄 المزامنة الحية (Live Sync)
 // =========================================================
 onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
 
-    // تحديث قائمة المستخدمين (للشات)
     const userListContainer = document.getElementById('usersList');
     if (userListContainer) {
         userListContainer.innerHTML = ""; 
@@ -140,7 +138,6 @@ onValue(usersRef, (snapshot) => {
         });
     }
 
-    // تحديث الإطارات في الصفحة الرئيسية فوراً
     Object.values(users).forEach(user => {
         userXPCache[user.name] = user.xp || 0;
         const newLevelClass = getLevelClass(user.xp || 0);
@@ -218,7 +215,7 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات (الكامل)
+// 💬 نظام التعليقات والمنشورات
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -378,7 +375,6 @@ function getPostHTML(post, postId) {
     }
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
     
-    // استخدام الكاش للنقاط الحالية
     const currentXP = userXPCache[post.author] !== undefined ? userXPCache[post.author] : (post.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
@@ -435,44 +431,64 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
-// =========================================================
-// 🔥 إصلاح المراسلة من البروفايل (الجزء 1: الاستقبال) 🔥
-// =========================================================
 if (document.getElementById('usersList')) {
-    // التحقق فوراً: هل هناك أمر معلق لفتح محادثة؟
     const pendingChat = JSON.parse(localStorage.getItem('pendingChat'));
     if (pendingChat) {
-        localStorage.removeItem('pendingChat'); // مسح الأمر بعد تنفيذه
+        localStorage.removeItem('pendingChat'); 
         setTimeout(() => startChat(pendingChat), 500);
     }
 }
 
+// 🔥 دالة النشر المحسنة (لتفادي مشكلة التعليق عند 100%)
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
+    
     if(!title && !content && !file) { alert("اكتب شيئاً أو اختر ملفاً!"); return; }
-    if(btn) btn.disabled = true;
+
+    if(btn) { btn.disabled = true; btn.innerText = "جاري النشر..."; }
+
     let fileUrl = "";
-    if (file) {
-        if (file.type.startsWith('image/')) fileUrl = await uploadToBunny(file);
-        else if (file.type.startsWith('video/')) fileUrl = await uploadVideoToBunnyStream(file);
-        else { alert("نوع الملف غير مدعوم"); hideProgressBar(); if(btn) btn.disabled=false; return; }
-        if (!fileUrl) { alert("فشل الرفع"); hideProgressBar(); if(btn) btn.disabled=false; return; }
-    }
-    const myName = localStorage.getItem('hobbyName');
-    const safeName = getSafeName(myName);
-    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
+    
+    try {
+        if (file) {
+            if (file.type.startsWith('image/')) { fileUrl = await uploadToBunny(file); } 
+            else if (file.type.startsWith('video/')) { fileUrl = await uploadVideoToBunnyStream(file); } 
+            else { throw new Error("نوع الملف غير مدعوم"); }
+            if (!fileUrl) { throw new Error("فشل الرفع"); }
+        }
+
+        const myName = localStorage.getItem('hobbyName');
+        const safeName = getSafeName(myName);
+        const xpSnap = await get(ref(db, `users/${safeName}/xp`));
         const currentXP = xpSnap.val() || 0;
+        
         addXP(myName, 10); 
-        push(postsRef, {
-            title: title || "بدون عنوان", content: content || "", postImg: fileUrl,
-            author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+        
+        await push(postsRef, {
+            title: title || "بدون عنوان", 
+            content: content || "", 
+            postImg: fileUrl,
+            author: myName, 
+            authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
             authorXP: currentXP + 10,
-            timestamp: serverTimestamp(), likes: 0
-        }).then(() => { hideProgressBar(); alert("✅ تم النشر! (+10 نقاط)"); window.closeAddPost(); location.reload(); });
-    });
+            timestamp: serverTimestamp(), 
+            likes: 0
+        });
+
+        hideProgressBar(); 
+        alert("✅ تم النشر!"); 
+        window.closeAddPost(); 
+        location.reload();
+
+    } catch (error) {
+        hideProgressBar();
+        console.error(error);
+        alert("خطأ: " + error.message);
+        if(btn) { btn.disabled = false; btn.innerText = "نشر"; }
+    }
 }
 
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
@@ -482,7 +498,6 @@ window.startChat = function(user) {
     currentChatPartner = user.name;
     if(window.innerWidth <= 768) { if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; }
     
-    // تفعيل الانتقال للبروفايل من هيدر المحادثة
     const headerName = document.getElementById('chatHeaderName');
     const headerImg = document.getElementById('chatHeaderImg');
     headerName.innerText = user.name;
@@ -492,7 +507,6 @@ window.startChat = function(user) {
     headerName.style.cursor = 'pointer';
     headerImg.style.cursor = 'pointer';
     
-    // تفعيل الرتب في هيدر المحادثة
     const levelClass = getLevelClass(user.xp || 0);
     const headerImgWrapper = document.getElementById('chatHeaderImgWrapper');
     if(headerImgWrapper) {
@@ -518,13 +532,11 @@ window.sendChatMessage = function() { const inp = document.getElementById('msgIn
 window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
 window.toggleLike = function(postId, postAuthor) { const uid = getSafeName(localStorage.getItem('hobbyName')); const btn = document.getElementById(`like-btn-${postId}`); const countSpan = document.getElementById(`like-count-${postId}`); let c = parseInt(countSpan.innerText)||0; if(btn.classList.contains('active')){ btn.classList.remove('active'); countSpan.innerText = c>0?c-1:0; } else { btn.classList.add('active'); countSpan.innerText = c+1; } runTransaction(ref(db, `posts/${postId}`), (p) => { if(p) { if(!p.likedBy) p.likedBy={}; if(p.likedBy[uid]) { p.likes--; p.likedBy[uid]=null; } else { p.likes++; p.likedBy[uid]=true; } } return p; }); }
 
-// 🔥 الإصلاح 3: زيارة البروفايل
 window.visitUserProfile = function(name, img) { 
     localStorage.setItem('viewingProfile', JSON.stringify({ name: name, img: img||DEFAULT_IMG })); 
     window.location.href = 'profile-view.html'; 
 }
 
-// 🔥 الإصلاح 4: العودة للبروفايل الشخصي (زر ذكي)
 window.visitMyProfile = function() { 
     localStorage.setItem('viewingProfile', JSON.stringify({ 
         name: localStorage.getItem('hobbyName'), 
@@ -550,7 +562,6 @@ window.openEditModal = function(t) { if(t==='bio'){ document.getElementById('edi
 window.closeEditModal = function() { document.getElementById('editProfileModal').style.display='none'; }
 window.saveProfileChanges = function() { update(ref(db, `users/${getSafeName(localStorage.getItem('hobbyName'))}`), {bio:document.getElementById('editBioInput').value}).then(()=>window.closeEditModal()); }
 
-// 🔥 الإصلاح 1: المتابعة (متوافقة مع القواعد الجديدة)
 window.toggleFollow = function(t) { 
     const m = getSafeName(localStorage.getItem('hobbyName')); 
     const target = getSafeName(t); 
@@ -562,13 +573,11 @@ window.toggleFollow = function(t) {
     }); 
 }
 
-// 🔥 الإصلاح 2: المراسلة من البروفايل (الجزء 2: الإرسال)
 window.messageFromProfile = function(n, i) { 
     localStorage.setItem('pendingChat', JSON.stringify({name:n, img:i})); 
     window.location.href = 'messages.html'; 
 }
 
-// 🔥 بروفايل فيو (النسخة المستقرة - بدون بنر)
 if(document.getElementById('profileContent')) { 
     const v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
@@ -600,7 +609,6 @@ if(document.getElementById('profileContent')) {
         onValue(ref(db, `users/${getSafeName(v.name)}/followers`), s => document.getElementById('p-followers-count').innerText = s.size); 
         onValue(ref(db, `users/${getSafeName(v.name)}/following`), s => document.getElementById('p-following-count').innerText = s.size); 
 
-        // 🔥 المنشورات في البروفايل (عادت للعمل)
         const pc = document.getElementById('profilePostsContainer');
         if (pc) onValue(postsRef, (sn) => {
             pc.innerHTML=""; let c=0; let arr=[];
@@ -612,5 +620,4 @@ if(document.getElementById('profileContent')) {
     }); 
 }
 
-window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });س
-
+window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
