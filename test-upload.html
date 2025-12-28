@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>فحص مفاتيح BunnyCDN</title>
+    <style>body{font-family:sans-serif; padding:20px; text-align:center;} input{padding:10px; width:80%; margin:10px 0; direction:ltr;} button{padding:10px 20px; background:blue; color:white; cursor:pointer;} #result{margin-top:20px; font-weight:bold; color:red; direction:ltr; text-align:left; background:#eee; padding:10px;}</style>
+</head>
+<body>
+    <h2>🕵️‍♂️ فحص اتصال BunnyCDN</h2>
+    
+    <label>اسم مساحة التخزين (Storage Name):</label><br>
+    <input type="text" id="storeName" value="hoooby"><br>
+    
+    <label>المفتاح السري (Password/API Key):</label><br>
+    <input type="text" id="apiKey" placeholder="ضع مفتاحك هنا"><br>
+    
+    <label>اختر ملفاً للتجربة:</label><br>
+    <input type="file" id="fileInput"><br>
+    
+    <button onclick="testUpload()">جرب الرفع الان</button>
+    
+    <div id="result">النتيجة ستظهر هنا...</div>
+
+    <script>
+        async function testUpload() {
+            const storeName = document.getElementById('storeName').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const file = document.getElementById('fileInput').files[0];
+            const resultDiv = document.getElementById('result');
+
+            if(!file || !apiKey || !storeName) {
+                resultDiv.innerText = "⚠️ يرجى ملء جميع البيانات!";
+                return;
+            }
+
+            resultDiv.innerText = "⏳ جاري الاتصال بـ BunnyCDN...";
+            resultDiv.style.color = "blue";
+
+            // تجربة الرابط الرئيسي (ألمانيا)
+            const url = `https://storage.bunnycdn.com/${storeName}/test-file-${Date.now()}.txt`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'AccessKey': apiKey,
+                        'Content-Type': 'application/octet-stream'
+                    },
+                    body: file
+                });
+
+                const text = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = "✅ <span style='color:green'>نجح الرفع! المفاتيح صحيحة 100%.</span><br>الرابط يعمل.";
+                } else {
+                    if(response.status === 401) {
+                        resultDiv.innerHTML = "❌ <span style='color:red'>خطأ 401: كلمة المرور خاطئة!</span><br>تأكد أنك نسخت الـ Password وليس Read-Only.";
+                    } else if(response.status === 404) {
+                        resultDiv.innerHTML = "❌ <span style='color:red'>خطأ 404: اسم التخزين خطأ!</span><br>تأكد من اسم المنطقة (hoooby).";
+                    } else {
+                        resultDiv.innerText = `❌ فشل برمز ${response.status}: ${JSON.stringify(text)}`;
+                    }
+                }
+            } catch (error) {
+                resultDiv.innerText = "❌ خطأ في الشبكة أو الاسم: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
