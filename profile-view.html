@@ -104,8 +104,31 @@
     <a href="messages.html" class="nav-item"><i class="far fa-comment-alt"></i></a>
     <a href="#" class="nav-item" onclick="visitMyProfile(); return false;"><i class="fas fa-user"></i></a>
 </div>
+
+    <div id="addPostOverlay" class="overlay" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>منشور جديد</h3>
+            <span class="close-btn" onclick="closeAddPost()">&times;</span>
+        </div>
+        
+        <input type="text" id="postTitle" class="modal-input" placeholder="عنوان المنشور">
+        <textarea id="postContent" class="modal-input" placeholder="ماذا يدور في ذهنك؟" rows="5"></textarea>
+        
+        <div class="upload-area" onclick="triggerFileUpload()" style="border:2px dashed #ccc; padding:20px; text-align:center; margin:10px 0; border-radius:10px; cursor:pointer;">
+            <i class="fas fa-cloud-upload-alt" style="font-size:24px; color:#666;"></i>
+            <p style="margin:5px 0; color:#666;">اضغط لاختيار صورة أو فيديو</p>
+        </div>
+        
+        <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
+        <img id="imagePreview" class="image-preview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin-top:10px; object-fit:cover;">
+        
+        <button class="btn-publish" onclick="saveNewPost()" style="width:100%; margin-top:10px;">نشر</button>
+    </div>
+</div>
     <script type="module" src="main.js"></script>
 </body>
 </html>
+
 
 
