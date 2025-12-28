@@ -1,24 +1,16 @@
-/* --- main.js: النسخة النهائية (تم تصحيح الاسم hoooyp) --- */
+/* --- main.js: النسخة النهائية (hoooyp + Multi-Server) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 إعدادات BunnyCDN (تم التصحيح حسب الصور المرفقة) 📸
+// 🔑 إعدادات BunnyCDN (تم التصحيح: hoooyp)
 // =========================================================
-
-// 1. إعدادات الصور (Storage)
-// ⚠️ انتبه: الاسم في صورتك هو hoooyp وليس hoooby
-const BUNNY_STORAGE_NAME = "hoooyp"; 
+const BUNNY_STORAGE_NAME = "hoooyp"; // ✅ الاسم الصحيح من الصورة
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
+const BUNNY_CDN_URL = "https://vz-4ce371e0-da7.b-cdn.net"; // رابطك الخاص
 
-// ⚠️ هام: تأكد أنك قمت بربط Pull Zone بهذا الاسم
-// إذا لم تكن قد ربطتها، فالرفع سينجح لكن الصور لن تظهر (ستظهر مكسورة)
-// افترضنا هنا أن الرابط هو hoooyp.b-cdn.net، تأكد من لوحة التحكم
-const BUNNY_CDN_URL = "https://hoooyp.b-cdn.net"; 
-
-// 2. إعدادات الفيديو (Stream) - (هذه صحيحة حسب الصورة 82)
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
@@ -78,7 +70,7 @@ function registerUserPresence() {
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
         update(ref(db, 'users/' + getSafeName(myName)), { 
             name: myName, img: myImg, lastActive: serverTimestamp() 
-        });
+        }).catch(err => console.log("Presence Error (Ignore):", err));
     }
 }
 setInterval(registerUserPresence, 120000); 
@@ -161,7 +153,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (تم التصحيح + دعم العربية + سيرفر لندن)
+// 🚀 وظائف الرفع (المحرك الذكي متعدد السيرفرات)
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -191,34 +183,38 @@ function uploadWithProgress(url, method, headers, body) {
             }
         };
         
-        xhr.onerror = () => reject(new Error("Network Error: تأكد من الانترنت أو استخدم VPN"));
+        xhr.onerror = () => reject(new Error("Network Error"));
         xhr.send(body);
     });
 }
 
 async function uploadToBunny(file) {
-    // 1. تشفير الاسم
     const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const fileName = encodeURIComponent(rawName);
 
-    try {
-        console.log("محاولة الرفع إلى سيرفر بريطانيا...");
-        
-        // 👇 استخدام سيرفر لندن (UK) لتفادي مشاكل DNS في العراق
-        await uploadWithProgress(`https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-        
-        return `${BUNNY_CDN_URL}/${rawName}`; 
-    } catch (e) { 
-        console.error("Upload Error:", e);
-        // محاولة أخيرة مع سيرفر نيويورك إذا فشل لندن
+    // قائمة السيرفرات: نبدأ ببريطانيا (الأفضل للعراق)، ثم ألمانيا، ثم نيويورك
+    const endpoints = [
+        `https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
+        `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
+        `https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`
+    ];
+
+    console.log("جاري بدء الرفع... سنحاول عدة مسارات.");
+
+    for (let url of endpoints) {
         try {
-             console.log("فشل بريطانيا، جاري تجربة نيويورك...");
-             await uploadWithProgress(`https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-             return `${BUNNY_CDN_URL}/${rawName}`;
-        } catch(e2) {
-             throw new Error("فشل الاتصال بجميع السيرفرات. هل تستخدم VPN؟");
+            console.log(`تجربة السيرفر: ${url}`);
+            await uploadWithProgress(url, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
+            console.log("✅ نجح الرفع!");
+            return `${BUNNY_CDN_URL}/${rawName}`;
+        } catch (e) {
+            console.warn(`❌ فشل ${url}:`, e);
+            // ننتقل للسيرفر التالي تلقائياً
         }
     }
+
+    // إذا وصلنا هنا، يعني كل السيرفرات فشلت
+    throw new Error("فشل الرفع على جميع السيرفرات. يرجى تشغيل VPN وتجربة سيرفر آخر.");
 }
 
 async function uploadVideoToBunnyStream(file) {
@@ -482,7 +478,7 @@ if (document.getElementById('postsContainer')) {
 }
 
 // =========================================================
-// 🔥 دالة النشر (المصححة والمحدثة)
+// 🔥 دالة النشر (المصححة والجاهزة)
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -490,11 +486,13 @@ window.saveNewPost = async function() {
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
     
+    // 1. التحقق من المدخلات
     if(!title && !content && !file) { 
         alert("اكتب شيئاً أو اختر ملفاً!"); 
         return; 
     }
 
+    // 2. قفل الزر
     if(btn) {
         btn.disabled = true;
         btn.innerText = "جاري النشر...";
@@ -503,6 +501,7 @@ window.saveNewPost = async function() {
     let fileUrl = "";
     
     try {
+        // 3. رفع الملف (إذا وجد)
         if (file) {
             if (file.type.startsWith('image/')) {
                 fileUrl = await uploadToBunny(file);
@@ -517,6 +516,7 @@ window.saveNewPost = async function() {
             }
         }
 
+        // 4. حفظ المنشور في Firebase
         const myName = localStorage.getItem('hobbyName');
         const safeName = getSafeName(myName);
         const xpSnap = await get(ref(db, `users/${safeName}/xp`));
@@ -535,12 +535,14 @@ window.saveNewPost = async function() {
             likes: 0
         });
 
+        // 5. النجاح
         hideProgressBar(); 
         alert("✅ تم النشر!"); 
         window.closeAddPost(); 
         location.reload();
 
     } catch (error) {
+        // 6. التقاط الخطأ وعرضه بالتفصيل
         hideProgressBar();
         console.error("خطأ النشر التفصيلي:", error);
         
