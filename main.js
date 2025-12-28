@@ -9,11 +9,11 @@ import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/fire
 // =========================================================
 
 // 1. إعدادات الصور (Storage)
-const BUNNY_STORAGE_NAME = "hooopy"; //
+const BUNNY_STORAGE_NAME = "hoooyp"; //
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; //
 
 // ✅ التصحيح الجوهري: استخدام رابط الـ Pull Zone الخاص بالصور وليس الفيديو
-const BUNNY_CDN_URL = "https://hooopy-images.b-cdn.net"; //
+const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; //
 
 // 2. إعدادات الفيديو (Stream)
 const STREAM_LIB_ID = "570600"; //
@@ -669,3 +669,4 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
