@@ -196,15 +196,17 @@ async function uploadToBunny(file) {
 
     try {
         console.log("Starting upload for:", fileName);
-        await uploadWithProgress(`https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-        return `${BUNNY_CDN_URL}/${rawName}`; // الرابط النهائي لا يحتاج لتشفير زائد
+        
+        // 👇👇 التغيير هنا: استخدمنا uk.storage بدلاً من storage فقط 👇👇
+        // هذا الرابط يجبر الاتصال بسيرفر بريطانيا لتفادي مشاكل التوجيه في العراق
+        await uploadWithProgress(`https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
+        
+        return `${BUNNY_CDN_URL}/${rawName}`; 
     } catch (e) { 
         console.error("Upload Image Error:", e); 
-        // إعادة رمي الخطأ ليظهر في التنبيه
         throw e; 
     }
 }
-
 async function uploadVideoToBunnyStream(file) {
     try {
         const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { 
@@ -678,3 +680,4 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
