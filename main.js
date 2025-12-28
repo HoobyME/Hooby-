@@ -10,7 +10,7 @@ import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/fire
 // 1. إعدادات الصور (Storage)
 const BUNNY_STORAGE_NAME = "hoooby"; 
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; // مفتاح التخزين
-const BUNNY_CDN_URL = "https://hoooby.b-cdn.net"; // رابط الصور
+const BUNNY_CDN_URL = "https://vz-4ce371e0-da7.b-cdn.net"; // رابط الصور
 
 // 2. إعدادات الفيديو (Stream)
 const STREAM_LIB_ID = "570600";
@@ -656,3 +656,4 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
