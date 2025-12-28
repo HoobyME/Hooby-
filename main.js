@@ -1,18 +1,16 @@
-/* --- main.js: النسخة الشاملة (الميزات كاملة + دعم القائمة الثابتة + إصلاح الصور) --- */
+/* --- main.js: النسخة الحرة (سرح) - بدون قيود على العنوان --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 إعدادات BunnyCDN (تم التأكد من الصور)
+// 🔑 إعدادات BunnyCDN
 // =========================================================
 const BUNNY_STORAGE_NAME = "hoooyp"; 
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
-// ✅ رابط الصور الصحيح
-const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; 
+const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; // رابط الصور
 
-// إعدادات الفيديو
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
@@ -122,7 +120,6 @@ onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
 
-    // تحديث قائمة المستخدمين في صفحة الرسائل
     const userListContainer = document.getElementById('usersList');
     if (userListContainer) {
         userListContainer.innerHTML = ""; 
@@ -145,11 +142,9 @@ onValue(usersRef, (snapshot) => {
         });
     }
 
-    // تحديث الكاش للمستويات
     Object.values(users).forEach(user => {
         userXPCache[user.name] = user.xp || 0;
         const newLevelClass = getLevelClass(user.xp || 0);
-        // تحديث كل الصور في الموقع لتتوافق مع المستوى الجديد
         const elementsToUpdate = document.querySelectorAll(`.avatar-wrapper[data-author="${user.name}"]`);
         elementsToUpdate.forEach(el => {
             el.className = `avatar-wrapper ${newLevelClass}`;
@@ -158,7 +153,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (المصححة: hoooyp + London Server)
+// 🚀 وظائف الرفع
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -192,7 +187,6 @@ async function uploadToBunny(file) {
     const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const fileName = encodeURIComponent(rawName);
     
-    // استخدام سيرفرات متعددة (لندن، ألمانيا، أمريكا)
     const endpoints = [
         `https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
         `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
@@ -204,7 +198,6 @@ async function uploadToBunny(file) {
     for (let url of endpoints) {
         try {
             await uploadWithProgress(url, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-            // ✅ إرجاع رابط الصور الصحيح (Pull Zone)
             return `${BUNNY_CDN_URL}/${rawName}`;
         } catch (e) {
             console.warn(`فشل السيرفر ${url}، ننتقل للتالي...`);
@@ -253,7 +246,7 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات (مع الردود والتفاعلات)
+// 💬 نظام التعليقات والمنشورات
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -261,13 +254,11 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     const cImg = c.authorImg || DEFAULT_IMG;
     const myName = localStorage.getItem('hobbyName');
     
-    // حالة الإعجاب الخاصة بالمستخدم الحالي
     const myVote = (c.votes && c.votes[getSafeName(myName)]) ? c.votes[getSafeName(myName)] : null;
     const likeActive = (myVote === 'like') ? 'active-like' : '';
     const dislikeActive = (myVote === 'dislike') ? 'active-dislike' : '';
     const parentIdParam = isReply ? `'${c.parentId}'` : 'null';
 
-    // زر الرد
     let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
     
@@ -317,7 +308,6 @@ function loadCommentsForPost(postId) {
         if(list) {
             list.insertAdjacentHTML('beforeend', createCommentHTML(c, snap.key, postId));
             
-            // تحميل الردود على التعليق
             const repliesRef = ref(db, `posts/${postId}/comments/${snap.key}/replies`);
             onValue(repliesRef, (rSnap) => {
                 const repliesCount = rSnap.size;
@@ -350,12 +340,10 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
             if (!comment.dislikesCount) comment.dislikesCount = 0;
             const currentVote = comment.votes[myName];
             
-            // إلغاء التصويت إذا ضغطت نفس الزر
             if (currentVote === type) {
                 if(type === 'like') comment.likesCount--; else comment.dislikesCount--;
                 comment.votes[myName] = null;
             } else {
-                // تغيير التصويت من لايك إلى ديسلايك أو العكس
                 if (currentVote === 'like') comment.likesCount--;
                 if (currentVote === 'dislike') comment.dislikesCount--;
                 
@@ -365,7 +353,6 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
         }
         return comment;
     }).then((result) => {
-        // تحديث الواجهة فوراً
         if (result.snapshot.exists()) {
             const data = result.snapshot.val();
             const likeSpan = document.getElementById(`likes-${commentId}`);
@@ -400,10 +387,9 @@ window.sendReply = function(postId, commentId) {
     const myName = localStorage.getItem('hobbyName');
     const safeName = getSafeName(myName);
     
-    // إضافة نقاط XP للرد
     get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
         const currentXP = xpSnap.val() || 0;
-        addXP(myName, 5); // 5 نقاط للرد
+        addXP(myName, 5);
         const replyData = { text: text, author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, authorXP: currentXP + 5, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
         push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
     });
@@ -416,12 +402,15 @@ function getPostHTML(post, postId) {
     const activeClass = isLiked ? 'active' : '';
     const timeString = timeAgo(post.timestamp);
 
+    // ==========================================
+    // 🟢 تعديل العرض (إخفاء العنوان الفارغ)
+    // ==========================================
+    let titleHTML = post.title ? `<h3>${post.title}</h3>` : "";
+
     let mediaHTML = "";
     if (post.postImg && post.postImg.includes("iframe.mediadelivery.net")) {
-        // فيديو
         mediaHTML = `<div style="position:relative; padding-top:56.25%; margin-top:10px;"><iframe src="${post.postImg}?autoplay=false" style="border:none; position:absolute; top:0; height:100%; width:100%; border-radius:10px;" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe></div>`;
     } else if (post.postImg && post.postImg.length > 5) {
-        // صورة
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
     }
     
@@ -449,7 +438,7 @@ function getPostHTML(post, postId) {
                 <div class="options-btn" onclick="togglePostMenu('${postId}')"><i class="fas fa-ellipsis-h"></i></div>
                 <div id="menu-${postId}" class="options-menu"><div class="menu-option" onclick="hidePost('${postId}')">إخفاء</div>${delHTML}</div>
             </div>
-            <div class="post-body"><h3>${post.title}</h3><p>${contentHTML}</p>${mediaHTML}</div>
+            <div class="post-body">${titleHTML}<p>${contentHTML}</p>${mediaHTML}</div>
             <div class="post-actions">
                 <div id="like-btn-${postId}" class="action-btn ${activeClass}" onclick="toggleLike('${postId}', '${safeAuthor}')">
                     <img src="logo.png" class="efada-icon"><span>إفادة</span><span class="like-count" id="like-count-${postId}">${post.likes||0}</span>
@@ -510,7 +499,6 @@ window.sendComment = function(postId, author) {
             dislikesCount: 0
         }).then(() => {
              input.value = "";
-             // إشعار لصاحب المنشور
              if(author !== myName) {
                  push(ref(db, `notifications/${getSafeName(author)}`), {
                      senderName: myName,
@@ -525,7 +513,7 @@ window.sendComment = function(postId, author) {
 }
 
 // =========================================================
-// 🔥 دالة النشر (المصححة والنهائية)
+// 🔥 دالة النشر (المصححة: بدون قيود + تدعم الفراغ)
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -533,7 +521,12 @@ window.saveNewPost = async function() {
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
     
-    if(!title && !content && !file) { alert("اكتب شيئاً أو اختر ملفاً!"); return; }
+    // ✅ الشرط المخفف: يجب أن يكون هناك شيء واحد على الأقل (عنوان أو نص أو ملف)
+    // لكننا لن نجبرك على كتابة عنوان أو نص إذا كان هناك ملف
+    if(!title && !content && !file) { 
+        alert("ضع صورة أو اكتب كلمة واحدة على الأقل!"); 
+        return; 
+    }
 
     if(btn) { btn.disabled = true; btn.innerText = "جاري النشر..."; }
 
@@ -561,8 +554,9 @@ window.saveNewPost = async function() {
         
         addXP(myName, 10); 
         
+        // ✅ التعديل هنا: إذا لم يكن هناك عنوان، نرسل نصاً فارغاً بدلاً من "بدون عنوان"
         await push(postsRef, {
-            title: title || "بدون عنوان", 
+            title: title || "", 
             content: content || "", 
             postImg: fileUrl,
             author: myName, 
@@ -586,7 +580,7 @@ window.saveNewPost = async function() {
 }
 
 // =========================================================
-// 🌐 الدوال العامة (الخروج، البروفايل، الخ)
+// 🌐 الدوال العامة
 // =========================================================
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
 
@@ -638,7 +632,6 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html'; 
 }
 
-// دوال إدارة المنشورات والقوائم
 window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).classList.toggle('active'); }
 window.hidePost = function(id) { document.getElementById(`post-card-${id}`).style.display='none'; }
 window.deletePost = function(id) { if(confirm("حذف؟")) remove(ref(db, `posts/${id}`)); }
@@ -672,12 +665,10 @@ window.messageFromProfile = function(n, i) {
     window.location.href = 'messages.html'; 
 }
 
-// منطق تحميل صفحة البروفايل
 if(document.getElementById('profileContent')) { 
     let v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
     
-    // إذا لم يكن هناك بروفايل محدد، اعرض بروفايل المستخدم الحالي
     if(!v) {
         v = { name: m, img: localStorage.getItem('hobbyImage') };
         localStorage.setItem('viewingProfile', JSON.stringify(v));
