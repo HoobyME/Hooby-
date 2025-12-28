@@ -58,29 +58,27 @@
         <div class="nav-item" onclick="visitMyProfile()"><i class="fas fa-user"></i></div>
     </div>
 
-    <div id="addPostOverlay" class="overlay">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>منشور جديد</h3>
-                <span class="close-btn" onclick="closeAddPost()">&times;</span>
-            </div>
-            
-            <input type="text" id="postTitle" class="modal-input" placeholder="عنوان المنشور">
-            <textarea id="postContent" class="modal-input" rows="4" placeholder="بماذا تفكر؟"></textarea>
-            
-            <img id="imagePreview" style="width:100%; max-height:200px; object-fit:contain; display:none; margin-bottom:10px; border-radius:5px;">
-            
-            <div class="modal-actions">
-                <button onclick="triggerFileUpload()" class="action-btn" style="border:1px solid #ddd; border-radius:5px; padding:5px;">
-                    <i class="fas fa-image" style="color:#4CAF50;"></i> صورة/فيديو
-                </button>
-                <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
-            </div>
-            
-            <button class="btn-publish" onclick="saveNewPost()">نشر</button>
+   <div id="addPostOverlay" class="overlay" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>منشور جديد</h3>
+            <span class="close-btn" onclick="closeAddPost()">&times;</span>
         </div>
+        
+        <input type="text" id="postTitle" class="modal-input" placeholder="عنوان المنشور">
+        <textarea id="postContent" class="modal-input" placeholder="ماذا يدور في ذهنك؟" rows="5"></textarea>
+        
+        <div class="upload-area" onclick="triggerFileUpload()" style="border:2px dashed #ccc; padding:20px; text-align:center; margin:10px 0; border-radius:10px; cursor:pointer;">
+            <i class="fas fa-cloud-upload-alt" style="font-size:24px; color:#666;"></i>
+            <p style="margin:5px 0; color:#666;">اضغط لاختيار صورة أو فيديو</p>
+        </div>
+        
+        <input type="file" id="postImageInput" accept="image/*,video/*" style="display:none;" onchange="previewFile()">
+        <img id="imagePreview" class="image-preview" style="display:none; width:100%; max-height:200px; border-radius:10px; margin-top:10px; object-fit:cover;">
+        
+        <button class="btn-publish" onclick="saveNewPost()" style="width:100%; margin-top:10px;">نشر</button>
     </div>
-
+</div>
     <div id="uploadProgressOverlay" class="progress-overlay">
         <div class="progress-box">
             <span class="progress-text" id="progressText">جاري الرفع: 0%</span>
@@ -102,4 +100,5 @@
 
 </body>
 </html>
+
 
