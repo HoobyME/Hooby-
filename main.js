@@ -1,16 +1,24 @@
-/* --- main.js: النسخة المستقرة (مع إصلاح الأسماء العربية وكاشف الأخطاء) --- */
+/* --- main.js: النسخة النهائية (تم تصحيح الاسم hoooyp) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 إعدادات BunnyCDN (بياناتك الصحيحة مدمجة)
+// 🔑 إعدادات BunnyCDN (تم التصحيح حسب الصور المرفقة) 📸
 // =========================================================
-const BUNNY_STORAGE_NAME = "hoooby"; 
-const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
-const BUNNY_CDN_URL = "https://vz-4ce371e0-da7.b-cdn.net"; 
 
+// 1. إعدادات الصور (Storage)
+// ⚠️ انتبه: الاسم في صورتك هو hoooyp وليس hoooby
+const BUNNY_STORAGE_NAME = "hoooyp"; 
+const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
+
+// ⚠️ هام: تأكد أنك قمت بربط Pull Zone بهذا الاسم
+// إذا لم تكن قد ربطتها، فالرفع سينجح لكن الصور لن تظهر (ستظهر مكسورة)
+// افترضنا هنا أن الرابط هو hoooyp.b-cdn.net، تأكد من لوحة التحكم
+const BUNNY_CDN_URL = "https://hoooyp.b-cdn.net"; 
+
+// 2. إعدادات الفيديو (Stream) - (هذه صحيحة حسب الصورة 82)
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
@@ -153,7 +161,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (تم تحديثها لكشف الأخطاء ودعم العربية)
+// 🚀 وظائف الرفع (تم التصحيح + دعم العربية + سيرفر لندن)
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -179,49 +187,40 @@ function uploadWithProgress(url, method, headers, body) {
             if (xhr.status >= 200 && xhr.status < 300) {
                 resolve(JSON.parse(xhr.responseText || '{}'));
             } else {
-                // هنا نلتقط رسالة الخطأ الحقيقية من السيرفر
                 reject(new Error(`Server Error: ${xhr.status} ${xhr.statusText}`));
             }
         };
         
-        xhr.onerror = () => reject(new Error("Network Error: تأكد من الانترنت أو الـ VPN"));
+        xhr.onerror = () => reject(new Error("Network Error: تأكد من الانترنت أو استخدم VPN"));
         xhr.send(body);
     });
 }
 
 async function uploadToBunny(file) {
+    // 1. تشفير الاسم
     const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const fileName = encodeURIComponent(rawName);
-    
-    // قائمة السيرفرات المحتملة (ألمانيا، بريطانيا، نيويورك، لوس أنجلوس)
-    const endpoints = [
-        `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,      // الرئيسي (ألمانيا)
-        `https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,   // بريطانيا
-        `https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,   // نيويورك
-        `https://la.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`    // لوس أنجلوس
-    ];
 
-    console.log("جاري محاولة الرفع... سنحاول 4 سيرفرات مختلفة.");
-
-    // حلقة تكرار تجرب السيرفرات واحداً تلو الآخر
-    for (let url of endpoints) {
+    try {
+        console.log("محاولة الرفع إلى سيرفر بريطانيا...");
+        
+        // 👇 استخدام سيرفر لندن (UK) لتفادي مشاكل DNS في العراق
+        await uploadWithProgress(`https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
+        
+        return `${BUNNY_CDN_URL}/${rawName}`; 
+    } catch (e) { 
+        console.error("Upload Error:", e);
+        // محاولة أخيرة مع سيرفر نيويورك إذا فشل لندن
         try {
-            console.log(`تجربة الاتصال بـ: ${url}`);
-            await uploadWithProgress(url, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-            
-            // إذا وصلنا هنا، يعني نجح الرفع!
-            console.log("✅ نجح الرفع!");
-            return `${BUNNY_CDN_URL}/${rawName}`;
-            
-        } catch (e) {
-            console.warn(`❌ فشل السيرفر ${url}، ننتقل للتالي...`, e);
-            // ونستمر للسيرفر التالي في القائمة
+             console.log("فشل بريطانيا، جاري تجربة نيويورك...");
+             await uploadWithProgress(`https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
+             return `${BUNNY_CDN_URL}/${rawName}`;
+        } catch(e2) {
+             throw new Error("فشل الاتصال بجميع السيرفرات. هل تستخدم VPN؟");
         }
     }
-
-    // إذا فشلت كلها
-    throw new Error("فشل الرفع على جميع السيرفرات. تأكد من تغيير DNS جهازك إلى 8.8.8.8");
 }
+
 async function uploadVideoToBunnyStream(file) {
     try {
         const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { 
@@ -230,14 +229,14 @@ async function uploadVideoToBunnyStream(file) {
             body: JSON.stringify({ title: file.name }) 
         });
         
-        if (!createRes.ok) throw new Error(`Create Failed: ${createRes.status}`);
+        if (!createRes.ok) throw new Error(`Video Create Failed: ${createRes.status}`);
         const vidData = await createRes.json();
         const vid = vidData.guid;
 
         await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
     } catch (e) { 
-        console.error("Upload Video Error:", e); 
+        console.error("Video Upload Error:", e); 
         throw e;
     }
 }
@@ -483,7 +482,7 @@ if (document.getElementById('postsContainer')) {
 }
 
 // =========================================================
-// 🔥 دالة النشر (المصححة بالكامل)
+// 🔥 دالة النشر (المصححة والمحدثة)
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -491,13 +490,11 @@ window.saveNewPost = async function() {
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
     
-    // 1. التحقق من المدخلات
     if(!title && !content && !file) { 
         alert("اكتب شيئاً أو اختر ملفاً!"); 
         return; 
     }
 
-    // 2. قفل الزر
     if(btn) {
         btn.disabled = true;
         btn.innerText = "جاري النشر...";
@@ -506,7 +503,6 @@ window.saveNewPost = async function() {
     let fileUrl = "";
     
     try {
-        // 3. رفع الملف (إذا وجد)
         if (file) {
             if (file.type.startsWith('image/')) {
                 fileUrl = await uploadToBunny(file);
@@ -521,7 +517,6 @@ window.saveNewPost = async function() {
             }
         }
 
-        // 4. حفظ المنشور في Firebase
         const myName = localStorage.getItem('hobbyName');
         const safeName = getSafeName(myName);
         const xpSnap = await get(ref(db, `users/${safeName}/xp`));
@@ -540,22 +535,19 @@ window.saveNewPost = async function() {
             likes: 0
         });
 
-        // 5. النجاح
         hideProgressBar(); 
         alert("✅ تم النشر!"); 
         window.closeAddPost(); 
         location.reload();
 
     } catch (error) {
-        // 6. التقاط الخطأ وعرضه بالتفصيل
         hideProgressBar();
         console.error("خطأ النشر التفصيلي:", error);
         
         let msg = error.message;
-        if(msg.includes('401')) msg = "خطأ في المفتاح السري (401). تأكد من Password في Bunny.";
+        if(msg.includes('401')) msg = "خطأ في المفتاح السري (401). تأكد من Password.";
         if(msg.includes('404')) msg = "اسم مساحة التخزين خطأ (404).";
-        if(msg.includes('0')) msg = "مشكلة في الانترنت أو الحجب.";
-
+        
         alert("❌ فشل النشر:\n" + msg);
         
         if(btn) {
@@ -695,5 +687,3 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
-
-
