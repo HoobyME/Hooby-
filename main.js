@@ -1,23 +1,20 @@
-/* --- main.js: النسخة النهائية (مصححة حسب الصور المرفقة) --- */
+/* --- main.js: النسخة الشاملة (الميزات كاملة + دعم القائمة الثابتة + إصلاح الصور) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 إعدادات BunnyCDN (تم التعديل بناءً على صورك)
+// 🔑 إعدادات BunnyCDN (تم التأكد من الصور)
 // =========================================================
+const BUNNY_STORAGE_NAME = "hoooyp"; 
+const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
+// ✅ رابط الصور الصحيح
+const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; 
 
-// 1. إعدادات الصور (Storage)
-const BUNNY_STORAGE_NAME = "hoooyp"; //
-const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; //
-
-// ✅ التصحيح الجوهري: استخدام رابط الـ Pull Zone الخاص بالصور وليس الفيديو
-const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; //
-
-// 2. إعدادات الفيديو (Stream)
-const STREAM_LIB_ID = "570600"; //
-const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; //
+// إعدادات الفيديو
+const STREAM_LIB_ID = "570600";
+const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
 // =========================================================
 // 🔥 إعدادات Firebase
@@ -75,7 +72,7 @@ function registerUserPresence() {
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
         update(ref(db, 'users/' + getSafeName(myName)), { 
             name: myName, img: myImg, lastActive: serverTimestamp() 
-        }).catch(e => {}); 
+        }).catch(e=>{});
     }
 }
 setInterval(registerUserPresence, 120000); 
@@ -125,6 +122,7 @@ onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
 
+    // تحديث قائمة المستخدمين في صفحة الرسائل
     const userListContainer = document.getElementById('usersList');
     if (userListContainer) {
         userListContainer.innerHTML = ""; 
@@ -147,9 +145,11 @@ onValue(usersRef, (snapshot) => {
         });
     }
 
+    // تحديث الكاش للمستويات
     Object.values(users).forEach(user => {
         userXPCache[user.name] = user.xp || 0;
         const newLevelClass = getLevelClass(user.xp || 0);
+        // تحديث كل الصور في الموقع لتتوافق مع المستوى الجديد
         const elementsToUpdate = document.querySelectorAll(`.avatar-wrapper[data-author="${user.name}"]`);
         elementsToUpdate.forEach(el => {
             el.className = `avatar-wrapper ${newLevelClass}`;
@@ -158,7 +158,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (متعددة السيرفرات لتفادي الحجب)
+// 🚀 وظائف الرفع (المصححة: hoooyp + London Server)
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -192,25 +192,25 @@ async function uploadToBunny(file) {
     const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const fileName = encodeURIComponent(rawName);
     
-    // محاولة الرفع عبر سيرفرات مختلفة (لندن أولاً لأنها الأفضل للمنطقة)
+    // استخدام سيرفرات متعددة (لندن، ألمانيا، أمريكا)
     const endpoints = [
         `https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
         `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
         `https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`
     ];
 
-    console.log("جاري محاولة الرفع...");
+    console.log("جاري الرفع...");
 
     for (let url of endpoints) {
         try {
             await uploadWithProgress(url, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-            // ✅ تم الرفع بنجاح - نعيد الرابط الصحيح (لصور hoooyp-images)
+            // ✅ إرجاع رابط الصور الصحيح (Pull Zone)
             return `${BUNNY_CDN_URL}/${rawName}`;
         } catch (e) {
             console.warn(`فشل السيرفر ${url}، ننتقل للتالي...`);
         }
     }
-    throw new Error("فشل الرفع على جميع السيرفرات. تأكد من الاتصال.");
+    throw new Error("فشل الرفع على جميع السيرفرات.");
 }
 
 async function uploadVideoToBunnyStream(file) {
@@ -224,10 +224,7 @@ async function uploadVideoToBunnyStream(file) {
         if (!createRes.ok) throw new Error("Video Create Failed");
         const vid = (await createRes.json()).guid;
         
-        // رفع الفيديو
         await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
-        
-        // إرجاع رابط المشغل (Embed URL)
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
     } catch (e) { console.error(e); throw e; }
 }
@@ -256,18 +253,21 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات
+// 💬 نظام التعليقات والمنشورات (مع الردود والتفاعلات)
 // =========================================================
+
 function createCommentHTML(c, commentId, postId, isReply = false) {
     const cSafe = c.author ? c.author.replace(/'/g, "\\'") : "مجهول";
     const cImg = c.authorImg || DEFAULT_IMG;
     const myName = localStorage.getItem('hobbyName');
     
+    // حالة الإعجاب الخاصة بالمستخدم الحالي
     const myVote = (c.votes && c.votes[getSafeName(myName)]) ? c.votes[getSafeName(myName)] : null;
     const likeActive = (myVote === 'like') ? 'active-like' : '';
     const dislikeActive = (myVote === 'dislike') ? 'active-dislike' : '';
     const parentIdParam = isReply ? `'${c.parentId}'` : 'null';
 
+    // زر الرد
     let replyAction = !isReply ? `toggleReplyBox('${postId}', '${commentId}')` : `prepareReplyToReply('${postId}', '${c.parentId}', '${cSafe}')`;
     const replyBtn = `<div class="action-icon-btn" onclick="${replyAction}" title="رد"><i class="fas fa-reply"></i></div>`;
     
@@ -316,6 +316,8 @@ function loadCommentsForPost(postId) {
         const list = document.getElementById(`comments-list-${postId}`);
         if(list) {
             list.insertAdjacentHTML('beforeend', createCommentHTML(c, snap.key, postId));
+            
+            // تحميل الردود على التعليق
             const repliesRef = ref(db, `posts/${postId}/comments/${snap.key}/replies`);
             onValue(repliesRef, (rSnap) => {
                 const repliesCount = rSnap.size;
@@ -347,18 +349,23 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
             if (!comment.likesCount) comment.likesCount = 0;
             if (!comment.dislikesCount) comment.dislikesCount = 0;
             const currentVote = comment.votes[myName];
+            
+            // إلغاء التصويت إذا ضغطت نفس الزر
             if (currentVote === type) {
                 if(type === 'like') comment.likesCount--; else comment.dislikesCount--;
                 comment.votes[myName] = null;
             } else {
+                // تغيير التصويت من لايك إلى ديسلايك أو العكس
                 if (currentVote === 'like') comment.likesCount--;
                 if (currentVote === 'dislike') comment.dislikesCount--;
+                
                 if (type === 'like') comment.likesCount++; else comment.dislikesCount++;
                 comment.votes[myName] = type;
             }
         }
         return comment;
     }).then((result) => {
+        // تحديث الواجهة فوراً
         if (result.snapshot.exists()) {
             const data = result.snapshot.val();
             const likeSpan = document.getElementById(`likes-${commentId}`);
@@ -377,7 +384,14 @@ window.voteComment = function(postId, commentId, type, isReply, parentId) {
 }
 
 window.toggleReplyBox = function(postId, commentId) { const box = document.getElementById(`reply-box-${commentId}`); if(box) box.classList.toggle('active'); }
-window.prepareReplyToReply = function(postId, parentId, authorName) { const box = document.getElementById(`reply-box-${parentId}`); if(box) { box.classList.add('active'); const input = document.getElementById(`reply-input-${parentId}`); if(input) { input.value = `@${authorName} `; input.focus(); } } }
+window.prepareReplyToReply = function(postId, parentId, authorName) { 
+    const box = document.getElementById(`reply-box-${parentId}`); 
+    if(box) { 
+        box.classList.add('active'); 
+        const input = document.getElementById(`reply-input-${parentId}`); 
+        if(input) { input.value = `@${authorName} `; input.focus(); } 
+    } 
+}
 
 window.sendReply = function(postId, commentId) {
     const input = document.getElementById(`reply-input-${commentId}`);
@@ -385,9 +399,11 @@ window.sendReply = function(postId, commentId) {
     if(!text) return;
     const myName = localStorage.getItem('hobbyName');
     const safeName = getSafeName(myName);
+    
+    // إضافة نقاط XP للرد
     get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
         const currentXP = xpSnap.val() || 0;
-        addXP(myName, 5);
+        addXP(myName, 5); // 5 نقاط للرد
         const replyData = { text: text, author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, authorXP: currentXP + 5, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
         push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
     });
@@ -402,10 +418,10 @@ function getPostHTML(post, postId) {
 
     let mediaHTML = "";
     if (post.postImg && post.postImg.includes("iframe.mediadelivery.net")) {
-        // عرض الفيديو
+        // فيديو
         mediaHTML = `<div style="position:relative; padding-top:56.25%; margin-top:10px;"><iframe src="${post.postImg}?autoplay=false" style="border:none; position:absolute; top:0; height:100%; width:100%; border-radius:10px;" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe></div>`;
     } else if (post.postImg && post.postImg.length > 5) {
-        // عرض الصور (الرابط الآن صحيح)
+        // صورة
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
     }
     
@@ -473,8 +489,43 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
+window.sendComment = function(postId, author) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    const text = input.value;
+    if(!text) return;
+    
+    const myName = localStorage.getItem('hobbyName');
+    const safeName = getSafeName(myName);
+    
+    get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
+        const currentXP = xpSnap.val() || 0;
+        addXP(myName, 10);
+        push(ref(db, `posts/${postId}/comments`), {
+            text: text,
+            author: myName,
+            authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+            authorXP: currentXP + 10,
+            timestamp: serverTimestamp(),
+            likesCount: 0,
+            dislikesCount: 0
+        }).then(() => {
+             input.value = "";
+             // إشعار لصاحب المنشور
+             if(author !== myName) {
+                 push(ref(db, `notifications/${getSafeName(author)}`), {
+                     senderName: myName,
+                     senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+                     text: `علق على منشورك: ${text}`,
+                     type: 'comment',
+                     timestamp: serverTimestamp()
+                 });
+             }
+        });
+    });
+}
+
 // =========================================================
-// 🔥 دالة النشر (متكاملة)
+// 🔥 دالة النشر (المصححة والنهائية)
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -529,16 +580,14 @@ window.saveNewPost = async function() {
     } catch (error) {
         hideProgressBar();
         console.error("خطأ النشر:", error);
-        
-        let msg = error.message;
-        if(msg.includes('401')) msg = "خطأ 401: كلمة المرور غير صحيحة";
-        if(msg.includes('404')) msg = "خطأ 404: اسم التخزين غير صحيح";
-        
-        alert("❌ فشل النشر:\n" + msg);
+        alert("❌ فشل النشر:\n" + error.message);
         if(btn) { btn.disabled = false; btn.innerText = "نشر"; }
     }
 }
 
+// =========================================================
+// 🌐 الدوال العامة (الخروج، البروفايل، الخ)
+// =========================================================
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
 
 let currentChatPartner = null;
@@ -552,14 +601,10 @@ window.startChat = function(user) {
     headerImg.src = user.img || DEFAULT_IMG;
     headerName.onclick = () => visitUserProfile(user.name, user.img || DEFAULT_IMG);
     headerImg.onclick = () => visitUserProfile(user.name, user.img || DEFAULT_IMG);
-    headerName.style.cursor = 'pointer';
-    headerImg.style.cursor = 'pointer';
     
     const levelClass = getLevelClass(user.xp || 0);
     const headerImgWrapper = document.getElementById('chatHeaderImgWrapper');
-    if(headerImgWrapper) {
-        headerImgWrapper.className = `avatar-wrapper ${levelClass}`;
-    }
+    if(headerImgWrapper) { headerImgWrapper.className = `avatar-wrapper ${levelClass}`; }
 
     if(document.getElementById('inputArea')) document.getElementById('inputArea').style.display = 'flex';
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
@@ -593,6 +638,7 @@ window.visitMyProfile = function() {
     window.location.href = 'profile-view.html'; 
 }
 
+// دوال إدارة المنشورات والقوائم
 window.togglePostMenu = function(id) { document.getElementById(`menu-${id}`).classList.toggle('active'); }
 window.hidePost = function(id) { document.getElementById(`post-card-${id}`).style.display='none'; }
 window.deletePost = function(id) { if(confirm("حذف؟")) remove(ref(db, `posts/${id}`)); }
@@ -626,9 +672,16 @@ window.messageFromProfile = function(n, i) {
     window.location.href = 'messages.html'; 
 }
 
+// منطق تحميل صفحة البروفايل
 if(document.getElementById('profileContent')) { 
-    const v = JSON.parse(localStorage.getItem('viewingProfile'));
+    let v = JSON.parse(localStorage.getItem('viewingProfile'));
     const m = localStorage.getItem('hobbyName'); 
+    
+    // إذا لم يكن هناك بروفايل محدد، اعرض بروفايل المستخدم الحالي
+    if(!v) {
+        v = { name: m, img: localStorage.getItem('hobbyImage') };
+        localStorage.setItem('viewingProfile', JSON.stringify(v));
+    }
     
     if(v) onValue(ref(db, `users/${getSafeName(v.name)}`), s => { 
         const u = s.val()||{}; 
@@ -669,4 +722,3 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
-
