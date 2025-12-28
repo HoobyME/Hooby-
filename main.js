@@ -9,7 +9,7 @@ import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/fire
 // =========================================================
 const BUNNY_STORAGE_NAME = "hoooyp"; // ✅ الاسم الصحيح (p في النهاية)
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
-const BUNNY_CDN_URL = "https://vz-4ce371e0-da7.b-cdn.net"; 
+const BUNNY_CDN_URL = "hoooyp-images.b-cdn.net"; 
 
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
@@ -657,3 +657,4 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
