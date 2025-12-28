@@ -1,20 +1,18 @@
-/* --- main.js: النسخة المستقرة (محدثة بمفاتيح Bunny الجديدة) --- */
+/* --- main.js: النسخة المستقرة (مع إصلاح الأسماء العربية وكاشف الأخطاء) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 إعدادات BunnyCDN (تم التحديث بالمفاتيح المرسلة)
+// 🔑 إعدادات BunnyCDN (بياناتك الصحيحة مدمجة)
 // =========================================================
-// 1. إعدادات الصور (Storage)
 const BUNNY_STORAGE_NAME = "hoooby"; 
-const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; // مفتاح التخزين
-const BUNNY_CDN_URL = "https://vz-4ce371e0-da7.b-cdn.net"; // رابط الصور
+const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
+const BUNNY_CDN_URL = "https://vz-4ce371e0-da7.b-cdn.net"; 
 
-// 2. إعدادات الفيديو (Stream)
 const STREAM_LIB_ID = "570600";
-const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; // مفتاح الفيديو
+const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
 // =========================================================
 // 🔥 إعدادات Firebase
@@ -155,7 +153,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (BunnyCDN & Stream) - تم الإصلاح ✅
+// 🚀 وظائف الرفع (تم تحديثها لكشف الأخطاء ودعم العربية)
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -172,41 +170,59 @@ function uploadWithProgress(url, method, headers, body) {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
         for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value);
-        xhr.upload.onprogress = (e) => { if (e.lengthComputable) updateProgressBar((e.loaded / e.total) * 100); };
-        xhr.onload = () => { (xhr.status >= 200 && xhr.status < 300) ? resolve(JSON.parse(xhr.responseText||'{}')) : reject(new Error(xhr.statusText)); };
-        xhr.onerror = () => reject(new Error("Network Error"));
+        
+        xhr.upload.onprogress = (e) => { 
+            if (e.lengthComputable) updateProgressBar((e.loaded / e.total) * 100); 
+        };
+        
+        xhr.onload = () => { 
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(JSON.parse(xhr.responseText || '{}'));
+            } else {
+                // هنا نلتقط رسالة الخطأ الحقيقية من السيرفر
+                reject(new Error(`Server Error: ${xhr.status} ${xhr.statusText}`));
+            }
+        };
+        
+        xhr.onerror = () => reject(new Error("Network Error: تأكد من الانترنت أو الـ VPN"));
         xhr.send(body);
     });
 }
 
 async function uploadToBunny(file) {
-    const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
+    // ✅ تصحيح: استخدام encodeURIComponent لدعم الأسماء العربية
+    const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
+    const fileName = encodeURIComponent(rawName);
+
     try {
-        // نستخدم مفتاح التخزين هنا
+        console.log("Starting upload for:", fileName);
         await uploadWithProgress(`https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-        return `${BUNNY_CDN_URL}/${fileName}`;
-    } catch (e) { console.error("Upload Image Error:", e); return null; }
+        return `${BUNNY_CDN_URL}/${rawName}`; // الرابط النهائي لا يحتاج لتشفير زائد
+    } catch (e) { 
+        console.error("Upload Image Error:", e); 
+        // إعادة رمي الخطأ ليظهر في التنبيه
+        throw e; 
+    }
 }
 
 async function uploadVideoToBunnyStream(file) {
     try {
-        // 1. إنشاء الفيديو في المكتبة
         const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { 
             method: 'POST', 
             headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ title: file.name }) 
         });
         
-        if (!createRes.ok) throw new Error("فشل إنشاء ملف الفيديو");
+        if (!createRes.ok) throw new Error(`Create Failed: ${createRes.status}`);
         const vidData = await createRes.json();
         const vid = vidData.guid;
 
-        // 2. رفع الفيديو
         await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
-        
-        // 3. إرجاع رابط المشغل (Embed)
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
-    } catch (e) { console.error("Upload Video Error:", e); return null; }
+    } catch (e) { 
+        console.error("Upload Video Error:", e); 
+        throw e;
+    }
 }
 
 // =========================================================
@@ -450,7 +466,7 @@ if (document.getElementById('postsContainer')) {
 }
 
 // =========================================================
-// 🔥 دالة النشر (المصححة والمحمية من التجمد) ✅
+// 🔥 دالة النشر (المصححة بالكامل)
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -484,7 +500,7 @@ window.saveNewPost = async function() {
             }
 
             if (!fileUrl) { 
-                throw new Error("فشل الرفع: تأكد من الاتصال");
+                throw new Error("فشل الرفع: لم نحصل على رابط من السيرفر");
             }
         }
 
@@ -514,10 +530,16 @@ window.saveNewPost = async function() {
         location.reload();
 
     } catch (error) {
-        // 6. التقاط الخطأ (يمنع التجمد عند 100%)
+        // 6. التقاط الخطأ وعرضه بالتفصيل
         hideProgressBar();
-        console.error("خطأ النشر:", error);
-        alert("حدث خطأ أثناء النشر:\n" + error.message);
+        console.error("خطأ النشر التفصيلي:", error);
+        
+        let msg = error.message;
+        if(msg.includes('401')) msg = "خطأ في المفتاح السري (401). تأكد من Password في Bunny.";
+        if(msg.includes('404')) msg = "اسم مساحة التخزين خطأ (404).";
+        if(msg.includes('0')) msg = "مشكلة في الانترنت أو الحجب.";
+
+        alert("❌ فشل النشر:\n" + msg);
         
         if(btn) {
             btn.disabled = false;
@@ -656,4 +678,3 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
-
