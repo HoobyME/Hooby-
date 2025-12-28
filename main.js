@@ -1,18 +1,23 @@
-/* --- main.js: النسخة الكاملة المستقرة (تم تصحيح hoooyp فقط) --- */
+/* --- main.js: النسخة النهائية (مصححة حسب الصور المرفقة) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 إعدادات BunnyCDN (التصحيح الحاسم)
+// 🔑 إعدادات BunnyCDN (تم التعديل بناءً على صورك)
 // =========================================================
-const BUNNY_STORAGE_NAME = "hoooyp"; // ✅ الاسم الصحيح (p في النهاية)
-const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
-const BUNNY_CDN_URL = "hoooyp-images.b-cdn.net"; 
 
-const STREAM_LIB_ID = "570600";
-const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
+// 1. إعدادات الصور (Storage)
+const BUNNY_STORAGE_NAME = "hooopy"; //
+const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; //
+
+// ✅ التصحيح الجوهري: استخدام رابط الـ Pull Zone الخاص بالصور وليس الفيديو
+const BUNNY_CDN_URL = "https://hooopy-images.b-cdn.net"; //
+
+// 2. إعدادات الفيديو (Stream)
+const STREAM_LIB_ID = "570600"; //
+const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; //
 
 // =========================================================
 // 🔥 إعدادات Firebase
@@ -70,7 +75,7 @@ function registerUserPresence() {
     if(myName && localStorage.getItem('hobbyLoggedIn')) {
         update(ref(db, 'users/' + getSafeName(myName)), { 
             name: myName, img: myImg, lastActive: serverTimestamp() 
-        }).catch(e => {}); // تجاهل أخطاء الاتصال البسيطة
+        }).catch(e => {}); 
     }
 }
 setInterval(registerUserPresence, 120000); 
@@ -153,7 +158,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع (التصحيح: استخدام hoooyp + سيرفر لندن)
+// 🚀 وظائف الرفع (متعددة السيرفرات لتفادي الحجب)
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -187,24 +192,25 @@ async function uploadToBunny(file) {
     const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const fileName = encodeURIComponent(rawName);
     
-    // قائمة السيرفرات: لندن أولاً (الأفضل للعراق)، ثم ألمانيا، ثم نيويورك
+    // محاولة الرفع عبر سيرفرات مختلفة (لندن أولاً لأنها الأفضل للمنطقة)
     const endpoints = [
         `https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
         `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,
         `https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`
     ];
 
-    console.log("جاري الرفع... (محاولة مسارات متعددة)");
+    console.log("جاري محاولة الرفع...");
 
     for (let url of endpoints) {
         try {
             await uploadWithProgress(url, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
+            // ✅ تم الرفع بنجاح - نعيد الرابط الصحيح (لصور hoooyp-images)
             return `${BUNNY_CDN_URL}/${rawName}`;
         } catch (e) {
-            console.warn(`فشل ${url}، جاري تجربة التالي...`);
+            console.warn(`فشل السيرفر ${url}، ننتقل للتالي...`);
         }
     }
-    throw new Error("فشل الرفع على جميع السيرفرات. تأكد من اتصال الإنترنت.");
+    throw new Error("فشل الرفع على جميع السيرفرات. تأكد من الاتصال.");
 }
 
 async function uploadVideoToBunnyStream(file) {
@@ -215,9 +221,13 @@ async function uploadVideoToBunnyStream(file) {
             body: JSON.stringify({ title: file.name }) 
         });
         
-        if (!createRes.ok) throw new Error("Create Failed");
+        if (!createRes.ok) throw new Error("Video Create Failed");
         const vid = (await createRes.json()).guid;
+        
+        // رفع الفيديو
         await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
+        
+        // إرجاع رابط المشغل (Embed URL)
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
     } catch (e) { console.error(e); throw e; }
 }
@@ -392,8 +402,10 @@ function getPostHTML(post, postId) {
 
     let mediaHTML = "";
     if (post.postImg && post.postImg.includes("iframe.mediadelivery.net")) {
+        // عرض الفيديو
         mediaHTML = `<div style="position:relative; padding-top:56.25%; margin-top:10px;"><iframe src="${post.postImg}?autoplay=false" style="border:none; position:absolute; top:0; height:100%; width:100%; border-radius:10px;" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe></div>`;
     } else if (post.postImg && post.postImg.length > 5) {
+        // عرض الصور (الرابط الآن صحيح)
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
     }
     
@@ -462,7 +474,7 @@ if (document.getElementById('postsContainer')) {
 }
 
 // =========================================================
-// 🔥 دالة النشر (المصححة والكاملة)
+// 🔥 دالة النشر (متكاملة)
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -657,4 +669,3 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
-
