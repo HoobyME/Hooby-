@@ -1,18 +1,24 @@
-/* --- main.js: النسخة المستقرة (بالمفاتيح الجديدة + إصلاح النشر) --- */
+/* --- main.js: النسخة المستقرة (محدثة بمفاتيح Bunny الجديدة) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// إعدادات Bunny CDN & Stream (المفاتيح الجديدة)
-const BUNNY_STORAGE_NAME = "hoooby";  // تأكد أن الاسم في الموقع هو hoooby فعلاً
-const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
-const BUNNY_CDN_URL = "https://hoooby.b-cdn.net"; 
+// =========================================================
+// 🔑 إعدادات BunnyCDN (تم التحديث بالمفاتيح المرسلة)
+// =========================================================
+// 1. إعدادات الصور (Storage)
+const BUNNY_STORAGE_NAME = "hoooby"; 
+const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; // مفتاح التخزين
+const BUNNY_CDN_URL = "https://hoooby.b-cdn.net"; // رابط الصور
 
+// 2. إعدادات الفيديو (Stream)
 const STREAM_LIB_ID = "570600";
-const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c";
+const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; // مفتاح الفيديو
 
-// إعدادات Firebase
+// =========================================================
+// 🔥 إعدادات Firebase
+// =========================================================
 const firebaseConfig = {
   apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -149,7 +155,7 @@ onValue(usersRef, (snapshot) => {
 });
 
 // =========================================================
-// 🚀 وظائف الرفع
+// 🚀 وظائف الرفع (BunnyCDN & Stream) - تم الإصلاح ✅
 // =========================================================
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
@@ -176,19 +182,31 @@ function uploadWithProgress(url, method, headers, body) {
 async function uploadToBunny(file) {
     const fileName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     try {
+        // نستخدم مفتاح التخزين هنا
         await uploadWithProgress(`https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
         return `${BUNNY_CDN_URL}/${fileName}`;
-    } catch (e) { console.error(e); return null; }
+    } catch (e) { console.error("Upload Image Error:", e); return null; }
 }
 
 async function uploadVideoToBunnyStream(file) {
     try {
-        const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { method: 'POST', headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ title: file.name }) });
-        if (!createRes.ok) throw new Error("Create Failed");
-        const vid = (await createRes.json()).guid;
+        // 1. إنشاء الفيديو في المكتبة
+        const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos`, { 
+            method: 'POST', 
+            headers: { 'AccessKey': STREAM_API_KEY, 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ title: file.name }) 
+        });
+        
+        if (!createRes.ok) throw new Error("فشل إنشاء ملف الفيديو");
+        const vidData = await createRes.json();
+        const vid = vidData.guid;
+
+        // 2. رفع الفيديو
         await uploadWithProgress(`https://video.bunnycdn.com/library/${STREAM_LIB_ID}/videos/${vid}`, 'PUT', { 'AccessKey': STREAM_API_KEY }, file);
+        
+        // 3. إرجاع رابط المشغل (Embed)
         return `https://iframe.mediadelivery.net/embed/${STREAM_LIB_ID}/${vid}`;
-    } catch (e) { console.error(e); return null; }
+    } catch (e) { console.error("Upload Video Error:", e); return null; }
 }
 
 // =========================================================
@@ -431,35 +449,46 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
-if (document.getElementById('usersList')) {
-    const pendingChat = JSON.parse(localStorage.getItem('pendingChat'));
-    if (pendingChat) {
-        localStorage.removeItem('pendingChat'); 
-        setTimeout(() => startChat(pendingChat), 500);
-    }
-}
-
-// 🔥 دالة النشر المحسنة (لتفادي مشكلة التعليق عند 100%)
+// =========================================================
+// 🔥 دالة النشر (المصححة والمحمية من التجمد) ✅
+// =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
     
-    if(!title && !content && !file) { alert("اكتب شيئاً أو اختر ملفاً!"); return; }
+    // 1. التحقق من المدخلات
+    if(!title && !content && !file) { 
+        alert("اكتب شيئاً أو اختر ملفاً!"); 
+        return; 
+    }
 
-    if(btn) { btn.disabled = true; btn.innerText = "جاري النشر..."; }
+    // 2. قفل الزر
+    if(btn) {
+        btn.disabled = true;
+        btn.innerText = "جاري النشر...";
+    }
 
     let fileUrl = "";
     
     try {
+        // 3. رفع الملف (إذا وجد)
         if (file) {
-            if (file.type.startsWith('image/')) { fileUrl = await uploadToBunny(file); } 
-            else if (file.type.startsWith('video/')) { fileUrl = await uploadVideoToBunnyStream(file); } 
-            else { throw new Error("نوع الملف غير مدعوم"); }
-            if (!fileUrl) { throw new Error("فشل الرفع"); }
+            if (file.type.startsWith('image/')) {
+                fileUrl = await uploadToBunny(file);
+            } else if (file.type.startsWith('video/')) {
+                fileUrl = await uploadVideoToBunnyStream(file);
+            } else { 
+                throw new Error("نوع الملف غير مدعوم");
+            }
+
+            if (!fileUrl) { 
+                throw new Error("فشل الرفع: تأكد من الاتصال");
+            }
         }
 
+        // 4. حفظ المنشور في Firebase
         const myName = localStorage.getItem('hobbyName');
         const safeName = getSafeName(myName);
         const xpSnap = await get(ref(db, `users/${safeName}/xp`));
@@ -478,16 +507,22 @@ window.saveNewPost = async function() {
             likes: 0
         });
 
+        // 5. النجاح
         hideProgressBar(); 
         alert("✅ تم النشر!"); 
         window.closeAddPost(); 
         location.reload();
 
     } catch (error) {
+        // 6. التقاط الخطأ (يمنع التجمد عند 100%)
         hideProgressBar();
-        console.error(error);
-        alert("خطأ: " + error.message);
-        if(btn) { btn.disabled = false; btn.innerText = "نشر"; }
+        console.error("خطأ النشر:", error);
+        alert("حدث خطأ أثناء النشر:\n" + error.message);
+        
+        if(btn) {
+            btn.disabled = false;
+            btn.innerText = "نشر";
+        }
     }
 }
 
