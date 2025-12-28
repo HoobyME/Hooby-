@@ -190,22 +190,37 @@ function uploadWithProgress(url, method, headers, body) {
 }
 
 async function uploadToBunny(file) {
-    // ✅ تصحيح: استخدام encodeURIComponent لدعم الأسماء العربية
     const rawName = Date.now() + "_" + file.name.replace(/\s/g, "_");
     const fileName = encodeURIComponent(rawName);
+    
+    // قائمة السيرفرات المحتملة (ألمانيا، بريطانيا، نيويورك، لوس أنجلوس)
+    const endpoints = [
+        `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,      // الرئيسي (ألمانيا)
+        `https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,   // بريطانيا
+        `https://ny.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`,   // نيويورك
+        `https://la.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`    // لوس أنجلوس
+    ];
 
-    try {
-        console.log("Starting upload for:", fileName);
-        
-        // 👇👇 التغيير هنا: استخدمنا uk.storage بدلاً من storage فقط 👇👇
-        // هذا الرابط يجبر الاتصال بسيرفر بريطانيا لتفادي مشاكل التوجيه في العراق
-        await uploadWithProgress(`https://uk.storage.bunnycdn.com/${BUNNY_STORAGE_NAME}/${fileName}`, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
-        
-        return `${BUNNY_CDN_URL}/${rawName}`; 
-    } catch (e) { 
-        console.error("Upload Image Error:", e); 
-        throw e; 
+    console.log("جاري محاولة الرفع... سنحاول 4 سيرفرات مختلفة.");
+
+    // حلقة تكرار تجرب السيرفرات واحداً تلو الآخر
+    for (let url of endpoints) {
+        try {
+            console.log(`تجربة الاتصال بـ: ${url}`);
+            await uploadWithProgress(url, 'PUT', { 'AccessKey': BUNNY_API_KEY, 'Content-Type': 'application/octet-stream' }, file);
+            
+            // إذا وصلنا هنا، يعني نجح الرفع!
+            console.log("✅ نجح الرفع!");
+            return `${BUNNY_CDN_URL}/${rawName}`;
+            
+        } catch (e) {
+            console.warn(`❌ فشل السيرفر ${url}، ننتقل للتالي...`, e);
+            // ونستمر للسيرفر التالي في القائمة
+        }
     }
+
+    // إذا فشلت كلها
+    throw new Error("فشل الرفع على جميع السيرفرات. تأكد من تغيير DNS جهازك إلى 8.8.8.8");
 }
 async function uploadVideoToBunnyStream(file) {
     try {
@@ -680,4 +695,5 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
 
