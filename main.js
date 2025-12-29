@@ -1,4 +1,4 @@
-/* --- main.js: النسخة النهائية (تم إصلاح زر عرض الردود ✅) --- */
+/* --- main.js: نسخة الإشعارات الشاملة (رسائل، إعجابات، تعليقات، ردود) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -9,7 +9,7 @@ import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/fire
 // =========================================================
 const BUNNY_STORAGE_NAME = "hoooyp"; 
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
-const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; // رابط الصور الصحيح
+const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; 
 
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
@@ -38,6 +38,24 @@ const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
 let userXPCache = {};
+
+// =========================================================
+// 🛠️ دالة مساعدة لإرسال الإشعارات
+// =========================================================
+function sendNotification(targetUser, text, type) {
+    const myName = localStorage.getItem('hobbyName');
+    // لا ترسل إشعاراً لنفسك
+    if (!targetUser || targetUser === myName) return;
+
+    const safeTarget = getSafeName(targetUser);
+    push(ref(db, `notifications/${safeTarget}`), {
+        senderName: myName,
+        senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+        text: text,
+        type: type, // 'like', 'comment', 'message', 'reply'
+        timestamp: serverTimestamp()
+    });
+}
 
 // =========================================================
 // 🔐 التحقق والأمان
@@ -265,6 +283,9 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     const currentXP = userXPCache[c.author] !== undefined ? userXPCache[c.author] : (c.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
+    // ✅ التعديل هنا: نمرر اسم صاحب التعليق (cSafe) إلى دالة التصويت
+    const voteArgs = `'${postId}', '${commentId}', '${cSafe}',`;
+
     return `
         <div class="comment-item" id="comment-${commentId}">
             <div class="avatar-wrapper ${levelClass}" data-author="${c.author}" onclick="visitUserProfile('${cSafe}','${cImg}')" style="cursor:pointer">
@@ -277,10 +298,10 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
                 </div>
                 <div class="comment-actions-side">
                     <span style="font-size:11px; margin-left:5px;">${timeAgo(c.timestamp)}</span>
-                    <div id="btn-like-${commentId}" class="action-icon-btn ${likeActive}" onclick="voteComment('${postId}', '${commentId}', 'like', ${isReply}, ${parentIdParam})">
+                    <div id="btn-like-${commentId}" class="action-icon-btn ${likeActive}" onclick="voteComment(${voteArgs} 'like', ${isReply}, ${parentIdParam})">
                         <i class="far fa-thumbs-up"></i> <span id="likes-${commentId}" style="font-size:11px;">${c.likesCount || 0}</span>
                     </div>
-                    <div id="btn-dislike-${commentId}" class="action-icon-btn ${dislikeActive}" onclick="voteComment('${postId}', '${commentId}', 'dislike', ${isReply}, ${parentIdParam})">
+                    <div id="btn-dislike-${commentId}" class="action-icon-btn ${dislikeActive}" onclick="voteComment(${voteArgs} 'dislike', ${isReply}, ${parentIdParam})">
                         <i class="far fa-thumbs-down"></i> <span id="dislikes-${commentId}" style="font-size:11px;">${c.dislikesCount || 0}</span>
                     </div>
                     ${replyBtn}
@@ -288,7 +309,7 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
                 ${!isReply ? `
                 <div id="reply-box-${commentId}" class="reply-input-box">
                     <input type="text" id="reply-input-${commentId}" class="reply-field" placeholder="اكتب رداً...">
-                    <button onclick="sendReply('${postId}', '${commentId}')" class="send-comment-btn" style="width:30px; height:30px;"><i class="fas fa-paper-plane"></i></button>
+                    <button onclick="sendReply('${postId}', '${commentId}', '${cSafe}')" class="send-comment-btn" style="width:30px; height:30px;"><i class="fas fa-paper-plane"></i></button>
                 </div>
                 <div id="show-replies-btn-${commentId}" class="show-replies-btn" style="display:none;" onclick="toggleReplies('${commentId}')">
                     <span>عرض الردود</span> <i class="fas fa-chevron-down"></i>
@@ -307,7 +328,6 @@ function loadCommentsForPost(postId) {
         const list = document.getElementById(`comments-list-${postId}`);
         if(list) {
             list.insertAdjacentHTML('beforeend', createCommentHTML(c, snap.key, postId));
-            
             const repliesRef = ref(db, `posts/${postId}/comments/${snap.key}/replies`);
             onValue(repliesRef, (rSnap) => {
                 const repliesCount = rSnap.size;
@@ -328,13 +348,9 @@ function loadCommentsForPost(postId) {
     });
 }
 
-// ==========================================
-// ✅ الدالة الناقصة (إصلاح زر عرض الردود)
-// ==========================================
 window.toggleReplies = function(commentId) {
     const wrapper = document.getElementById(`replies-wrapper-${commentId}`);
     const btn = document.getElementById(`show-replies-btn-${commentId}`);
-    
     if(wrapper) {
         if (wrapper.style.display === 'none' || wrapper.style.display === '') {
             wrapper.style.display = 'block';
@@ -346,10 +362,18 @@ window.toggleReplies = function(commentId) {
     }
 }
 
-window.voteComment = function(postId, commentId, type, isReply, parentId) {
+// ✅ دالة التصويت المعدلة (ترسل إشعارات الآن)
+window.voteComment = function(postId, commentId, authorName, type, isReply, parentId) {
     const myName = getSafeName(localStorage.getItem('hobbyName'));
     let path = `posts/${postId}/comments/${commentId}`;
     if(isReply && parentId) path = `posts/${postId}/comments/${parentId}/replies/${commentId}`;
+
+    // إرسال الإشعار قبل المعاملة (لتسريع الاستجابة)
+    const btnLike = document.getElementById(`btn-like-${commentId}`);
+    if (type === 'like' && btnLike && !btnLike.classList.contains('active-like')) {
+        const text = isReply ? "أعجب بردك" : "أعجب بتعليقك";
+        sendNotification(authorName, text, 'like');
+    }
 
     runTransaction(ref(db, path), (comment) => {
         if (comment) {
@@ -397,7 +421,8 @@ window.prepareReplyToReply = function(postId, parentId, authorName) {
     } 
 }
 
-window.sendReply = function(postId, commentId) {
+// ✅ دالة الرد المعدلة (ترسل إشعارات)
+window.sendReply = function(postId, commentId, commentAuthor) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
     if(!text) return;
@@ -407,8 +432,20 @@ window.sendReply = function(postId, commentId) {
     get(ref(db, `users/${safeName}/xp`)).then((xpSnap) => {
         const currentXP = xpSnap.val() || 0;
         addXP(myName, 5);
-        const replyData = { text: text, author: myName, authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, authorXP: currentXP + 5, timestamp: serverTimestamp(), likesCount: 0, dislikesCount: 0 };
-        push(ref(db, `posts/${postId}/comments/${commentId}/replies`), replyData).then(() => { input.value = ""; toggleReplyBox(postId, commentId); });
+        push(ref(db, `posts/${postId}/comments/${commentId}/replies`), {
+            text: text,
+            author: myName,
+            authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
+            authorXP: currentXP + 5,
+            timestamp: serverTimestamp(),
+            likesCount: 0,
+            dislikesCount: 0
+        }).then(() => { 
+            input.value = ""; 
+            toggleReplyBox(postId, commentId); 
+            // إشعار لصاحب التعليق الأصلي
+            sendNotification(commentAuthor, `رد على تعليقك: ${text}`, 'reply');
+        });
     });
 }
 
@@ -492,6 +529,7 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
+// ✅ دالة التعليق المعدلة (ترسل إشعار)
 window.sendComment = function(postId, author) {
     const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value;
@@ -513,21 +551,14 @@ window.sendComment = function(postId, author) {
             dislikesCount: 0
         }).then(() => {
              input.value = "";
-             if(author !== myName) {
-                 push(ref(db, `notifications/${getSafeName(author)}`), {
-                     senderName: myName,
-                     senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
-                     text: `علق على منشورك: ${text}`,
-                     type: 'comment',
-                     timestamp: serverTimestamp()
-                 });
-             }
+             // إشعار لصاحب المنشور
+             sendNotification(author, `علق على منشورك: ${text}`, 'comment');
         });
     });
 }
 
 // =========================================================
-// 🔥 دالة النشر (المصححة: بدون قيود)
+// 🔥 دالة النشر
 // =========================================================
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
@@ -623,9 +654,48 @@ window.startChat = function(user) {
         msgContainer.appendChild(div); msgContainer.scrollTop = msgContainer.scrollHeight;
     });
 }
-window.sendChatMessage = function() { const inp = document.getElementById('msgInput'); const txt = inp.value; if(!txt || !currentChatPartner) return; const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: txt, timestamp: serverTimestamp() }); const receiverSafe = getSafeName(currentChatPartner); push(ref(db, `notifications/${receiverSafe}`), { senderName: localStorage.getItem('hobbyName'), senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG, text: txt, type: 'message', timestamp: serverTimestamp() }); inp.value=""; }
+
+// ✅ دالة إرسال الرسالة المعدلة (ترسل إشعار)
+window.sendChatMessage = function() { 
+    const inp = document.getElementById('msgInput'); 
+    const txt = inp.value; 
+    if(!txt || !currentChatPartner) return; 
+    const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); 
+    push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: txt, timestamp: serverTimestamp() }); 
+    
+    // إشعار لصديقك
+    sendNotification(currentChatPartner, txt, 'message');
+    inp.value=""; 
+}
+
 window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
-window.toggleLike = function(postId, postAuthor) { const uid = getSafeName(localStorage.getItem('hobbyName')); const btn = document.getElementById(`like-btn-${postId}`); const countSpan = document.getElementById(`like-count-${postId}`); let c = parseInt(countSpan.innerText)||0; if(btn.classList.contains('active')){ btn.classList.remove('active'); countSpan.innerText = c>0?c-1:0; } else { btn.classList.add('active'); countSpan.innerText = c+1; } runTransaction(ref(db, `posts/${postId}`), (p) => { if(p) { if(!p.likedBy) p.likedBy={}; if(p.likedBy[uid]) { p.likes--; p.likedBy[uid]=null; } else { p.likes++; p.likedBy[uid]=true; } } return p; }); }
+
+// ✅ دالة لايك المنشور المعدلة (ترسل إشعار)
+window.toggleLike = function(postId, postAuthor) { 
+    const uid = getSafeName(localStorage.getItem('hobbyName')); 
+    const btn = document.getElementById(`like-btn-${postId}`); 
+    const countSpan = document.getElementById(`like-count-${postId}`); 
+    let c = parseInt(countSpan.innerText)||0; 
+    
+    // إرسال إشعار إذا ضغط لايك (وليس إزالة لايك)
+    if (!btn.classList.contains('active')) {
+        sendNotification(postAuthor, "أعجب بمنشورك", 'like');
+        btn.classList.add('active'); 
+        countSpan.innerText = c+1; 
+    } else {
+        btn.classList.remove('active'); 
+        countSpan.innerText = c>0?c-1:0; 
+    }
+    
+    runTransaction(ref(db, `posts/${postId}`), (p) => { 
+        if(p) { 
+            if(!p.likedBy) p.likedBy={}; 
+            if(p.likedBy[uid]) { p.likes--; p.likedBy[uid]=null; } 
+            else { p.likes++; p.likedBy[uid]=true; } 
+        } 
+        return p; 
+    }); 
+}
 
 window.visitUserProfile = function(name, img) { 
     localStorage.setItem('viewingProfile', JSON.stringify({ name: name, img: img||DEFAULT_IMG })); 
