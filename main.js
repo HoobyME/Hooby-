@@ -1,12 +1,8 @@
-/* --- main.js: النسخة الحرة (سرح) - بدون قيود على العنوان --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// =========================================================
-// 🔑 إعدادات BunnyCDN
-// =========================================================
 const BUNNY_STORAGE_NAME = "hoooyp"; 
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
 const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; // رابط الصور
@@ -14,9 +10,6 @@ const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net"; // رابط الصور
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
-// =========================================================
-// 🔥 إعدادات Firebase
-// =========================================================
 const firebaseConfig = {
   apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ",
   authDomain: "hooby-7d945.firebaseapp.com",
@@ -39,9 +32,6 @@ const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sf
 
 let userXPCache = {};
 
-// =========================================================
-// 🔐 التحقق والأمان
-// =========================================================
 function checkAuth() {
     const path = window.location.href;
     const isLoggedIn = localStorage.getItem('hobbyLoggedIn');
@@ -90,9 +80,6 @@ function timeAgo(timestamp) {
     return date.toLocaleDateString('ar-EG');
 }
 
-// =========================================================
-// 🏆 نظام المستويات (XP System)
-// =========================================================
 function getLevelClass(xp) {
     xp = xp || 0;
     if (xp >= 20000) return "lvl-max-phoenix";     
@@ -113,9 +100,7 @@ function addXP(userId, amount) {
     });
 }
 
-// =========================================================
-// 🔄 المزامنة الحية (Live Sync)
-// =========================================================
+
 onValue(usersRef, (snapshot) => {
     const users = snapshot.val();
     if (!users) return;
@@ -152,9 +137,7 @@ onValue(usersRef, (snapshot) => {
     });
 });
 
-// =========================================================
-// 🚀 وظائف الرفع
-// =========================================================
+
 function updateProgressBar(percent) {
     const overlay = document.getElementById('uploadProgressOverlay');
     if (overlay) {
@@ -222,9 +205,7 @@ async function uploadVideoToBunnyStream(file) {
     } catch (e) { console.error(e); throw e; }
 }
 
-// =========================================================
-// 🔔 الإشعارات
-// =========================================================
+
 function requestNotificationPermission() { if ("Notification" in window) Notification.requestPermission(); }
 function showSystemNotification(sender, message, img) {
     NOTIFICATION_SOUND.play().catch(()=>{});
@@ -245,9 +226,7 @@ function monitorNotifications() {
     });
 }
 
-// =========================================================
-// 💬 نظام التعليقات والمنشورات
-// =========================================================
+
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
     const cSafe = c.author ? c.author.replace(/'/g, "\\'") : "مجهول";
@@ -402,9 +381,6 @@ function getPostHTML(post, postId) {
     const activeClass = isLiked ? 'active' : '';
     const timeString = timeAgo(post.timestamp);
 
-    // ==========================================
-    // 🟢 تعديل العرض (إخفاء العنوان الفارغ)
-    // ==========================================
     let titleHTML = post.title ? `<h3>${post.title}</h3>` : "";
 
     let mediaHTML = "";
@@ -512,17 +488,14 @@ window.sendComment = function(postId, author) {
     });
 }
 
-// =========================================================
-// 🔥 دالة النشر (المصححة: بدون قيود + تدعم الفراغ)
-// =========================================================
+
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
     const file = document.getElementById('postImageInput').files[0];
     const btn = document.querySelector('.btn-publish'); 
     
-    // ✅ الشرط المخفف: يجب أن يكون هناك شيء واحد على الأقل (عنوان أو نص أو ملف)
-    // لكننا لن نجبرك على كتابة عنوان أو نص إذا كان هناك ملف
+    
     if(!title && !content && !file) { 
         alert("ضع صورة أو اكتب كلمة واحدة على الأقل!"); 
         return; 
@@ -554,7 +527,7 @@ window.saveNewPost = async function() {
         
         addXP(myName, 10); 
         
-        // ✅ التعديل هنا: إذا لم يكن هناك عنوان، نرسل نصاً فارغاً بدلاً من "بدون عنوان"
+     
         await push(postsRef, {
             title: title || "", 
             content: content || "", 
@@ -579,9 +552,7 @@ window.saveNewPost = async function() {
     }
 }
 
-// =========================================================
-// 🌐 الدوال العامة
-// =========================================================
+
 window.logout = function() { if(confirm("خروج؟")) { localStorage.clear(); signOut(auth).then(() => { window.location.href = 'index.html'; }); } }
 
 let currentChatPartner = null;
@@ -713,3 +684,4 @@ if(document.getElementById('profileContent')) {
 }
 
 window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
+
