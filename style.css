@@ -282,3 +282,16 @@ body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--te
     color: var(--text-sub);
     order: 2;              /* 🔥 الكلمة دائماً هي الثانية (في الأسفل) */
 }
+/* تنسيق المنشن (Mention) */
+.user-mention {
+    color: #2196F3; /* لون أزرق */
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    direction: ltr; /* لضمان ظهور الرموز بشكل صحيح */
+    display: inline-block;
+}
+
+.user-mention:hover {
+    text-decoration: underline;
+}
