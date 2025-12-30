@@ -1,4 +1,4 @@
-/* --- main.js: النسخة الشاملة (مع ميزة المنشن @ باللون الأزرق) --- */
+/* --- main.js: النسخة النهائية (إصلاح دخول المنشن للملف الشخصي) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -40,14 +40,15 @@ const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sf
 let userXPCache = {};
 
 // =========================================================
-// 🛠️ دالة معالجة النصوص (المنشن @)
+// 🛠️ دالة معالجة النصوص (المنشن @) - مُحسنة
 // =========================================================
 function formatText(text) {
     if (!text) return "";
-    // هذا الكود يبحث عن @ ثم أي حروف عربية أو إنجليزية أو أرقام بعدها
+    // البحث عن المنشن وتحويله لرابط
+    // نستخدم replace لإصلاح مشكلة العلامات في الأسماء (escaping)
     return text.replace(/@([\u0600-\u06FFa-zA-Z0-9._]+)/g, (match, username) => {
-        // يحولها لرابط أزرق قابل للنقر
-        return `<span class="user-mention" onclick="event.stopPropagation(); visitUserProfile('${username}')">${match}</span>`;
+        const safeUsername = username.replace(/'/g, "\\'"); // حماية من الفواصل
+        return `<span class="user-mention" onclick="event.stopPropagation(); visitUserProfile('${safeUsername}')">${match}</span>`;
     });
 }
 
@@ -295,8 +296,6 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     const levelClass = getLevelClass(currentXP);
 
     const voteArgs = `'${postId}', '${commentId}', '${cSafe}',`;
-
-    // 🟢 تطبيق دالة المنشن هنا
     const formattedCommentText = formatText(c.text);
 
     return `
@@ -466,7 +465,6 @@ function getPostHTML(post, postId) {
     const activeClass = isLiked ? 'active' : '';
     const timeString = timeAgo(post.timestamp);
 
-    // 🟢 تطبيق دالة المنشن على العنوان والمحتوى
     let titleHTML = post.title ? `<h3>${formatText(post.title)}</h3>` : "";
     let contentHTML = formatText(post.content);
 
@@ -477,7 +475,6 @@ function getPostHTML(post, postId) {
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
     }
     
-    // التعامل مع روابط يوتيوب
     if (contentHTML && (contentHTML.includes('youtube.com') || contentHTML.includes('youtu.be'))) {
         const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
         const match = contentHTML.match(youtubeRegex);
@@ -704,7 +701,18 @@ window.toggleLike = function(postId, postAuthor) {
     }); 
 }
 
+// =========================================================
+// ✅ تحديث دالة زيارة البروفايل (لحل مشكلة المنشن الذاتي)
+// =========================================================
 window.visitUserProfile = function(name, img) { 
+    // إذا كان الاسم المضغوط هو اسمي، عاملني كصاحب الحساب
+    const myName = localStorage.getItem('hobbyName');
+    if (name.trim() === myName) {
+        visitMyProfile();
+        return;
+    }
+    
+    // إذا كان شخصاً آخر
     localStorage.setItem('viewingProfile', JSON.stringify({ name: name, img: img||DEFAULT_IMG })); 
     window.location.href = 'profile-view.html'; 
 }
