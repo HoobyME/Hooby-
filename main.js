@@ -1,4 +1,4 @@
-/* --- main.js: نسخة الإشعارات الشاملة (رسائل، إعجابات، تعليقات، ردود) --- */
+/* --- main.js: النسخة الشاملة (مع ميزة المنشن @ باللون الأزرق) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -40,11 +40,22 @@ const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sf
 let userXPCache = {};
 
 // =========================================================
+// 🛠️ دالة معالجة النصوص (المنشن @)
+// =========================================================
+function formatText(text) {
+    if (!text) return "";
+    // هذا الكود يبحث عن @ ثم أي حروف عربية أو إنجليزية أو أرقام بعدها
+    return text.replace(/@([\u0600-\u06FFa-zA-Z0-9._]+)/g, (match, username) => {
+        // يحولها لرابط أزرق قابل للنقر
+        return `<span class="user-mention" onclick="event.stopPropagation(); visitUserProfile('${username}')">${match}</span>`;
+    });
+}
+
+// =========================================================
 // 🛠️ دالة مساعدة لإرسال الإشعارات
 // =========================================================
 function sendNotification(targetUser, text, type) {
     const myName = localStorage.getItem('hobbyName');
-    // لا ترسل إشعاراً لنفسك
     if (!targetUser || targetUser === myName) return;
 
     const safeTarget = getSafeName(targetUser);
@@ -52,7 +63,7 @@ function sendNotification(targetUser, text, type) {
         senderName: myName,
         senderImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
         text: text,
-        type: type, // 'like', 'comment', 'message', 'reply'
+        type: type, 
         timestamp: serverTimestamp()
     });
 }
@@ -264,7 +275,7 @@ function monitorNotifications() {
 }
 
 // =========================================================
-// 💬 نظام التعليقات والمنشورات
+// 💬 نظام التعليقات والمنشورات (مع المنشن)
 // =========================================================
 
 function createCommentHTML(c, commentId, postId, isReply = false) {
@@ -283,8 +294,10 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     const currentXP = userXPCache[c.author] !== undefined ? userXPCache[c.author] : (c.authorXP || 0);
     const levelClass = getLevelClass(currentXP);
 
-    // ✅ التعديل هنا: نمرر اسم صاحب التعليق (cSafe) إلى دالة التصويت
     const voteArgs = `'${postId}', '${commentId}', '${cSafe}',`;
+
+    // 🟢 تطبيق دالة المنشن هنا
+    const formattedCommentText = formatText(c.text);
 
     return `
         <div class="comment-item" id="comment-${commentId}">
@@ -294,7 +307,7 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
             <div style="flex:1; max-width: 100%;">
                 <div class="comment-bubble">
                     <div class="comment-author" onclick="visitUserProfile('${cSafe}','${cImg}')">${c.author}</div>
-                    <div class="comment-text-content">${c.text}</div>
+                    <div class="comment-text-content">${formattedCommentText}</div>
                 </div>
                 <div class="comment-actions-side">
                     <span style="font-size:11px; margin-left:5px;">${timeAgo(c.timestamp)}</span>
@@ -328,6 +341,7 @@ function loadCommentsForPost(postId) {
         const list = document.getElementById(`comments-list-${postId}`);
         if(list) {
             list.insertAdjacentHTML('beforeend', createCommentHTML(c, snap.key, postId));
+            
             const repliesRef = ref(db, `posts/${postId}/comments/${snap.key}/replies`);
             onValue(repliesRef, (rSnap) => {
                 const repliesCount = rSnap.size;
@@ -362,13 +376,11 @@ window.toggleReplies = function(commentId) {
     }
 }
 
-// ✅ دالة التصويت المعدلة (ترسل إشعارات الآن)
 window.voteComment = function(postId, commentId, authorName, type, isReply, parentId) {
     const myName = getSafeName(localStorage.getItem('hobbyName'));
     let path = `posts/${postId}/comments/${commentId}`;
     if(isReply && parentId) path = `posts/${postId}/comments/${parentId}/replies/${commentId}`;
 
-    // إرسال الإشعار قبل المعاملة (لتسريع الاستجابة)
     const btnLike = document.getElementById(`btn-like-${commentId}`);
     if (type === 'like' && btnLike && !btnLike.classList.contains('active-like')) {
         const text = isReply ? "أعجب بردك" : "أعجب بتعليقك";
@@ -421,7 +433,6 @@ window.prepareReplyToReply = function(postId, parentId, authorName) {
     } 
 }
 
-// ✅ دالة الرد المعدلة (ترسل إشعارات)
 window.sendReply = function(postId, commentId, commentAuthor) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
@@ -443,7 +454,6 @@ window.sendReply = function(postId, commentId, commentAuthor) {
         }).then(() => { 
             input.value = ""; 
             toggleReplyBox(postId, commentId); 
-            // إشعار لصاحب التعليق الأصلي
             sendNotification(commentAuthor, `رد على تعليقك: ${text}`, 'reply');
         });
     });
@@ -456,7 +466,9 @@ function getPostHTML(post, postId) {
     const activeClass = isLiked ? 'active' : '';
     const timeString = timeAgo(post.timestamp);
 
-    let titleHTML = post.title ? `<h3>${post.title}</h3>` : "";
+    // 🟢 تطبيق دالة المنشن على العنوان والمحتوى
+    let titleHTML = post.title ? `<h3>${formatText(post.title)}</h3>` : "";
+    let contentHTML = formatText(post.content);
 
     let mediaHTML = "";
     if (post.postImg && post.postImg.includes("iframe.mediadelivery.net")) {
@@ -465,12 +477,13 @@ function getPostHTML(post, postId) {
         mediaHTML = `<img src="${post.postImg}" loading="lazy" style="width:100%; border-radius:10px; margin-top:10px; max-height:400px; object-fit:cover;">`;
     }
     
-    let contentHTML = post.content;
-    if (post.content && (post.content.includes('youtube.com') || post.content.includes('youtu.be'))) {
+    // التعامل مع روابط يوتيوب
+    if (contentHTML && (contentHTML.includes('youtube.com') || contentHTML.includes('youtu.be'))) {
         const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/;
-        const match = post.content.match(youtubeRegex);
+        const match = contentHTML.match(youtubeRegex);
         if (match && match[1]) mediaHTML += `<iframe loading="lazy" style="width:100%; height:250px; border-radius:10px; margin-top:10px;" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
     }
+    
     let delHTML = (post.author === myName) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
     
     const currentXP = userXPCache[post.author] !== undefined ? userXPCache[post.author] : (post.authorXP || 0);
@@ -529,7 +542,6 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
-// ✅ دالة التعليق المعدلة (ترسل إشعار)
 window.sendComment = function(postId, author) {
     const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value;
@@ -551,7 +563,6 @@ window.sendComment = function(postId, author) {
             dislikesCount: 0
         }).then(() => {
              input.value = "";
-             // إشعار لصاحب المنشور
              sendNotification(author, `علق على منشورك: ${text}`, 'comment');
         });
     });
@@ -655,7 +666,6 @@ window.startChat = function(user) {
     });
 }
 
-// ✅ دالة إرسال الرسالة المعدلة (ترسل إشعار)
 window.sendChatMessage = function() { 
     const inp = document.getElementById('msgInput'); 
     const txt = inp.value; 
@@ -663,21 +673,18 @@ window.sendChatMessage = function() {
     const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); 
     push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: txt, timestamp: serverTimestamp() }); 
     
-    // إشعار لصديقك
     sendNotification(currentChatPartner, txt, 'message');
     inp.value=""; 
 }
 
 window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
 
-// ✅ دالة لايك المنشور المعدلة (ترسل إشعار)
 window.toggleLike = function(postId, postAuthor) { 
     const uid = getSafeName(localStorage.getItem('hobbyName')); 
     const btn = document.getElementById(`like-btn-${postId}`); 
     const countSpan = document.getElementById(`like-count-${postId}`); 
     let c = parseInt(countSpan.innerText)||0; 
     
-    // إرسال إشعار إذا ضغط لايك (وليس إزالة لايك)
     if (!btn.classList.contains('active')) {
         sendNotification(postAuthor, "أعجب بمنشورك", 'like');
         btn.classList.add('active'); 
