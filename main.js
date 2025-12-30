@@ -1,11 +1,11 @@
-/* --- main.js: النسخة النهائية الآمنة (Google Auth) --- */
+/* --- main.js: النسخة النهائية (مفتاح API الجديد الصحيح ✅) --- */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, serverTimestamp, runTransaction, remove, query, limitToLast, get, onChildAdded, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signOut, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // =========================================================
-// 🔑 الإعدادات (BunnyCDN + Firebase)
+// 🔑 إعدادات BunnyCDN (للصور والفيديو)
 // =========================================================
 const BUNNY_STORAGE_NAME = "hoooyp"; 
 const BUNNY_API_KEY = "1d3c3073-83f3-4e01-9bc3d8159405-255b-442d"; 
@@ -13,32 +13,37 @@ const BUNNY_CDN_URL = "https://hoooyp-images.b-cdn.net";
 const STREAM_LIB_ID = "570600";
 const STREAM_API_KEY = "d3eab474-337a-4424-bf5f2947347c-d1fa-431c"; 
 
+// =========================================================
+// 🔥 إعدادات Firebase (تم التحديث بالمفتاح الجديد الصحيح)
+// =========================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyBZXpf8lo3bNdCUypuUXO2yeNNAuBm7cQQ",
+  apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM", // ✅ المفتاح الجديد
   authDomain: "hooby-7d945.firebaseapp.com",
   databaseURL: "https://hooby-7d945-default-rtdb.firebaseio.com",
   projectId: "hooby-7d945",
-  storageBucket: "hooby-7d945.firebasestorage.app",
+  storageBucket: "hooby-7d945.firebasestorage.app", // ✅ تم التحديث حسب بياناتك
   messagingSenderId: "522131121638",
   appId: "1:522131121638:web:748f7761f18167fb65e227",
   measurementId: "G-H1F82C1THC"
 };
 
+// تهيئة التطبيق
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 const postsRef = ref(db, 'posts');
 const usersRef = ref(db, 'users');
+
 const DEFAULT_IMG = "default.jpg";
 const NOTIFICATION_SOUND = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 let userXPCache = {};
-let currentUserUID = null; // لتخزين معرف المستخدم الحالي
+let currentUserUID = null; 
 
 // =========================================================
 // 🔐 نظام الدخول الآمن (Google Auth)
 // =========================================================
 
-// مراقبة حالة المستخدم (هل هو متصل؟)
+// مراقبة حالة المستخدم
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUserUID = user.uid;
@@ -46,16 +51,14 @@ onAuthStateChanged(auth, (user) => {
         localStorage.setItem('hobbyImage', user.photoURL);
         localStorage.setItem('hobbyLoggedIn', 'true');
         
-        // إذا كنا في صفحة الدخول، حولنا للرئيسية
+        // التوجيه التلقائي
         if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
             window.location.href = 'home.html';
         }
         
-        // تسجيل التواجد وتحديث البيانات
         registerUserPresence(user);
         monitorNotifications();
     } else {
-        // إذا لم يكن متصلاً وكنا في صفحة داخلية، ارجع للدخول
         if (!window.location.pathname.includes('index.html') && !window.location.pathname.endsWith('/')) {
             window.location.href = 'index.html';
         }
@@ -67,8 +70,7 @@ window.loginWithGoogle = function() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
         .then((result) => {
-            // النجاح: onAuthStateChanged ستتولى الباقي
-            console.log("Logged in:", result.user.displayName);
+            console.log("تم الدخول بنجاح:", result.user.displayName);
         }).catch((error) => {
             alert("فشل الدخول: " + error.message);
         });
@@ -80,7 +82,7 @@ function registerUserPresence(user) {
     update(ref(db, 'users/' + safeName), { 
         name: user.displayName, 
         img: user.photoURL, 
-        uid: user.uid, // ✅ حفظ الـ UID للحماية
+        uid: user.uid, 
         lastActive: serverTimestamp() 
     }).catch(e=>{});
 }
@@ -90,7 +92,7 @@ function registerUserPresence(user) {
 // =========================================================
 function getSafeName(name) {
     if(!name) return "User";
-    return name.replace(/[.#$\[\]]/g, "_"); // تنظيف الاسم
+    return name.replace(/[.#$\[\]]/g, "_");
 }
 
 function formatText(text) {
@@ -112,8 +114,7 @@ function timeAgo(timestamp) {
     if (hours < 24) return `منذ ${hours} ساعة`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `منذ ${days} أيام`;
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('ar-EG');
+    return new Date(timestamp).toLocaleDateString('ar-EG');
 }
 
 function sendNotification(targetUser, text, type) {
@@ -146,6 +147,41 @@ function addXP(userId, amount) {
     const userRef = ref(db, 'users/' + getSafeName(userId) + '/xp');
     runTransaction(userRef, (currentXP) => (currentXP || 0) + amount);
 }
+
+// =========================================================
+// 🔄 قائمة المستخدمين (للشات)
+// =========================================================
+onValue(usersRef, (snapshot) => {
+    const users = snapshot.val();
+    if (!users) return;
+    const userListContainer = document.getElementById('usersList');
+    if (userListContainer) {
+        userListContainer.innerHTML = ""; 
+        const myName = localStorage.getItem('hobbyName');
+        Object.values(users).forEach(user => {
+            if (user.name === myName) return; 
+            const isOnline = (Date.now() - (user.lastActive || 0)) < 180000;
+            const levelClass = getLevelClass(user.xp || 0);
+            userListContainer.innerHTML += `
+                <div class="user-item" onclick='startChat(${JSON.stringify(user)})' style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                    <div class="avatar-wrapper ${levelClass}" onclick="event.stopPropagation(); visitUserProfile('${user.name}', '${user.img||DEFAULT_IMG}')">
+                         <img src="${user.img || DEFAULT_IMG}" class="user-avatar-small" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                    </div>
+                    <div class="user-item-info">
+                        <h4 style="margin:0;">${user.name}</h4>
+                        <div style="display:flex; align-items:center; margin-top:2px;"><span class="user-status-indicator ${isOnline ? "status-online" : "status-offline"}"></span><span class="status-text">${isOnline ? "متصل" : "غير متصل"}</span></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    // تحديث الكاش
+    Object.values(users).forEach(user => {
+        userXPCache[user.name] = user.xp || 0;
+        const newLevelClass = getLevelClass(user.xp || 0);
+        document.querySelectorAll(`.avatar-wrapper[data-author="${user.name}"]`).forEach(el => el.className = `avatar-wrapper ${newLevelClass}`);
+    });
+});
 
 // =========================================================
 // 🚀 وظائف الرفع
@@ -238,7 +274,7 @@ function getPostHTML(post, postId) {
     let isLiked = (post.likedBy && currentUserUID && post.likedBy[currentUserUID]);
     const activeClass = isLiked ? 'active' : '';
     
-    // إظهار زر الحذف فقط لصاحب المنشور (بالتحقق من الـ UID)
+    // زر الحذف فقط لصاحب المنشور
     let delHTML = (post.authorUID === currentUserUID) ? `<div class="menu-option delete" onclick="deletePost('${postId}')"><i class="fas fa-trash"></i> حذف</div>` : '';
 
     let titleHTML = post.title ? `<h3>${formatText(post.title)}</h3>` : "";
@@ -291,7 +327,7 @@ if (document.getElementById('postsContainer')) {
         document.getElementById('postsContainer').insertAdjacentHTML('afterbegin', getPostHTML(post, snapshot.key));
         loadCommentsForPost(snapshot.key);
     });
-    // Live update for likes
+    // Live Likes Update
     onChildChanged(postsRef, (snapshot) => {
         const p = snapshot.val();
         const span = document.getElementById(`like-count-${snapshot.key}`);
@@ -299,7 +335,7 @@ if (document.getElementById('postsContainer')) {
     });
 }
 
-// ✅ دالة النشر (ترسل الـ authorUID للحماية)
+// ✅ دالة النشر (محمية بالـ UID)
 window.saveNewPost = async function() {
     const title = document.getElementById('postTitle').value;
     const content = document.getElementById('postContent').value;
@@ -317,9 +353,8 @@ window.saveNewPost = async function() {
         }
 
         const myName = localStorage.getItem('hobbyName');
-        const user = auth.currentUser; // المستخدم الحالي من جوجل
+        const user = auth.currentUser;
         
-        // جلب الـ XP
         let currentXP = 0;
         try { const xpSnap = await get(ref(db, `users/${getSafeName(myName)}/xp`)); currentXP = xpSnap.val() || 0; } catch(e){}
         
@@ -329,7 +364,7 @@ window.saveNewPost = async function() {
             postImg: fileUrl,
             author: myName, 
             authorImg: localStorage.getItem('hobbyImage') || DEFAULT_IMG,
-            authorUID: user.uid, // 🛡️ هذا هو المفتاح للحماية!
+            authorUID: user.uid, // 🛡️ مفتاح الحماية
             authorXP: currentXP + 10,
             timestamp: serverTimestamp(), 
             likes: 0
@@ -357,7 +392,6 @@ function createCommentHTML(c, commentId, postId, isReply = false) {
     const voteArgs = `'${postId}', '${commentId}', '${cSafe}',`;
     const levelClass = getLevelClass(userXPCache[c.author] || c.authorXP || 0);
     
-    // زر الحذف للتعليق (فقط لصاحبه)
     const canDelete = (c.authorUID === currentUserUID);
     const deleteBtn = canDelete ? `<span onclick="deleteComment('${postId}','${commentId}', ${isReply}, ${parentIdParam})" style="color:red; cursor:pointer; font-size:10px; margin-right:5px;">حذف</span>` : '';
 
@@ -395,7 +429,6 @@ function loadCommentsForPost(postId) {
     onChildAdded(ref(db, `posts/${postId}/comments`), (snap) => {
         const c = snap.val();
         document.getElementById(`comments-list-${postId}`)?.insertAdjacentHTML('beforeend', createCommentHTML(c, snap.key, postId));
-        
         onChildAdded(ref(db, `posts/${postId}/comments/${snap.key}/replies`), (rSnap) => {
             const r = rSnap.val(); r.parentId = snap.key;
             document.getElementById(`replies-wrapper-${snap.key}`)?.insertAdjacentHTML('beforeend', createCommentHTML(r, rSnap.key, postId, true));
@@ -424,10 +457,8 @@ window.sendReply = function(postId, commentId, commentAuthor) {
     const input = document.getElementById(`reply-input-${commentId}`);
     const text = input.value;
     if(!text) return;
-
     const myName = localStorage.getItem('hobbyName');
     const user = auth.currentUser;
-
     push(ref(db, `posts/${postId}/comments/${commentId}/replies`), {
         text: text, author: myName, authorImg: localStorage.getItem('hobbyImage'), authorUID: user.uid,
         authorXP: 5, timestamp: serverTimestamp(), likesCount: 0
@@ -437,7 +468,7 @@ window.sendReply = function(postId, commentId, commentAuthor) {
     addXP(myName, 5);
 }
 
-// دوال الواجهة (UI)
+// دوال الواجهة
 window.togglePostMenu = (id) => document.getElementById(`menu-${id}`).classList.toggle('active');
 window.hidePost = (id) => document.getElementById(`post-card-${id}`).style.display='none';
 window.deletePost = (id) => { if(confirm("حذف؟")) remove(ref(db, `posts/${id}`)); };
@@ -462,6 +493,51 @@ window.toggleLike = (pid, author) => {
 // =========================================================
 // 🌐 الدوال العامة
 // =========================================================
+let currentChatPartner = null;
+window.startChat = function(user) {
+    currentChatPartner = user.name;
+    if(window.innerWidth <= 768) { 
+        if(document.getElementById('usersList')) document.getElementById('usersList').style.display = 'none'; 
+        if(document.getElementById('chatArea')) document.getElementById('chatArea').style.display = 'flex'; 
+    }
+    const headerName = document.getElementById('chatHeaderName');
+    const headerImg = document.getElementById('chatHeaderImg');
+    headerName.innerText = user.name;
+    headerImg.src = user.img || DEFAULT_IMG;
+    headerName.onclick = () => visitUserProfile(user.name, user.img || DEFAULT_IMG);
+    headerImg.onclick = () => visitUserProfile(user.name, user.img || DEFAULT_IMG);
+    
+    document.getElementById('chatHeaderImgWrapper').className = `avatar-wrapper ${getLevelClass(user.xp||0)}`;
+    if(document.getElementById('inputArea')) document.getElementById('inputArea').style.display = 'flex';
+    
+    const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_");
+    const msgContainer = document.getElementById('chatMessages'); msgContainer.innerHTML = "";
+    onChildAdded(query(ref(db, 'chats/' + chatId), limitToLast(50)), (s) => {
+        const msg = s.val();
+        const div = document.createElement('div');
+        div.className = `message ${msg.sender === localStorage.getItem('hobbyName') ? 'sent' : 'received'}`;
+        div.innerText = msg.text;
+        div.className += msg.sender === localStorage.getItem('hobbyName') ? ' sent-msg-style' : ' received-msg-style'; // Add CSS classes for style
+        // Basic Inline Styles for Immediate Result
+        div.style.padding="8px"; div.style.margin="5px"; div.style.borderRadius="10px";
+        div.style.background = msg.sender === localStorage.getItem('hobbyName') ? "#4CAF50" : "#ddd";
+        div.style.alignSelf = msg.sender === localStorage.getItem('hobbyName') ? "flex-end" : "flex-start";
+        div.style.color = msg.sender === localStorage.getItem('hobbyName') ? "#fff" : "#000";
+        msgContainer.appendChild(div); msgContainer.scrollTop = msgContainer.scrollHeight;
+    });
+}
+
+window.sendChatMessage = function() { 
+    const inp = document.getElementById('msgInput'); 
+    const txt = inp.value; 
+    if(!txt || !currentChatPartner) return; 
+    const chatId = [localStorage.getItem('hobbyName'), currentChatPartner].sort().join("_"); 
+    push(ref(db, 'chats/' + chatId), { sender: localStorage.getItem('hobbyName'), text: txt, timestamp: serverTimestamp() }); 
+    sendNotification(currentChatPartner, txt, 'message');
+    inp.value=""; 
+}
+window.backToUsers = function() { document.getElementById('usersList').style.display = 'block'; document.getElementById('chatArea').style.display = 'none'; }
+
 window.logout = () => { if(confirm("خروج؟")) signOut(auth).then(()=>location.href='index.html'); };
 window.openAddPost = () => document.getElementById('addPostOverlay').style.display='flex';
 window.closeAddPost = () => document.getElementById('addPostOverlay').style.display='none';
@@ -493,15 +569,15 @@ if(document.getElementById('profileContent')) {
         document.getElementById('p-img').src = u.img||v.img||DEFAULT_IMG; 
         document.getElementById('p-img-wrapper').className = `profile-avatar-large-wrapper ${getLevelClass(u.xp)}`;
         
-        // الأزرار حسب الزائر
         const d = document.getElementById('profileActionsBtns');
         if(v.name===m) d.innerHTML = `<button class="action-btn-profile btn-message" onclick="logout()">خروج</button>`; 
-        else d.innerHTML = `<button class="action-btn-profile btn-message">مراسلة</button>`;
+        else d.innerHTML = `<button class="action-btn-profile btn-message" onclick="startChat({name:'${v.name}', img:'${v.img}'})">مراسلة</button>`;
         
-        // تحميل منشورات هذا الشخص فقط
         onValue(postsRef, (sn) => {
             const pc = document.getElementById('profilePostsContainer'); pc.innerHTML="";
             sn.forEach(ch => { if(ch.val().author===v.name) pc.insertAdjacentHTML('afterbegin', getPostHTML(ch.val(), ch.key)); });
         });
     }); 
 }
+
+window.addEventListener('load', function() { if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); });
