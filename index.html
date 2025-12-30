@@ -1,140 +1,27 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>هوبي - تسجيل الدخول</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - هوبي</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* ستايل صفحة الدخول البسيط والأنيق */
-        body {
-            margin: 0; padding: 0;
-            background-color: #f0f2f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; justify-content: center; align-items: center;
-            height: 100vh;
-            color: #1c1e21;
-        }
-        .login-card {
-            background: white;
-            padding: 40px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .logo { width: 80px; margin-bottom: 20px; }
-        h2 { margin-bottom: 10px; color: #4CAF50; }
-        p { color: #65676b; margin-bottom: 30px; font-size: 14px; }
-        
-        .btn {
-            display: flex; align-items: center; justify-content: center;
-            width: 100%; padding: 12px;
-            margin-bottom: 15px;
-            border: none; border-radius: 6px;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-            transition: 0.2s; text-decoration: none;
-        }
-        .btn-google { background: white; color: #757575; border: 1px solid #ddd; }
-        .btn-google:hover { background: #f1f1f1; }
-        .btn-google img { width: 20px; margin-left: 10px; }
-        
-        .btn-hooby { background: #4CAF50; color: white; }
-        .btn-hooby:hover { background: #43A047; }
-        
-        .footer { margin-top: 20px; font-size: 12px; color: #aaa; }
-    </style>
-
-    <script>
-        // هل المستخدم مسجل دخول من قبل؟
-        if (localStorage.getItem('hobbyLoggedIn') === 'true') {
-            // نعم! انقله فوراً للرئيسية ولا تظهر صفحة الدخول
-            window.location.href = 'home.html';
-        }
-    </script>
 </head>
-<body>
-
-    <div class="login-card">
-        <img src="logo.png" class="logo" alt="Hooby Logo">
-        <h2>أهلاً بك في هوبي</h2>
-        <p>مجتمعك الإبداعي حيث تلتقي الأفكار.</p>
-
-        <button class="btn btn-google" onclick="googleLogin()">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg">
-            استمرار باستخدام Google
+<body class="login-page">
+    <div class="login-container">
+        <img src="logo.png" alt="Hooby Logo" class="login-logo">
+        <h1>أهلاً بك في هوبي</h1>
+        <p>مجتمعك الإبداعي الآمن</p>
+        
+        <button id="googleLoginBtn" class="google-btn" onclick="loginWithGoogle()">
+            <i class="fab fa-google"></i> تسجيل الدخول عبر Google
         </button>
 
-        <div style="margin: 20px 0; color: #ccc;">أو</div>
-
-        <button class="btn btn-hooby" onclick="window.location.href='login-email.html'">
-            <i class="fas fa-envelope" style="margin-left: 10px;"></i>
-            حساب هوبي
-        </button>
-
-        <div class="footer">
-            Hooby App © 2025
-        </div>
+        <p style="margin-top: 20px; font-size: 12px; color: #666;">
+            بالدخول، أنت توافق على شروط الاستخدام.
+        </p>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = {
-          apiKey: "AIzaSyBIVXdGJ09zgMxg4WaGU9vbvICY6JURqDM",
-          authDomain: "hooby-7d945.firebaseapp.com",
-          databaseURL: "https://hooby-7d945-default-rtdb.firebaseio.com",
-          projectId: "hooby-7d945",
-          storageBucket: "hooby-7d945.firebasestorage.app",
-          messagingSenderId: "522131121638",
-          appId: "1:522131121638:web:748f7761f18167fb65e227",
-          measurementId: "G-H1F82C1THC"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
-        const provider = new GoogleAuthProvider();
-
-        // دالة تسجيل الدخول بجوجل
-        window.googleLogin = function() {
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    const user = result.user;
-                    
-                    // 1. حفظ بيانات الجلسة في المتصفح (هذا هو المفتاح للدخول التلقائي)
-                    localStorage.setItem('hobbyLoggedIn', 'true');
-                    localStorage.setItem('hobbyName', user.displayName);
-                    localStorage.setItem('hobbyImage', user.photoURL);
-                    localStorage.setItem('hobbyEmail', user.email);
-
-                    // 2. حفظ المستخدم في قاعدة البيانات (لأول مرة أو تحديث)
-                    const safeName = user.displayName.replace(/[.#$\[\]]/g, "_");
-                    const userRef = ref(db, 'users/' + safeName);
-                    
-                    get(userRef).then((snapshot) => {
-                        if (!snapshot.exists()) {
-                            // مستخدم جديد
-                            update(userRef, {
-                                name: user.displayName,
-                                email: user.email,
-                                img: user.photoURL,
-                                joined: new Date().toISOString()
-                            });
-                        }
-                    }).finally(() => {
-                        // 3. التوجيه للصفحة الرئيسية
-                        window.location.href = 'home.html';
-                    });
-                })
-                .catch((error) => {
-                    console.error(error);
-                    alert("حدث خطأ في التسجيل: " + error.message);
-                });
-        }
-    </script>
+    <script type="module" src="main.js"></script>
 </body>
-</html>س
+</html>
